@@ -11,6 +11,7 @@
 - [Results](#results)
 - [Quickstart](#quickstart)
 - [Architecture](#architecture)
+- [Data](#data)
 - [Roadmap](#roadmap)
 - [Contact](#contact)
 
@@ -104,6 +105,12 @@ means writing one adapter per protocol it supports — not one per task. And a n
 task that reuses an existing protocol needs no model changes at all. See
 [docs/extending.md](docs/extending.md) for the step-by-step.
 
+## Data
+
+The processed benchmark datasets and shared reference files are hosted on Hugging Face at
+[tom-ellis-lab/yeast-seq2expression-benchmark-data](https://huggingface.co/datasets/tom-ellis-lab/yeast-seq2expression-benchmark-data).
+See the [Quickstart](#quickstart) for download instructions.
+
 ## Roadmap
 
 See [`docs/ROADMAP.md`](docs/ROADMAP.md).
@@ -112,3 +119,4 @@ See [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 > [!NOTE]
 > In case of any questions, reach out to mail@timonschneider.de — always happy to help!
+
