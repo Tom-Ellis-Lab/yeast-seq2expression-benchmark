@@ -106,7 +106,7 @@ class Artifact:
 # billing project (`ybench data get/publish --billing-project …` or the
 # YBENCH_GCS_BILLING_PROJECT env var). Until a mirror is published, `get` from it
 # reports "not yet published" rather than failing hard.
-_HF_DATA_REPO = "tom-ellis-lab/yeast-seq2expression-data"
+_HF_DATA_REPO = "tom-ellis-lab/yeast-seq2expression-benchmark-data"
 _GCS_DATA_BUCKET = "gs://yeast-seq2expression-benchmark/"
 
 
