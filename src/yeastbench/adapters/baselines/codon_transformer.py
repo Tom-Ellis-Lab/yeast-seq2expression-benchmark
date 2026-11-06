@@ -75,14 +75,18 @@ class CodonTransformerBaselinePredictor(LocalCodingVariantPredictor):
         cls,
         task,
         device: str | torch.device = "cuda",
+        hf_repo: str = "adibvafa/CodonTransformer",
+        hf_revision: str | None = None,
         **_ignored,
     ) -> "CodonTransformerBaselinePredictor":
         from CodonTransformer.CodonUtils import TOKEN2INDEX
         from transformers import AutoTokenizer, BigBirdForMaskedLM
+        from yeastbench.data.model_sources import resolve_model_source
 
-        log.info("loading CodonTransformer (HF: adibvafa/CodonTransformer)")
-        tokenizer = AutoTokenizer.from_pretrained("adibvafa/CodonTransformer")
-        model = BigBirdForMaskedLM.from_pretrained("adibvafa/CodonTransformer")
+        source = resolve_model_source("codon_transformer", hf_repo, hf_revision)
+        log.info("loading CodonTransformer from %s", source)
+        tokenizer = AutoTokenizer.from_pretrained(source)
+        model = BigBirdForMaskedLM.from_pretrained(source)
         model = model.eval().to(device)
         return cls(
             model=model,

@@ -64,10 +64,12 @@ class YorzoiCuperusPredictor(FivePrimeUtrReporterExpressionPredictor):
         batch_size: int = 32,
         use_rc: bool = True,
         autocast: bool = True,
+        hf_revision: str | None = None,
     ) -> "YorzoiCuperusPredictor":
         return cls(
             Yorzoi.from_pretrained(
                 hf_repo, device=device, use_rc=use_rc, autocast=autocast,
+                hf_revision=hf_revision,
             ),
             fasta_path=fasta_path,
             construct_json=construct_json,

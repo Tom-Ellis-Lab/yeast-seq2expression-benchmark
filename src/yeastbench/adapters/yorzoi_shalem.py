@@ -63,10 +63,12 @@ class YorzoiShalemPredictor(ShalemMarginalizedBase):
         autocast: bool = True,
         n_sample: int | None = None,
         seed: int = 42,
+        hf_revision: str | None = None,
     ) -> "YorzoiShalemPredictor":
         return cls(
             Yorzoi.from_pretrained(
                 hf_repo, device=device, use_rc=use_rc, autocast=autocast,
+                hf_revision=hf_revision,
             ),
             fasta_path=fasta_path,
             gtf_path=gtf_path,

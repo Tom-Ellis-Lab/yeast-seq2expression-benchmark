@@ -235,6 +235,8 @@ def _print_data_check(c: RunDataCheck) -> None:
         _echo(f"  missing: {aid}/{rel}")
     for aid, rel in c.stale:
         _echo(f"  stale:   {aid}/{rel}")
+    for problem in c.invalid:
+        _echo(f"  invalid: {problem}")
 
 
 def _run_compare(cfg: Config) -> None:

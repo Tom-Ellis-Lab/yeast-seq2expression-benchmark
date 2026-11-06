@@ -18,10 +18,13 @@ from yeastbench.data.backends import (
     get_backend,
 )
 from yeastbench.data.lock import (
+    LockError,
     LockedFile,
     locked_files,
     read_lock,
     sha256_file,
+    source_for,
+    validate_artifact_lock,
 )
 from yeastbench.data.manifest import (
     Artifact,
@@ -96,7 +99,7 @@ class ArtifactPlan:
 
 
 def _file_state(dest_file: Path, sha256: str) -> str:
-    if not dest_file.exists():
+    if not dest_file.is_file():
         return "missing"
     return "ok" if sha256_file(dest_file) == sha256 else "stale"
 
@@ -120,11 +123,21 @@ def build_plans(
     lock: dict,
     from_kind: BackendKind | None,
     data_root: Path,
+    require_pinned: bool = False,
 ) -> list[ArtifactPlan]:
     plans: list[ArtifactPlan] = []
     for art in artifacts:
         mirror, available = _choose_mirror(art, from_kind)
         plan = ArtifactPlan(artifact=art, mirror=mirror, mirror_available=available)
+
+        try:
+            validate_artifact_lock(art, lock, require_pinned=require_pinned)
+            if mirror is not None:
+                plan.mirror = source_for(lock, art.id, mirror, require_revision=require_pinned)
+        except LockError as exc:
+            plan.note = str(exc)
+            plans.append(plan)
+            continue
 
         if art.cache_only:
             if mirror is None:
@@ -182,7 +195,7 @@ class GetSummary:
 
     @property
     def ok(self) -> bool:
-        return not self.failures
+        return not self.failures and not self.skipped
 
 
 def run_get(
@@ -193,6 +206,11 @@ def run_get(
     summary = GetSummary()
     for plan in plans:
         art = plan.artifact
+
+        if plan.note:
+            summary.failures.append(f"{art.id}: {plan.note}")
+            log(f"  ! {art.id}: {plan.note}")
+            continue
 
         if plan.cache_only:
             if not plan.mirror_available or plan.mirror is None:
@@ -247,91 +265,6 @@ def run_get(
 
 
 @dataclass
-class PublishSummary:
-    artifacts: int = 0
-    files: int = 0
-    skipped: list[str] = field(default_factory=list)   # cache-only / not redistributable
-    failures: list[str] = field(default_factory=list)
-
-    @property
-    def ok(self) -> bool:
-        return not self.failures
-
-
-def run_publish(
-    artifacts: list[Artifact],
-    lock: dict,
-    to_kind: BackendKind,
-    data_root: Path,
-    message: str,
-    dry_run: bool,
-    log: Log = _noop,
-    billing_project: str | None = None,
-) -> PublishSummary:
-    """Upload redistributable artifacts to their ``to_kind`` mirror, exactly as
-    locked. Maintainer-only; the caller is responsible for the --yes guard."""
-    summary = PublishSummary()
-    backend = _backend_for(to_kind, billing_project)
-    for art in artifacts:
-        if art.cache_only:
-            summary.skipped.append(f"{art.id}: hf-hub model (nothing to publish)")
-            continue
-        if not art.redistributable:
-            summary.skipped.append(
-                f"{art.id}: not redistributable (license={art.license.value})"
-            )
-            log(f"  · {art.id}: not redistributable — skipping")
-            continue
-        mirror = next((m for m in art.mirrors if m.backend == to_kind), None)
-        if mirror is None:
-            summary.skipped.append(f"{art.id}: no {to_kind.value} mirror declared")
-            continue
-        files = locked_files(lock, art.id)
-        if not files:
-            summary.skipped.append(f"{art.id}: not in lock (run `ybench data lock`)")
-            continue
-
-        items: list[tuple[Path, str]] = []
-        bad = False
-        for lf in files:
-            p = data_root / art.dest / lf.relpath
-            if not p.exists():
-                summary.failures.append(f"{art.id}/{lf.relpath}: missing locally")
-                bad = True
-                continue
-            if sha256_file(p) != lf.sha256:
-                summary.failures.append(
-                    f"{art.id}/{lf.relpath}: local differs from lock (run `data lock`)"
-                )
-                bad = True
-                continue
-            items.append((p, mirror.remote_for(lf.relpath)))
-        if bad:
-            continue
-
-        log(f"  {art.id} → {to_kind.value}:{mirror.base}  ({len(items)} files)")
-        if dry_run:
-            for local, remote in items:
-                log(f"      {local.relative_to(data_root)} → {remote}")
-            summary.artifacts += 1
-            summary.files += len(items)
-            continue
-
-        try:
-            if to_kind == BackendKind.HF:
-                backend.upload(mirror, items, f"{message}: {art.id}")
-            else:  # GCS, per-file
-                for local, remote in items:
-                    backend.upload(mirror, local, remote)
-            summary.artifacts += 1
-            summary.files += len(items)
-        except BackendError as e:
-            summary.failures.append(f"{art.id}: {e}")
-            log(f"  ! {art.id}: {e}")
-    return summary
-
-
-@dataclass
 class VerifyRow:
     artifact_id: str
     relpath: str
@@ -339,10 +272,15 @@ class VerifyRow:
 
 
 def run_verify(
-    artifacts: list[Artifact], lock: dict, data_root: Path
+    artifacts: list[Artifact], lock: dict, data_root: Path,
+    require_pinned: bool = False,
 ) -> list[VerifyRow]:
     rows: list[VerifyRow] = []
     for art in artifacts:
+        try:
+            validate_artifact_lock(art, lock, require_pinned=require_pinned)
+        except LockError as exc:
+            rows.append(VerifyRow(art.id, "(lock)", str(exc)))
         for lf in locked_files(lock, art.id):
             dest_file = data_root / art.dest / lf.relpath
             rows.append(
@@ -360,6 +298,7 @@ class StatusRow:
     bytes_present: int
     bytes_total: int
     cache_only: bool
+    note: str | None = None
 
 
 def run_status(
@@ -367,6 +306,11 @@ def run_status(
 ) -> list[StatusRow]:
     rows: list[StatusRow] = []
     for art in artifacts:
+        note = None
+        try:
+            validate_artifact_lock(art, lock)
+        except LockError as exc:
+            note = str(exc)
         locked = locked_files(lock, art.id)
         present = bytes_present = 0
         bytes_total = sum(lf.size for lf in locked)
@@ -384,6 +328,7 @@ def run_status(
                 bytes_present=bytes_present,
                 bytes_total=bytes_total,
                 cache_only=art.cache_only,
+                note=note,
             )
         )
     return rows
@@ -403,10 +348,11 @@ class RunDataCheck:
     missing: list[tuple[str, str]] = field(default_factory=list)  # (id, relpath)
     stale: list[tuple[str, str]] = field(default_factory=list)
     cache_only: list[str] = field(default_factory=list)  # warmed at model-load
+    invalid: list[str] = field(default_factory=list)
 
     @property
     def ready(self) -> bool:
-        return not self.missing and not self.stale
+        return not self.missing and not self.stale and not self.invalid
 
 
 def check_run_data(
@@ -414,6 +360,7 @@ def check_run_data(
     models: list[str],
     data_root: Path,
     lock: dict | None = None,
+    require_pinned: bool = False,
 ) -> RunDataCheck:
     """Are the manifest-declared artifacts for these (tasks, models) present and
     checksum-valid under ``data_root``? Same selection + lock the matching
@@ -423,6 +370,10 @@ def check_run_data(
     lock = read_lock() if lock is None else lock
     check = RunDataCheck()
     for art in artifacts_for(tasks, models):
+        try:
+            validate_artifact_lock(art, lock, require_pinned=require_pinned)
+        except LockError as exc:
+            check.invalid.append(str(exc))
         if art.cache_only:
             check.cache_only.append(art.id)
             continue

@@ -50,7 +50,11 @@ Most new benchmarks reuse an existing protocol. The workflow:
 5. **Reference the task in `configs/default.yaml`** under both
    `tasks_config:` (its constructor kwargs) and any `runs:` that should
    include it.
-6. **Write a spec** in `docs/benchmarks/<name>.md` and add tests in
+6. **Register and publish its inputs.** Add an artifact to
+   `src/yeastbench/data/manifest.py`, freeze the processed files with
+   `ybench data lock --artifacts <id>`, and publish or pin their HF revision.
+   See [Managing benchmark inputs](data.md) for the complete workflow.
+7. **Write a spec** in `docs/benchmarks/<name>.md` and add tests in
    `tests/test_<name>.py`.
 
 ## Adding a new model

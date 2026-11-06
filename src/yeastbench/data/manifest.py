@@ -68,6 +68,7 @@ class Mirror:
     prefix: str = ""                   # remote dir prepended to each file's relpath
     repo_type: str = "dataset"         # HF only: "dataset" | "model"
     member_remote: Mapping[str, str] = field(default_factory=dict)
+    revision: str | None = None       # HF full commit SHA, resolved from the input lock
 
     def remote_for(self, rel: str) -> str:
         if rel in self.member_remote:

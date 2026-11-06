@@ -104,10 +104,14 @@ class Yorzoi:
         device: "str | torch.device" = "cuda",
         use_rc: bool = True,
         autocast: bool = True,
+        hf_revision: str | None = None,
     ) -> "Yorzoi":
+        from yeastbench.data.model_sources import resolve_model_source
         from yorzoi.model.borzoi import Borzoi
+
+        source = resolve_model_source("yorzoi", hf_repo, hf_revision)
         return cls(
-            Borzoi.from_pretrained(hf_repo),
+            Borzoi.from_pretrained(source),
             device=device, use_rc=use_rc, autocast=autocast,
         )
 

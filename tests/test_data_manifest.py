@@ -8,6 +8,7 @@ path; it skips when offline.
 from __future__ import annotations
 
 import urllib.error
+from dataclasses import replace
 
 import pytest
 
@@ -212,10 +213,15 @@ def test_check_run_data_flags_missing(tmp_path):
     assert len(check.missing) == check.files_total
 
 
-def test_check_run_data_counts_present_files(tmp_path):
+def test_check_run_data_counts_present_files(tmp_path, monkeypatch):
     """A file present and matching the (synthetic) lock counts as ready."""
     art = artifact_by_id("hong")
     rel = locked_files(read_lock(), "hong")[0].relpath  # a real locked relpath
+    # This test isolates one file; real Hong also requires other files and refs.
+    monkeypatch.setattr(
+        "yeastbench.data.fetch.artifacts_for",
+        lambda *_: [replace(art, include=(rel,), requires=())],
+    )
     f = tmp_path / art.dest / rel
     f.parent.mkdir(parents=True, exist_ok=True)
     f.write_bytes(b"hello world")

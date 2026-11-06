@@ -45,10 +45,11 @@ class YorzoiYTKPredictor(IntegratedPromoterPanelPredictor):
         batch_size: int = 32,
         use_rc: bool = True,
         autocast: bool = True,
+        hf_revision: str | None = None,
     ) -> "YorzoiYTKPredictor":
         return cls(
             Yorzoi.from_pretrained(
-                hf_repo,
+                hf_repo, hf_revision=hf_revision,
                 device=device,
                 use_rc=use_rc,
                 autocast=autocast,
