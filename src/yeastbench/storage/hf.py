@@ -17,17 +17,28 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
-from yeastbench.artifacts import FileRecord, sha256_file, validate_relative_path
+from yeastbench.storage.files import FileRecord, UploadFile, inspect_file, validate_relative_path
 
 
 class StorageError(RuntimeError):
     """A snapshot cannot be planned or published."""
 
 
-def _commit_sha(value: str) -> str:
+def validate_hf_revision(value: str) -> str:
+    """Require an immutable Hub revision, rather than a branch or tag name."""
     if not isinstance(value, str) or re.fullmatch(r"[0-9a-f]{40}", value) is None:
-        raise StorageError(f"expected a full Hugging Face commit SHA, got {value!r}")
+        raise ValueError(
+            "Hugging Face revision must be a full 40-character lowercase commit SHA; "
+            f"got {value!r}"
+        )
     return value
+
+
+def _commit_sha(value: str) -> str:
+    try:
+        return validate_hf_revision(value)
+    except ValueError as exc:
+        raise StorageError(str(exc)) from exc
 
 
 def _prefixes(values: list[str] | tuple[str, ...]) -> tuple[str, ...]:
@@ -44,26 +55,18 @@ def _prefixes(values: list[str] | tuple[str, ...]) -> tuple[str, ...]:
 
 
 @dataclass(frozen=True)
-class SnapshotFile:
-    local_path: Path
-    record: FileRecord
+class HfCommitPlan:
+    """Validated uploads and scoped deletions based on one remote parent commit."""
 
-
-@dataclass(frozen=True)
-class SnapshotPlan:
     repo_id: str
     repo_type: str
     parent_commit: str
-    files: tuple[SnapshotFile, ...]
+    files: tuple[UploadFile, ...]
     deletions: tuple[str, ...]
     owned_prefixes: tuple[str, ...]
 
     @property
-    def items(self) -> tuple[tuple[Path, str], ...]:
-        return tuple((item.local_path, item.record.path) for item in self.files)
-
-    @property
-    def manifest_sha256(self) -> str:
+    def snapshot_sha256(self) -> str:
         payload = {
             "files": [item.record.to_dict() for item in self.files],
             "owned_prefixes": list(self.owned_prefixes),
@@ -74,30 +77,26 @@ class SnapshotPlan:
 
 
 @dataclass(frozen=True)
-class PublicationReceipt:
+class HfPublicationReceipt:
+    """The verified remote commit and identity of its selected file snapshot."""
+
     repo_id: str
     repo_type: str
     revision: str
     url: str
-    manifest_sha256: str
+    snapshot_sha256: str
 
     def to_dict(self) -> dict:
-        return asdict(self)
+        result = asdict(self)
+        # Keep existing receipt files compatible while using the more precise
+        # snapshot name in Python. The digest covers files and owned prefixes.
+        result["manifest_sha256"] = result.pop("snapshot_sha256")
+        return result
 
 
-def _record(path: Path, remote: str) -> FileRecord:
+def _inspect_upload_file(path: Path, remote: str) -> FileRecord:
     try:
-        validate_relative_path(remote)
-        if path.is_symlink() or not path.is_file():
-            raise ValueError(f"missing or symlinked file: {path}")
-        before = path.stat()
-        digest = sha256_file(path)
-        after = path.stat()
-        if (before.st_size, before.st_mtime_ns, before.st_ino) != (
-            after.st_size, after.st_mtime_ns, after.st_ino,
-        ):
-            raise ValueError(f"file changed while hashing: {path}")
-        return FileRecord(remote, after.st_size, digest)
+        return inspect_file(path, remote)
     except (OSError, ValueError) as exc:
         raise StorageError(str(exc)) from exc
 
@@ -111,7 +110,9 @@ def _git_blob_sha1(path: Path, size: int) -> str:
     return digest.hexdigest()
 
 
-class HfStore:
+class HfPublisher:
+    """Plan and publish complete file snapshots within declared remote prefixes."""
+
     def __init__(self, api: Any = None) -> None:
         self._api = api
 
@@ -129,35 +130,32 @@ class HfStore:
         self,
         repo_id: str,
         repo_type: str,
-        items: list[tuple[Path, str]],
+        files: list[UploadFile],
         owned_prefixes: list[str],
-        expected_checksums: dict[str, str] | None = None,
-    ) -> SnapshotPlan:
+    ) -> HfCommitPlan:
         """Inspect an existing repository and prepare an exact scoped snapshot.
 
-        All local files are validated before contacting the Hub. Remote file
-        discovery uses the resolved head SHA, not a second lookup of ``main``.
-        Each owned prefix must contain at least one submitted file.
+        Every local file must match its expected size and checksum before the
+        Hub is contacted. Remote file discovery uses the resolved head SHA,
+        not a second lookup of ``main``. Each owned prefix must contain at
+        least one submitted file.
         """
         prefixes = _prefixes(owned_prefixes)
-        if not items:
+        if not files:
             raise StorageError("refusing to publish an empty snapshot")
-        files: dict[str, SnapshotFile] = {}
-        for local, remote in items:
-            if remote in files:
+        uploads: dict[str, UploadFile] = {}
+        for upload in files:
+            remote = upload.record.path
+            if remote in uploads:
                 raise StorageError(f"duplicate upload path: {remote}")
             if not any(remote.startswith(prefix) for prefix in prefixes):
                 raise StorageError(f"upload path is outside owned prefixes: {remote}")
-            local = Path(local).absolute()
-            files[remote] = SnapshotFile(local, _record(local, remote))
-        if any(not any(path.startswith(prefix) for path in files) for prefix in prefixes):
+            local = Path(upload.local_path).absolute()
+            if _inspect_upload_file(local, remote) != upload.record:
+                raise StorageError(f"local file differs from expected file record: {remote}")
+            uploads[remote] = UploadFile(local, upload.record)
+        if any(not any(path.startswith(prefix) for path in uploads) for prefix in prefixes):
             raise StorageError("each owned prefix must contain at least one uploaded file")
-        if expected_checksums is not None:
-            if set(expected_checksums) != set(files):
-                raise StorageError("expected checksums must cover exactly the uploaded paths")
-            for remote, item in files.items():
-                if item.record.sha256 != expected_checksums[remote]:
-                    raise StorageError(f"local file differs from expected checksum: {remote}")
         try:
             head = _commit_sha(self.api.repo_info(
                 repo_id=repo_id, repo_type=repo_type, revision="main",
@@ -168,7 +166,7 @@ class HfStore:
             deletions = tuple(sorted(
                 validate_relative_path(path)
                 for path in remote_paths
-                if any(path.startswith(prefix) for prefix in prefixes) and path not in files
+                if any(path.startswith(prefix) for prefix in prefixes) and path not in uploads
             ))
         except StorageError:
             raise
@@ -177,13 +175,13 @@ class HfStore:
                 f"cannot inspect Hugging Face repository '{repo_id}'; "
                 f"it must already exist and be accessible: {exc}"
             ) from exc
-        return SnapshotPlan(
+        return HfCommitPlan(
             repo_id, repo_type, head,
-            tuple(files[path] for path in sorted(files)), deletions, prefixes,
+            tuple(uploads[path] for path in sorted(uploads)), deletions, prefixes,
         )
 
     def _verify_snapshot(
-        self, plan: SnapshotPlan, revision: str, git_blobs: dict[str, str],
+        self, plan: HfCommitPlan, revision: str, git_blobs: dict[str, str],
     ) -> None:
         """Verify the exact returned revision, including no-op commit responses.
 
@@ -225,7 +223,7 @@ class HfStore:
             elif remote.blob_id != git_blobs[path]:
                 raise StorageError(f"remote Git blob checksum differs: {path}")
 
-    def commit(self, plan: SnapshotPlan, message: str) -> PublicationReceipt:
+    def commit(self, plan: HfCommitPlan, message: str) -> HfPublicationReceipt:
         """Freeze validated bytes and submit additions and deletions together."""
         if not plan.files:
             raise StorageError("refusing to publish an empty snapshot")
@@ -234,7 +232,7 @@ class HfStore:
         for item in plan.files:
             if not any(item.record.path.startswith(prefix) for prefix in prefixes):
                 raise StorageError(f"upload path is outside owned prefixes: {item.record.path}")
-            if _record(item.local_path, item.record.path) != item.record:
+            if _inspect_upload_file(item.local_path, item.record.path) != item.record:
                 raise StorageError(f"file changed after planning: {item.record.path}")
         for path in plan.deletions:
             validate_relative_path(path)
@@ -252,7 +250,7 @@ class HfStore:
                 for i, item in enumerate(plan.files):
                     staged = Path(staging) / str(i)
                     shutil.copyfile(item.local_path, staged)
-                    if _record(staged, item.record.path) != item.record:
+                    if _inspect_upload_file(staged, item.record.path) != item.record:
                         raise StorageError(f"file changed while staging: {item.record.path}")
                     git_blobs[item.record.path] = _git_blob_sha1(staged, item.record.size)
                     operations.append(CommitOperationAdd(
@@ -275,9 +273,9 @@ class HfStore:
                         f"Hugging Face returned commit {revision} ({result.commit_url}), "
                         f"but snapshot verification failed; no verified receipt was issued: {exc}"
                     ) from exc
-            return PublicationReceipt(
+            return HfPublicationReceipt(
                 plan.repo_id, plan.repo_type, revision, str(result.commit_url),
-                plan.manifest_sha256,
+                plan.snapshot_sha256,
             )
         except StorageError:
             raise

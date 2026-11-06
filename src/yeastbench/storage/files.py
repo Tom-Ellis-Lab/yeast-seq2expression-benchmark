@@ -1,11 +1,8 @@
-"""File identities shared by input data and saved benchmark results."""
+"""File identities and inventories shared by input data and saved results."""
 
 from __future__ import annotations
 
 import hashlib
-import json
-import os
-import tempfile
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Iterable
@@ -33,29 +30,10 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def atomic_write_json(path: Path, value: object) -> None:
-    """Replace JSON only after the complete new document has been written."""
-    path = Path(path)
-    payload = json.dumps(value, indent=2, sort_keys=True, allow_nan=False) + "\n"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temporary: Path | None = None
-    try:
-        with tempfile.NamedTemporaryFile(
-            mode="w", encoding="utf-8", dir=path.parent,
-            prefix=f".{path.name}.", suffix=".tmp", delete=False,
-        ) as stream:
-            temporary = Path(stream.name)
-            stream.write(payload)
-            stream.flush()
-            os.fsync(stream.fileno())
-        os.replace(temporary, path)
-    finally:
-        if temporary is not None:
-            temporary.unlink(missing_ok=True)
-
-
 @dataclass(frozen=True)
 class FileRecord:
+    """A file's relative path and content identity within an inventory."""
+
     path: str
     size: int
     sha256: str
@@ -75,15 +53,44 @@ class FileRecord:
         return asdict(self)
 
 
+@dataclass(frozen=True)
+class UploadFile:
+    """A local file paired with its destination-relative path and identity."""
+
+    local_path: Path
+    record: FileRecord
+
+
+def inspect_file(local_path: Path, relative_path: str) -> FileRecord:
+    """Record a regular file, rejecting changes made while its bytes are hashed.
+
+    ``relative_path`` identifies the file within its dataset or upload snapshot;
+    ``local_path`` is the actual file to read. Directory inventories additionally
+    reject symlinks in the path between their root and this file.
+    """
+    validate_relative_path(relative_path)
+    path = Path(local_path)
+    if path.is_symlink() or not path.is_file():
+        raise ValueError(f"missing or symlinked file: {path}")
+    before = path.stat()
+    digest = sha256_file(path)
+    after = path.stat()
+    if (before.st_size, before.st_mtime_ns, before.st_ino) != (
+        after.st_size, after.st_mtime_ns, after.st_ino,
+    ):
+        raise ValueError(f"file changed while hashing: {path}")
+    return FileRecord(relative_path, after.st_size, digest)
+
+
 def _local_file(root: Path, relative: str) -> Path:
     validate_relative_path(relative)
     path = root / relative
     # Symlinks make a saved tree's meaning depend on files outside the tree.
     if any((root.joinpath(*Path(relative).parts[:i])).is_symlink()
            for i in range(1, len(Path(relative).parts) + 1)):
-        raise ValueError(f"symlink is not an artifact file: {relative}")
+        raise ValueError(f"symlink is not an inventory file: {relative}")
     if not path.is_file():
-        raise ValueError(f"missing artifact file: {relative}")
+        raise ValueError(f"missing inventory file: {relative}")
     return path
 
 
@@ -93,7 +100,7 @@ def inventory_files(
     """Hash an explicit selection, or all files in a directory, in path order."""
     root = Path(root)
     if not root.is_dir():
-        raise ValueError(f"artifact directory does not exist: {root}")
+        raise ValueError(f"inventory directory does not exist: {root}")
     if paths is None:
         paths = (
             p.relative_to(root).as_posix()
@@ -101,11 +108,11 @@ def inventory_files(
         )
     relative_paths = list(paths)
     if len(set(relative_paths)) != len(relative_paths):
-        raise ValueError("duplicate paths in artifact inventory")
+        raise ValueError("duplicate paths in file inventory")
     records = []
     for relative in sorted(relative_paths):
         path = _local_file(root, relative)
-        records.append(FileRecord(relative, path.stat().st_size, sha256_file(path)))
+        records.append(inspect_file(path, relative))
     return tuple(records)
 
 
@@ -116,10 +123,10 @@ def validate_files(
     records = tuple(records)
     expected = {record.path: record for record in records}
     if len(expected) != len(records):
-        raise ValueError("duplicate paths in artifact inventory")
+        raise ValueError("duplicate paths in file inventory")
     actual = inventory_files(root, None if exact else expected)
     if {record.path for record in actual} != set(expected):
-        raise ValueError("artifact files do not match the inventory")
+        raise ValueError("files do not match the inventory")
     for record in actual:
         if record != expected[record.path]:
-            raise ValueError(f"artifact file differs from inventory: {record.path}")
+            raise ValueError(f"file differs from inventory: {record.path}")

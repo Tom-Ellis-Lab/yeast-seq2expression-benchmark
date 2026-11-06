@@ -104,9 +104,10 @@ results/default/
     …
 ```
 
-`run_metadata.json` captures everything needed to reproduce that directory's
-numbers — the config hash, repo git commit, resolved model/task configs,
-and timestamp. Raw scores + labels + pair metadata are persisted so
+`run_metadata.json` records the config hash, repo git commit, resolved model/task
+configs, and timestamp for that model/task pair. It does not yet record pinned
+input revisions or identify an isolated full benchmark run. Raw scores, labels,
+and pair metadata are persisted so
 post-hoc analyses (distance-stratification, signed-vs-absolute comparison,
 etc.) don't require re-running the model.
 

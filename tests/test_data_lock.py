@@ -7,9 +7,10 @@ from dataclasses import replace
 
 import pytest
 
+from yeastbench.data.artifacts import BackendKind, InputArtifact, InputKind, Mirror
 from yeastbench.data.lock import (
     LockError,
-    build_lock,
+    build_lock_entries,
     locked_files,
     merge_lock,
     prune_sources,
@@ -19,16 +20,15 @@ from yeastbench.data.lock import (
     with_hf_revision,
     write_lock,
 )
-from yeastbench.data.manifest import Artifact, BackendKind, Kind, Mirror
 
 REVISION = "a" * 40
 OTHER_REVISION = "b" * 40
 
 
 def artifact(**overrides):
-    art = Artifact(
+    art = InputArtifact(
         id="example",
-        kind=Kind.TASK_PROCESSED,
+        kind=InputKind.TASK_PROCESSED,
         dest="data/example",
         mirrors=(Mirror(BackendKind.HF, base="lab/data", prefix="example/"),),
         include=("measurements.tsv", "sequences.fa"),
@@ -49,7 +49,7 @@ def local_input(tmp_path):
 @pytest.fixture
 def unpinned_lock(local_input):
     art, root = local_input
-    return {"version": 1, "artifacts": build_lock([art], root)}
+    return {"version": 1, "artifacts": build_lock_entries([art], root)}
 
 
 def pin(lock, art=None, revision=REVISION):
@@ -68,21 +68,21 @@ def test_legacy_lock_does_not_invent_source(unpinned_lock, tmp_path):
 
 def test_build_refuses_missing_artifact_directory(tmp_path):
     with pytest.raises(LockError, match="no locked files"):
-        build_lock([artifact()], tmp_path)
+        build_lock_entries([artifact()], tmp_path)
 
 
 def test_build_refuses_missing_explicit_member(local_input):
     art, root = local_input
     (root / art.dest / "sequences.fa").unlink()
     with pytest.raises(LockError, match="sequences.fa"):
-        build_lock([art], root)
+        build_lock_entries([art], root)
 
 
 def test_build_requires_each_declared_pattern(local_input):
     art, root = local_input
     art = replace(art, include=("*.tsv", "missing/*.fa"))
     with pytest.raises(LockError, match="missing/\\*.fa"):
-        build_lock([art], root)
+        build_lock_entries([art], root)
 
 
 def test_recursive_pattern_includes_top_level_and_nested_files(local_input):
@@ -91,9 +91,9 @@ def test_recursive_pattern_includes_top_level_and_nested_files(local_input):
     (base / "nested").mkdir()
     (base / "nested" / "more.tsv").write_text("value\n2\n")
     art = replace(art, include=("**/*.tsv",))
-    lock = {"version": 2, "artifacts": build_lock([art], root)}
+    lock = {"version": 2, "artifacts": build_lock_entries([art], root)}
     validate_artifact_lock(art, lock)
-    assert {x.relpath for x in locked_files(lock, art.id)} == {
+    assert {x.path for x in locked_files(lock, art.id)} == {
         "measurements.tsv", "nested/more.tsv",
     }
 
@@ -106,13 +106,23 @@ def test_build_rejects_file_symlink_outside_artifact(local_input):
     path.unlink()
     path.symlink_to(outside)
     with pytest.raises(LockError, match="outside"):
-        build_lock([art], root)
+        build_lock_entries([art], root)
+
+
+def test_build_rejects_file_symlink_inside_artifact(local_input):
+    art, root = local_input
+    base = root / art.dest
+    path = base / "sequences.fa"
+    path.rename(base / "original.fa")
+    path.symlink_to("original.fa")
+    with pytest.raises(LockError, match="symlink"):
+        build_lock_entries([art], root)
 
 
 def test_relocking_unchanged_bytes_preserves_revision(local_input, unpinned_lock):
     art, root = local_input
     original = pin(unpinned_lock)
-    updated = merge_lock(original, build_lock([art], root))
+    updated = merge_lock(original, build_lock_entries([art], root))
     assert updated == original
 
 
@@ -121,7 +131,7 @@ def test_relocking_changed_bytes_clears_revision(local_input, unpinned_lock):
     original = pin(unpinned_lock)
     original_copy = copy.deepcopy(original)
     (root / art.dest / "sequences.fa").write_text(">a\nTGCA\n")
-    updated = merge_lock(original, build_lock([art], root))
+    updated = merge_lock(original, build_lock_entries([art], root))
     assert "sources" not in updated["artifacts"][art.id]
     assert original == original_copy
     assert source_for(updated, art.id, art.mirrors[0]).revision is None
@@ -131,7 +141,7 @@ def test_relocking_preserves_unselected_artifacts(local_input, unpinned_lock):
     art, root = local_input
     original = pin(unpinned_lock)
     original["artifacts"]["unselected"] = copy.deepcopy(original["artifacts"][art.id])
-    updated = merge_lock(original, build_lock([art], root))
+    updated = merge_lock(original, build_lock_entries([art], root))
     assert updated["artifacts"]["unselected"] == original["artifacts"]["unselected"]
     updated["artifacts"]["unselected"]["files"].clear()
     assert original["artifacts"]["unselected"]["files"]
@@ -176,7 +186,7 @@ def test_pin_requires_declared_repository(unpinned_lock):
 
 def test_cache_only_model_gets_revision_without_local_file_inventory():
     art = artifact(
-        id="model", kind=Kind.MODEL_WEIGHTS, dest="", cache_only=True, include=(),
+        id="model", kind=InputKind.MODEL_WEIGHTS, dest="", cache_only=True, include=(),
         mirrors=(Mirror(BackendKind.HF, base="lab/model", repo_type="model"),),
     )
     lock = {"version": 1, "artifacts": {}}

@@ -11,31 +11,31 @@ from typing import Annotated, Optional
 
 import typer
 
-from yeastbench.artifacts import atomic_write_json
+from yeastbench.data.artifacts import BackendKind
 from yeastbench.data.fetch import (
-    ArtifactPlan,
+    DownloadPlan,
     GetSummary,
-    artifacts_for,
     build_plans,
     default_data_root,
+    format_bytes,
     run_get,
     run_status,
     run_verify,
     selection_from_config,
-    _human,
 )
 from yeastbench.data.lock import (
     LOCK_PATH,
     LockError,
-    build_lock,
+    build_lock_entries,
     merge_lock,
     prune_sources,
     read_lock,
     write_lock,
 )
-from yeastbench.data.manifest import ARTIFACTS, BackendKind, artifact_by_id
+from yeastbench.data.manifest import ARTIFACTS, artifact_by_id, artifacts_for
 from yeastbench.data.pinning import pin_inputs
 from yeastbench.data.publish import run_publish
+from yeastbench.storage.json import atomic_write_json
 
 app = typer.Typer(
     add_completion=False,
@@ -130,7 +130,7 @@ def get_cmd(
         raise typer.Exit(code=1)
 
 
-def _print_plan(plans: list[ArtifactPlan]) -> None:
+def _print_plan(plans: list[DownloadPlan]) -> None:
     for p in plans:
         mirror = (
             f"{p.mirror.backend.value}:{p.mirror.base}" if p.mirror else "—"
@@ -145,7 +145,7 @@ def _print_plan(plans: list[ArtifactPlan]) -> None:
             continue
         n_fetch = len(p.to_fetch)
         n_ok = len(p.files) - n_fetch
-        size = _human(sum(f.size for f in p.to_fetch))
+        size = format_bytes(sum(f.record.size for f in p.to_fetch))
         _echo(
             f"  {p.artifact.id}  via {mirror}{avail}  "
             f"[{n_ok} ok, {n_fetch} to fetch, {size}]"
@@ -236,7 +236,7 @@ def status_cmd(
         _echo(
             f"  {r.artifact_id:28s} {mark:8s} "
             f"{r.present}/{r.total} files  "
-            f"{_human(r.bytes_present)}/{_human(r.bytes_total)}"
+            f"{format_bytes(r.bytes_present)}/{format_bytes(r.bytes_total)}"
         )
 
 
@@ -286,7 +286,7 @@ def list_cmd(
 
 @app.command("lock")
 def lock_cmd(
-    tasks: Annotated[Optional[str], typer.Option("--artifacts", "--tasks", help="Only re-lock these artifact ids")] = None,
+    artifact_ids: Annotated[Optional[str], typer.Option("--artifacts", "--tasks", help="Only re-lock these artifact ids")] = None,
     data_root: Annotated[Optional[Path], typer.Option("--data-root")] = None,
     lock_file: Annotated[Path, typer.Option("--lock-file")] = LOCK_PATH,
 ) -> None:
@@ -296,12 +296,12 @@ def lock_cmd(
     matches the bytes on the mirrors.
     """
     root = (data_root or default_data_root()).resolve()
-    ids = _split(tasks)
+    ids = _split(artifact_ids)
     artifacts = (
         [artifact_by_id(i) for i in ids] if ids else list(ARTIFACTS)
     )
     try:
-        fresh = build_lock(artifacts, root)
+        fresh = build_lock_entries(artifacts, root)
         merged = prune_sources(merge_lock(_load_lock(lock_file), fresh), artifacts)
         write_lock(merged, lock_file)
     except (LockError, OSError) as exc:
@@ -312,19 +312,16 @@ def lock_cmd(
     _echo(f"locked {len(fresh)} artifact(s), {n_files} files → {lock_file}")
     for aid in sorted(fresh):
         _echo(f"  {aid}: {len(fresh[aid]['files'])} files")
-    missing = [a.id for a in artifacts if not a.cache_only and a.id not in fresh]
-    if missing:
-        _echo("no local files found for: " + ", ".join(missing))
 
 
 @app.command("pin")
 def pin_cmd(
-    artifacts: Annotated[str, typer.Option("--artifacts", help="Comma-separated artifact ids with HF sources")],
+    artifact_ids: Annotated[str, typer.Option("--artifacts", help="Comma-separated artifact ids with HF sources")],
     revision: Annotated[str, typer.Option("--revision", help="Branch, tag, or commit to resolve and verify")] = "main",
     lock_file: Annotated[Path, typer.Option("--lock-file")] = LOCK_PATH,
 ) -> None:
     """Pin existing HF data/model sources; verify dataset bytes before changing the lock."""
-    selected = [artifact_by_id(i) for i in _split(artifacts) or []]
+    selected = [artifact_by_id(i) for i in _split(artifact_ids) or []]
     if not selected:
         raise typer.BadParameter("select at least one artifact", param_hint="--artifacts")
     try:
@@ -347,7 +344,7 @@ def pin_cmd(
 @app.command("publish")
 def publish_cmd(
     to: Annotated[str, typer.Option("--to", help="Mirror to publish to: hf | gcs")],
-    tasks: Annotated[Optional[str], typer.Option("--artifacts", "--tasks", help="Only these artifact ids (default: all redistributable)")] = None,
+    artifact_ids: Annotated[Optional[str], typer.Option("--artifacts", "--tasks", help="Only these artifact ids (default: all redistributable)")] = None,
     billing_project: Annotated[Optional[str], typer.Option("--billing-project", help="GCP project to bill for the requester-pays GCS bucket (or set YBENCH_GCS_BILLING_PROJECT); ignored for --to hf")] = None,
     data_root: Annotated[Optional[Path], typer.Option("--data-root")] = None,
     message: Annotated[str, typer.Option("--message", "-M", help="Commit message (HF)")] = "publish benchmark data",
@@ -362,7 +359,7 @@ def publish_cmd(
     if kind == BackendKind.HTTP:
         raise typer.Exit("--to must be hf or gcs (http is read-only)")
     root = (data_root or default_data_root()).resolve()
-    ids = _split(tasks)
+    ids = _split(artifact_ids)
     artifacts = [artifact_by_id(i) for i in ids] if ids else list(ARTIFACTS)
     lock = _load_lock(lock_file)
 

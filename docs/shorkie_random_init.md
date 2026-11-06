@@ -144,7 +144,7 @@ in the run and the other eight signatures don't take it.
 all nine adapters are reused as they stand. The name has no `__`, so
 `compare._DIR_RE` (`compare.py:41`) splits the result directories correctly.
 
-**`src/yeastbench/data/manifest.py`** — a new `Artifact` after the `shorkie`
+**`src/yeastbench/data/manifest.py`** — a new `InputArtifact` after the `shorkie`
 block (`:258-289`), `dest="data/models/shorkie_random_init"`, mirror base
 `.../shorkie_models/shorkie_random_init/`, the same `f{i}/model_best.h5`
 remapping. Upstream ships no `targets.txt` for this variant and both models were

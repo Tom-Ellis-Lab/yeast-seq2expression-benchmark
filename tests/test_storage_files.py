@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-import json
-
 import pytest
 
-from yeastbench.artifacts import (
-    atomic_write_json,
+from yeastbench.storage.files import (
+    inspect_file,
     inventory_files,
+    sha256_file,
     validate_files,
     validate_relative_path,
 )
@@ -63,23 +62,19 @@ def test_inventory_order_is_stable_and_duplicates_are_rejected(tmp_path):
         inventory_files(tmp_path, ["a", "a"])
 
 
-def test_atomic_json_failure_preserves_existing_document(tmp_path, monkeypatch):
-    path = tmp_path / "manifest.json"
-    atomic_write_json(path, {"version": 1})
+@pytest.mark.parametrize("inventory", [False, True])
+def test_file_changed_while_hashing_is_rejected(tmp_path, monkeypatch, inventory):
+    path = tmp_path / "predictions.tsv"
+    path.write_text("original")
 
-    def fail_replace(*args):
-        raise OSError("replacement failed")
+    def mutate_after_hash(local_path):
+        digest = sha256_file(local_path)
+        local_path.write_text("updated predictions")
+        return digest
 
-    monkeypatch.setattr("yeastbench.artifacts.os.replace", fail_replace)
-    with pytest.raises(OSError, match="replacement failed"):
-        atomic_write_json(path, {"version": 2})
-    assert json.loads(path.read_text()) == {"version": 1}
-    assert list(tmp_path.iterdir()) == [path]
-
-
-def test_atomic_json_rejects_non_finite_values_before_replacing(tmp_path):
-    path = tmp_path / "manifest.json"
-    atomic_write_json(path, {"version": 1})
-    with pytest.raises(ValueError):
-        atomic_write_json(path, {"score": float("nan")})
-    assert json.loads(path.read_text()) == {"version": 1}
+    monkeypatch.setattr("yeastbench.storage.files.sha256_file", mutate_after_hash)
+    with pytest.raises(ValueError, match="changed while hashing"):
+        if inventory:
+            inventory_files(tmp_path)
+        else:
+            inspect_file(path, "run/predictions.tsv")

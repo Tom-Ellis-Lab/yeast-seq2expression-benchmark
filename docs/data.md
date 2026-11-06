@@ -1,23 +1,27 @@
 # Register, pin, and publish benchmark inputs
 
-Benchmark inputs are described in `src/yeastbench/data/manifest.py`. Their
-filenames, SHA-256 checksums, sizes, and published Hugging Face revisions live
+Benchmark inputs are registered in `src/yeastbench/data/manifest.py` using the
+`InputArtifact` type from `src/yeastbench/data/artifacts.py`. Their filenames,
+SHA-256 checksums, sizes, and published Hugging Face revisions live
 in `src/yeastbench/data/manifest.lock.json`. Generated predictions belong to the
 results workflow; `ybench data publish` only publishes input artifacts.
 
 ## Add or change data
 
 1. Build the processed files with the task's preparation script under `scripts/`.
-2. Register the artifact in `data/manifest.py`, including its local destination,
-   exact runtime filenames, task dependencies, and redistribution status.
+2. Register an `InputArtifact` in `data/manifest.py`, including its local
+   destination, exact runtime filenames, task dependencies, and redistribution
+   status.
 3. Freeze the local files:
 
    ```bash
    uv run ybench data lock --artifacts ytk_promoter
    ```
 
-   Missing required files fail the command before the lock is changed. Re-locking
-   unchanged bytes preserves their revision; changed bytes clear the old revision.
+   Missing required files and symlinks fail the command before the lock is changed.
+   Locked distributions contain regular files whose contents can be inventoried.
+   Re-locking unchanged bytes preserves their revision; changed bytes clear the
+   old revision.
    Changing a declared repository or artifact prefix also clears its obsolete
    pin. Explicit `pin` and `publish` commands can establish the new source;
    ordinary downloads reject a stale declaration.
@@ -170,13 +174,43 @@ copies one file at a time and leaves obsolete remote files in place. It does not
 create a Git commit or update Hugging Face pins. Historical retrieval from GCS
 needs a separate immutable-path or object-generation scheme.
 
+## Code organization
+
+Input declarations describe what a benchmark needs. Shared storage types describe
+the bytes to save or upload:
+
+| Entity | Module | Meaning |
+| --- | --- | --- |
+| `InputArtifact`, `InputKind`, `Mirror` | `data/artifacts.py` | A registered dataset, model, or shared reference, its role, and its sources. |
+| `ARTIFACTS`, `artifact_by_id`, `artifacts_for` | `data/manifest.py` | The input registry and dependency selection. |
+| `FileRecord` | `storage/files.py` | One relative file path, its size, and its SHA-256 checksum. Used by input locks and uploads. |
+| `DownloadFile`, `DownloadPlan` | `data/fetch.py` | A file record with its local destination/state, grouped by input and download source. |
+| `UploadFile` | `storage/files.py` | A local file paired with its destination path and expected content identity for upload. |
+| `HfCommitPlan` | `storage/hf.py` | The exact uploads and scoped deletions proposed for one HF repository commit. |
+| `HfPublicationReceipt` | `storage/hf.py` | The verified repository revision, URL, and inventory digest returned by publication. |
+
+`storage/files.py` owns file inspection, inventory creation, and verification;
+`storage/json.py` owns atomic JSON writes. `data/lock.py` uses these shared file
+records and translates them to the existing lock format. `build_lock_entries`
+builds the selected per-input entries; merging and writing the full lock are
+separate operations.
+
+`data/publish.py` applies input selection and redistribution rules, then uses
+`storage/hf.py`'s `HfPublisher` to plan and publish the selected files. The shared
+storage modules do not import the input registry, so a results publisher can use
+the same file records, commit plans, and receipts.
+
+Scientific result objects and each benchmark's `save_results`/`load_results`
+remain task-specific. Their existing JSON serialization also remains unchanged:
+some metrics contain NaN, while the shared metadata writer requires finite JSON
+values. A shared results publication layer can inventory those saved files
+without changing their scientific format.
+
 ## Checkpoint 1 review
 
-The shared publisher is in `src/yeastbench/storage/hf.py`; file identities and
-atomic JSON writes are in `src/yeastbench/artifacts.py`. Data selection and
-publication rules are in `src/yeastbench/data/publish.py`. The tests in
-`tests/test_data_workflow.py` demonstrate an upload preview, one commit for two
-artifacts, receipts, and verified historical downloads using a fake Hub.
+The tests in `tests/test_data_workflow.py` demonstrate an upload preview, one
+commit for two artifacts, receipts, and verified historical downloads using a
+fake Hub.
 
 The committed legacy lock is retained until its real remote revisions are
 verified. Run isolation, full-run result publication, and Modal run changes are

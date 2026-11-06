@@ -4,19 +4,19 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Callable
 
+from yeastbench.data.artifacts import BackendKind, InputArtifact
 from yeastbench.data.lock import (
     LockError,
     locked_files,
     prune_sources,
-    sha256_file,
     validate_artifact_lock,
     with_hf_revision,
 )
-from yeastbench.data.manifest import Artifact, BackendKind
+from yeastbench.storage.files import sha256_file
 
 
 def pin_inputs(
-    artifacts: list[Artifact],
+    artifacts: list[InputArtifact],
     lock: dict,
     revision: str = "main",
     *,
@@ -56,11 +56,11 @@ identity; the model loader will use this exact snapshot. No remote writes.
                 for entry in locked_files(lock, art.id):
                     cached = Path(download(
                         repo_id=repo_id, repo_type=repo_type, revision=resolved,
-                        filename=mirror.remote_for(entry.relpath),
+                        filename=mirror.remote_for(entry.path),
                     ))
                     if cached.stat().st_size != entry.size or sha256_file(cached) != entry.sha256:
                         raise LockError(
-                            f"{art.id}/{entry.relpath}: revision {resolved} differs from lock; "
+                            f"{art.id}/{entry.path}: revision {resolved} differs from lock; "
                             "choose a matching historical revision or publish the locked files"
                         )
             updated = candidate

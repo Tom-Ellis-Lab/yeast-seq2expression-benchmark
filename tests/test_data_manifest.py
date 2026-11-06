@@ -13,29 +13,27 @@ from dataclasses import replace
 import pytest
 
 from yeastbench.data import manifest
+from yeastbench.data.artifacts import (
+    BackendKind,
+    InputArtifact,
+    InputKind,
+    Mirror,
+)
 from yeastbench.data.backends import HttpBackend
 from yeastbench.data.fetch import (
     _file_state,
-    artifacts_for,
     build_plans,
     check_run_data,
 )
 from yeastbench.data.lock import (
     LOCK_PATH,
-    build_lock,
+    build_lock_entries,
     local_files,
     locked_files,
     read_lock,
-    sha256_file,
 )
-from yeastbench.data.manifest import (
-    Artifact,
-    BackendKind,
-    Kind,
-    Mirror,
-    artifact_by_id,
-)
-
+from yeastbench.data.manifest import artifact_by_id, artifacts_for
+from yeastbench.storage.files import sha256_file
 
 # ──────────────────────────────────────────────────────────────
 # Registry coverage — every task/model has declared data
@@ -90,10 +88,10 @@ def test_selection_all_when_unfiltered():
 # ──────────────────────────────────────────────────────────────
 
 
-def _fake_artifact(dest: str) -> Artifact:
-    return Artifact(
+def _fake_artifact(dest: str) -> InputArtifact:
+    return InputArtifact(
         id="fake",
-        kind=Kind.TASK_PROCESSED,
+        kind=InputKind.TASK_PROCESSED,
         dest=dest,
         mirrors=(Mirror(BackendKind.HTTP, base="https://example.invalid/"),),
         include=("**/*",),
@@ -113,7 +111,7 @@ def test_lock_build_and_excludes_cache(tmp_path):
     rels = local_files(art, root)
     assert rels == ["a.tsv", "sub/b.tsv"]  # _cache excluded, sorted
 
-    lock = build_lock([art], root)
+    lock = build_lock_entries([art], root)
     assert set(lock["fake"]["files"]) == {"a.tsv", "sub/b.tsv"}
     assert lock["fake"]["files"]["a.tsv"]["sha256"] == sha256_file(base / "a.tsv")
     assert lock["fake"]["files"]["a.tsv"]["size"] == 5
@@ -139,7 +137,7 @@ def test_build_plans_reports_present_files_as_ok(tmp_path):
     base.mkdir()
     (base / "a.tsv").write_text("hello")
     art = _fake_artifact("blob")
-    lock = {"version": 1, "artifacts": build_lock([art], root)}
+    lock = {"version": 1, "artifacts": build_lock_entries([art], root)}
 
     plans = build_plans([art], lock, from_kind=BackendKind.HTTP, data_root=root)
     assert len(plans) == 1
@@ -168,12 +166,12 @@ def test_build_plans_marks_missing_files_for_fetch(tmp_path):
 
 def test_committed_lock_covers_shorkie_and_refs():
     lock = read_lock(LOCK_PATH)
-    shorkie = {lf.relpath for lf in locked_files(lock, "shorkie")}
+    shorkie = {lf.path for lf in locked_files(lock, "shorkie")}
     assert "params.json" in shorkie
     assert "targets.txt" in shorkie
     assert sum(r.startswith("checkpoints/f") for r in shorkie) == 8
 
-    refs = {lf.relpath for lf in locked_files(lock, "refs")}
+    refs = {lf.path for lf in locked_files(lock, "refs")}
     assert {"R64-1-1.fa", "R64-5-1.fa"} <= refs
 
 
@@ -189,7 +187,7 @@ def test_http_backend_fetches_shorkie_params_matching_lock(tmp_path):
     art = artifact_by_id("shorkie")
     mirror = art.mirrors[0]
     lock = read_lock(LOCK_PATH)
-    want = {lf.relpath: lf.sha256 for lf in locked_files(lock, "shorkie")}
+    want = {lf.path: lf.sha256 for lf in locked_files(lock, "shorkie")}
 
     out = tmp_path / "params.json"
     try:
@@ -216,7 +214,7 @@ def test_check_run_data_flags_missing(tmp_path):
 def test_check_run_data_counts_present_files(tmp_path, monkeypatch):
     """A file present and matching the (synthetic) lock counts as ready."""
     art = artifact_by_id("hong")
-    rel = locked_files(read_lock(), "hong")[0].relpath  # a real locked relpath
+    rel = locked_files(read_lock(), "hong")[0].path  # a real locked relpath
     # This test isolates one file; real Hong also requires other files and refs.
     monkeypatch.setattr(
         "yeastbench.data.fetch.artifacts_for",
@@ -242,7 +240,7 @@ def test_check_run_data_counts_present_files(tmp_path, monkeypatch):
 def test_check_run_data_detects_stale(tmp_path):
     """A file present but with the wrong bytes is stale, not ready."""
     art = artifact_by_id("hong")
-    rel = locked_files(read_lock(), "hong")[0].relpath
+    rel = locked_files(read_lock(), "hong")[0].path
     f = tmp_path / art.dest / rel
     f.parent.mkdir(parents=True, exist_ok=True)
     f.write_bytes(b"wrong bytes")

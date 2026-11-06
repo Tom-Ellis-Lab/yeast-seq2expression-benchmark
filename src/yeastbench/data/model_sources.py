@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 
 from yeastbench.data.lock import read_lock, source_for, validate_revision
-from yeastbench.data.manifest import BackendKind, Mirror
+from yeastbench.data.artifacts import BackendKind, Mirror
 
 log = logging.getLogger(__name__)
 

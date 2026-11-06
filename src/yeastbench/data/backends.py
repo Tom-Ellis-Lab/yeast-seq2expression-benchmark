@@ -22,7 +22,7 @@ import urllib.request
 from pathlib import Path
 from typing import Protocol
 
-from yeastbench.data.manifest import BackendKind, Mirror
+from yeastbench.data.artifacts import BackendKind, Mirror
 
 
 class BackendError(RuntimeError):

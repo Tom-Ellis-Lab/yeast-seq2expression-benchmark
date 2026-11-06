@@ -9,17 +9,22 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
 
+from yeastbench.data.artifacts import BackendKind, InputArtifact, Mirror
 from yeastbench.data.backends import BackendError, GcsBackend
 from yeastbench.data.lock import (
     LockError,
     locked_files,
     prune_sources,
-    sha256_file,
     validate_artifact_lock,
     with_hf_revision,
 )
-from yeastbench.data.manifest import Artifact, BackendKind, Mirror
-from yeastbench.storage.hf import HfStore, PublicationReceipt, SnapshotPlan, StorageError
+from yeastbench.storage.files import FileRecord, UploadFile, inspect_file
+from yeastbench.storage.hf import (
+    HfCommitPlan,
+    HfPublicationReceipt,
+    HfPublisher,
+    StorageError,
+)
 
 
 @dataclass
@@ -28,8 +33,8 @@ class PublishSummary:
     files: int = 0
     skipped: list[str] = field(default_factory=list)
     failures: list[str] = field(default_factory=list)
-    plans: list[SnapshotPlan] = field(default_factory=list)
-    receipts: list[PublicationReceipt] = field(default_factory=list)
+    plans: list[HfCommitPlan] = field(default_factory=list)
+    receipts: list[HfPublicationReceipt] = field(default_factory=list)
     updated_lock: dict | None = None
 
     @property
@@ -37,8 +42,17 @@ class PublishSummary:
         return not self.failures
 
 
+@dataclass(frozen=True)
+class _ArtifactUpload:
+    """A selected input and the exact files to publish to its mirror."""
+
+    artifact: InputArtifact
+    mirror: Mirror
+    files: tuple[UploadFile, ...]
+
+
 def run_publish(
-    artifacts: list[Artifact],
+    artifacts: list[InputArtifact],
     lock: dict,
     to_kind: BackendKind,
     data_root: Path,
@@ -47,8 +61,8 @@ def run_publish(
     log: Callable[[str], None] = lambda _: None,
     billing_project: str | None = None,
     *,
-    store: HfStore | None = None,
-    on_commit: Callable[[PublicationReceipt, dict], None] | None = None,
+    publisher: HfPublisher | None = None,
+    on_commit: Callable[[HfPublicationReceipt, dict], None] | None = None,
 ) -> PublishSummary:
     """Synchronize selected artifact prefixes, preserving unrelated artifacts.
 
@@ -66,8 +80,8 @@ invented during a dry run. The input ``lock`` is never mutated.
         summary.failures.append(str(exc))
         return summary
 
-    selected: list[tuple[Artifact, Mirror, list[tuple[Path, str]]]] = []
-    checksums: dict[tuple[str, str], dict[str, str]] = {}
+    selected: list[_ArtifactUpload] = []
+    remote_paths: dict[tuple[str, str], set[str]] = {}
     seen: set[str] = set()
     for art in artifacts:
         if art.id in seen:
@@ -83,20 +97,18 @@ invented during a dry run. The input ``lock`` is never mutated.
             continue
         try:
             validate_artifact_lock(art, validation_lock)
-            items = []
-            hashes = checksums.setdefault((mirror.base, mirror.repo_type), {})
+            files = []
+            paths = remote_paths.setdefault((mirror.base, mirror.repo_type), set())
             for entry in locked_files(lock, art.id):
-                local = data_root / art.dest / entry.relpath
-                if not local.is_file():
-                    raise ValueError(f"missing locally: {local}")
-                if local.stat().st_size != entry.size or sha256_file(local) != entry.sha256:
+                local = data_root / art.dest / entry.path
+                if inspect_file(local, entry.path) != entry:
                     raise ValueError(f"local differs from lock: {local}; rebuild and run data lock")
-                remote = mirror.remote_for(entry.relpath)
-                if remote in hashes:
+                remote = mirror.remote_for(entry.path)
+                if remote in paths:
                     raise ValueError(f"multiple artifacts own remote path {remote}")
-                hashes[remote] = entry.sha256
-                items.append((local, remote))
-            selected.append((art, mirror, items))
+                paths.add(remote)
+                files.append(UploadFile(local, FileRecord(remote, entry.size, entry.sha256)))
+            selected.append(_ArtifactUpload(art, mirror, tuple(files)))
         except (LockError, ValueError, OSError) as exc:
             summary.failures.append(f"{art.id}: {exc}")
     if summary.failures:
@@ -104,15 +116,16 @@ invented during a dry run. The input ``lock`` is never mutated.
 
     if to_kind == BackendKind.GCS:
         backend = GcsBackend(billing_project)
-        for art, mirror, items in selected:
-            log(f"  {art.id} → {mirror.base}{mirror.prefix} ({len(items)} files; copy only)")
+        for upload in selected:
+            art, mirror = upload.artifact, upload.mirror
+            log(f"  {art.id} → {mirror.base}{mirror.prefix} ({len(upload.files)} files; copy only)")
             try:
-                for local, remote in items:
-                    log(f"      copy {local} → {mirror.base}{remote}")
+                for file in upload.files:
+                    log(f"      copy {file.local_path} → {mirror.base}{file.record.path}")
                     if not dry_run:
-                        backend.upload(mirror, local, remote)
+                        backend.upload(mirror, file.local_path, file.record.path)
                 summary.artifacts += 1
-                summary.files += len(items)
+                summary.files += len(upload.files)
             except BackendError as exc:
                 summary.failures.append(f"{art.id}: {exc}")
                 break
@@ -120,24 +133,25 @@ invented during a dry run. The input ``lock`` is never mutated.
 
     if not selected:
         return summary
-    groups: dict[tuple[str, str], list] = {}
-    for art, mirror, items in selected:
-        groups.setdefault((mirror.base, mirror.repo_type), []).append((art, mirror, items))
+    groups: dict[tuple[str, str], list[_ArtifactUpload]] = {}
+    for upload in selected:
+        mirror = upload.mirror
+        groups.setdefault((mirror.base, mirror.repo_type), []).append(upload)
     try:
-        hub = store if store is not None else HfStore()
+        if publisher is None:
+            publisher = HfPublisher()
         # Plan every repository before making the first remote write.
         for (repo_id, repo_type), members in groups.items():
-            plan = hub.plan(
+            plan = publisher.plan(
                 repo_id=repo_id,
                 repo_type=repo_type,
-                items=[item for _, _, items in members for item in items],
-                owned_prefixes=[mirror.prefix for _, mirror, _ in members],
-                expected_checksums=checksums[(repo_id, repo_type)],
+                files=[file for upload in members for file in upload.files],
+                owned_prefixes=[upload.mirror.prefix for upload in members],
             )
             summary.plans.append(plan)
             log(f"  {repo_type}:{repo_id} at {plan.parent_commit}")
-            for local, remote in plan.items:
-                log(f"      add/update {local} → {remote}")
+            for file in plan.files:
+                log(f"      add/update {file.local_path} → {file.record.path}")
             for remote in plan.deletions:
                 log(f"      delete {remote}")
     except (StorageError, ValueError, OSError) as exc:
@@ -146,17 +160,17 @@ invented during a dry run. The input ``lock`` is never mutated.
 
     if dry_run:
         summary.artifacts = len(selected)
-        summary.files = sum(len(items) for _, _, items in selected)
+        summary.files = sum(len(upload.files) for upload in selected)
         return summary
     for plan in summary.plans:
         members = groups[(plan.repo_id, plan.repo_type)]
         try:
-            receipt = hub.commit(plan, message)
+            receipt = publisher.commit(plan, message)
             summary.receipts.append(receipt)
             summary.artifacts += len(members)
-            summary.files += len(plan.items)
+            summary.files += len(plan.files)
             summary.updated_lock = with_hf_revision(
-                summary.updated_lock, [art for art, _, _ in members],
+                summary.updated_lock, [upload.artifact for upload in members],
                 plan.repo_id, plan.repo_type, receipt.revision,
             )
             log(f"  published {receipt.revision}: {receipt.url}")

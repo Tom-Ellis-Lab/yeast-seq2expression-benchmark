@@ -20,7 +20,7 @@ by a registry:
 
 The CLI's `_run_pair` is task-agnostic: `task = TASKS[name](...)`,
 `adapter = MODELS[name](task, device, ...)`, then
-`task.evaluate(adapter) → task.plot → task.save_results`.
+`task.evaluate(adapter) → task.save_results → task.plot`.
 
 ## Adding a new benchmark
 
@@ -50,8 +50,9 @@ Most new benchmarks reuse an existing protocol. The workflow:
 5. **Reference the task in `configs/default.yaml`** under both
    `tasks_config:` (its constructor kwargs) and any `runs:` that should
    include it.
-6. **Register and publish its inputs.** Add an artifact to
-   `src/yeastbench/data/manifest.py`, freeze the processed files with
+6. **Register and publish its inputs.** Add an `InputArtifact` (defined in
+   `src/yeastbench/data/artifacts.py`) to `src/yeastbench/data/manifest.py`,
+   freeze the processed files with
    `ybench data lock --artifacts <id>`, and publish or pin their HF revision.
    See [Managing benchmark inputs](data.md) for the complete workflow.
 7. **Write a spec** in `docs/benchmarks/<name>.md` and add tests in

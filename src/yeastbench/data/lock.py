@@ -10,17 +10,16 @@ from __future__ import annotations
 import copy
 import fnmatch
 import json
-import re
-from dataclasses import dataclass, replace
+from dataclasses import replace
 from pathlib import Path
 
-from yeastbench.artifacts import atomic_write_json, sha256_file, validate_relative_path
-from yeastbench.data.manifest import Artifact, BackendKind, Mirror
+from yeastbench.data.artifacts import BackendKind, InputArtifact, Mirror
+from yeastbench.storage.files import FileRecord, inventory_files, validate_relative_path
+from yeastbench.storage.hf import validate_hf_revision
+from yeastbench.storage.json import atomic_write_json
 
 LOCK_VERSION = 2
 LOCK_PATH = Path(__file__).with_name("manifest.lock.json")
-_SHA256 = re.compile(r"[0-9a-f]{64}\Z")
-_REVISION = re.compile(r"[0-9a-f]{40}\Z")
 
 
 class LockError(ValueError):
@@ -35,10 +34,11 @@ def _relative(value: str, context: str) -> str:
 
 
 def validate_revision(revision: str) -> str:
-    """Require a full immutable Hub commit SHA, rather than a moving branch."""
-    if not isinstance(revision, str) or _REVISION.fullmatch(revision) is None:
-        raise LockError("Hugging Face revision must be a full 40-character lowercase commit SHA")
-    return revision
+    """Validate a Hub revision, reporting failures as input-lock errors."""
+    try:
+        return validate_hf_revision(revision)
+    except ValueError as exc:
+        raise LockError(str(exc)) from exc
 
 
 def _source_key(source: dict) -> tuple[str, str, str, str]:
@@ -63,11 +63,10 @@ def _validate_lock(lock: dict) -> None:
             _relative(rel, aid)
             if not isinstance(meta, dict):
                 raise LockError(f"{aid}/{rel}: file record must be an object")
-            checksum = meta.get("sha256")
-            if not isinstance(checksum, str) or _SHA256.fullmatch(checksum) is None:
-                raise LockError(f"{aid}/{rel}: invalid SHA-256 checksum")
-            if type(meta.get("size")) is not int or meta["size"] < 0:
-                raise LockError(f"{aid}/{rel}: size must be a nonnegative integer")
+            try:
+                FileRecord(rel, meta.get("size"), meta.get("sha256"))
+            except ValueError as exc:
+                raise LockError(f"{aid}/{rel}: {exc}") from exc
         sources = entry.get("sources", [])
         if not isinstance(sources, list):
             raise LockError(f"{aid}: 'sources' must be a list")
@@ -124,7 +123,7 @@ def _excluded(relpath: str, patterns: tuple[str, ...]) -> bool:
     return False
 
 
-def _validate_inventory(artifact: Artifact, files: dict) -> None:
+def _validate_inventory(artifact: InputArtifact, files: dict) -> None:
     if not files:
         raise LockError(f"{artifact.id}: no locked files; build the data and run `ybench data lock`")
     for pattern in artifact.include:
@@ -138,7 +137,7 @@ def _validate_inventory(artifact: Artifact, files: dict) -> None:
             raise LockError(f"{artifact.id}/{rel}: locked file is outside the declared include list")
 
 
-def local_files(artifact: Artifact, data_root: Path) -> list[str]:
+def local_files(artifact: InputArtifact, data_root: Path) -> list[str]:
     """Find included local files, sorted; cache-only artifacts return no files."""
     if artifact.cache_only or not artifact.dest:
         return []
@@ -162,17 +161,24 @@ def local_files(artifact: Artifact, data_root: Path) -> list[str]:
     return sorted(found)
 
 
-def build_lock(artifacts: list[Artifact], data_root: Path) -> dict[str, dict]:
-    """Hash a complete local selection; fail rather than retain stale entries."""
+def build_lock_entries(artifacts: list[InputArtifact], data_root: Path) -> dict[str, dict]:
+    """Build selected artifact entries to merge into an existing input lock."""
     out: dict[str, dict] = {}
     for art in artifacts:
         if art.cache_only:
             continue
-        files = {}
-        for rel in local_files(art, data_root):
-            path = data_root / art.dest / rel
-            files[rel] = {"sha256": sha256_file(path), "size": path.stat().st_size}
-        _validate_inventory(art, files)
+        paths = local_files(art, data_root)
+        # Validate completeness before inspecting the directory, including when
+        # it is absent. The shared inventory then hashes the selected files.
+        _validate_inventory(art, dict.fromkeys(paths))
+        try:
+            records = inventory_files(data_root / art.dest, paths)
+        except (OSError, ValueError) as exc:
+            raise LockError(f"{art.id}: {exc}") from exc
+        files = {
+            record.path: {"size": record.size, "sha256": record.sha256}
+            for record in records
+        }
         out[art.id] = {"files": files}
     return out
 
@@ -217,20 +223,14 @@ def write_lock(lock: dict, path: Path = LOCK_PATH) -> None:
     atomic_write_json(path, lock)
 
 
-@dataclass(frozen=True)
-class LockedFile:
-    relpath: str
-    sha256: str
-    size: int
-
-
-def locked_files(lock: dict, artifact_id: str) -> list[LockedFile]:
+def locked_files(lock: dict, artifact_id: str) -> list[FileRecord]:
+    """Read shared file records with paths relative to this input artifact."""
     _validate_lock(lock)
     entry = lock["artifacts"].get(artifact_id)
     if not entry:
         return []
     return [
-        LockedFile(rel, meta["sha256"], meta["size"])
+        FileRecord(rel, meta["size"], meta["sha256"])
         for rel, meta in sorted(entry["files"].items())
     ]
 
@@ -263,7 +263,7 @@ def source_for(
 
 
 def validate_artifact_lock(
-    artifact: Artifact, lock: dict, require_pinned: bool = False,
+    artifact: InputArtifact, lock: dict, require_pinned: bool = False,
 ) -> None:
     """Validate declared coverage and, optionally, an immutable Hub source."""
     _validate_lock(lock)
@@ -287,7 +287,7 @@ def validate_artifact_lock(
             raise LockError(f"{artifact.id}: no pinned Hugging Face revision; pin or publish first")
 
 
-def prune_sources(lock: dict, artifacts: list[Artifact]) -> dict:
+def prune_sources(lock: dict, artifacts: list[InputArtifact]) -> dict:
     """Drop obsolete mirror pins during an explicit lock/pin/publish operation.
 
     Ordinary downloads still reject declaration drift. An explicit maintenance
@@ -313,7 +313,7 @@ def prune_sources(lock: dict, artifacts: list[Artifact]) -> dict:
 
 
 def with_hf_revision(
-    lock: dict, artifacts: list[Artifact], repo_id: str, repo_type: str, revision: str,
+    lock: dict, artifacts: list[InputArtifact], repo_id: str, repo_type: str, revision: str,
 ) -> dict:
     """Return a new lock recording a verified/published revision for a selection."""
     validate_revision(revision)

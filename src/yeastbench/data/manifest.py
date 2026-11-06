@@ -1,100 +1,17 @@
-"""Declarative artifact manifest — the companion to ``registry.py``.
+"""Registered benchmark inputs and dependency selection.
 
-Every blob the benchmark needs (task data, model weights, shared genome
-references) is declared here as an :class:`Artifact`. Declarations are the
-source of truth for *what* exists and *where* it can be fetched from; the
-per-file checksums live in the generated lock (``manifest.lock.json``).
+Task data, model weights, and shared references are declared here as
+``InputArtifact`` instances. Their types are defined in ``data.artifacts``;
+per-file checksums and pinned source revisions live in ``manifest.lock.json``.
 
-Adding a task or model to ``registry.py`` should come with an artifact here —
-:func:`validate_against_registry` (exercised by the test suite) fails if a
-registered task/model has no declared data.
-
-v1 declares the *processed* tier (benchmark-ready files) and model weights.
-The ``raw`` field is reserved for the v2 raw→build→reproduce path and is left
-``None`` everywhere for now.
+Adding a task or model to ``registry.py`` should include a corresponding input
+here. ``validate_against_registry`` checks that every registered task/model has
+its required inputs declared.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from enum import Enum
-from typing import Mapping
-
-
-# ──────────────────────────────────────────────────────────────
-# Enums
-# ──────────────────────────────────────────────────────────────
-
-
-class Kind(str, Enum):
-    TASK_PROCESSED = "task-processed"
-    MODEL_WEIGHTS = "model-weights"
-    SHARED_REFERENCE = "shared-reference"
-
-
-class BackendKind(str, Enum):
-    HF = "hf"
-    GCS = "gcs"
-    HTTP = "http"
-    # v2: FIGSHARE, ZENODO, SOURCE
-
-
-class License(str, Enum):
-    OWN = "own"                # our data — mirror freely
-    CC_BY_4_0 = "cc-by-4.0"    # mirror freely with attribution
-    CC_BY_NC_4_0 = "cc-by-nc-4.0"  # mirror with attribution, non-commercial use
-    PUBLIC = "public"          # publicly hosted by upstream; fetch from origin
-    GEO_TERMS = "geo-terms"    # NCBI GEO — do not re-host
-    UNKNOWN = "unknown"
-
-
-# ──────────────────────────────────────────────────────────────
-# Dataclasses
-# ──────────────────────────────────────────────────────────────
-
-
-@dataclass(frozen=True)
-class Mirror:
-    """One place an artifact's files can be fetched from.
-
-    The remote path of a file with local relative path ``rel`` is
-    ``member_remote[rel]`` if present, else ``prefix + rel``. A
-    ``member_remote`` value that starts with ``http`` is treated as an absolute
-    URL (used for source mirrors with an irregular layout).
-    """
-
-    backend: BackendKind
-    base: str = ""                     # HF repo id, or gs:// / https:// base (trailing slash)
-    prefix: str = ""                   # remote dir prepended to each file's relpath
-    repo_type: str = "dataset"         # HF only: "dataset" | "model"
-    member_remote: Mapping[str, str] = field(default_factory=dict)
-    revision: str | None = None       # HF full commit SHA, resolved from the input lock
-
-    def remote_for(self, rel: str) -> str:
-        if rel in self.member_remote:
-            return self.member_remote[rel]
-        return f"{self.prefix}{rel}"
-
-
-@dataclass(frozen=True)
-class Artifact:
-    id: str
-    kind: Kind
-    dest: str                          # dir relative to the data root
-    mirrors: tuple[Mirror, ...]
-    needed_by: tuple[str, ...] = ()     # registry task/model names
-    requires: tuple[str, ...] = ()      # other artifact ids (e.g. shared refs)
-    include: tuple[str, ...] = ("**/*",)
-    # Keep the published distribution to runtime files: drop the raw-download
-    # cache, build logs, and raw source formats (spreadsheets, GenBank) that the
-    # benchmarks don't read at run time.
-    exclude: tuple[str, ...] = (
-        "**/_cache/**", "*.log", "*.xlsx", "*.xls", "*.gb", "*.gbk",
-    )
-    license: License = License.UNKNOWN
-    redistributable: bool = False
-    cache_only: bool = False           # HF-hub model loaded at runtime; warm cache, nothing under dest
-    raw: object | None = None          # v2 RawSpec — not implemented in v1
+from yeastbench.data.artifacts import BackendKind, InputArtifact, InputKind, License, Mirror
 
 
 # ──────────────────────────────────────────────────────────────
@@ -105,8 +22,7 @@ class Artifact:
 # targets. HF is the free, auth-free default; the GCS bucket is **requester
 # pays** (project clex-415415, US multi-region), so every read/write must name a
 # billing project (`ybench data get/publish --billing-project …` or the
-# YBENCH_GCS_BILLING_PROJECT env var). Until a mirror is published, `get` from it
-# reports "not yet published" rather than failing hard.
+# YBENCH_GCS_BILLING_PROJECT env var).
 _HF_DATA_REPO = "tom-ellis-lab/yeast-seq2expression-benchmark-data"
 _GCS_DATA_BUCKET = "gs://yeast-seq2expression-benchmark/"
 
@@ -127,10 +43,10 @@ def _task(
     requires: tuple[str, ...] = (),
     license: License = License.OWN,
     include: tuple[str, ...] = ("**/*",),
-) -> Artifact:
-    return Artifact(
+) -> InputArtifact:
+    return InputArtifact(
         id=artifact_id,
-        kind=Kind.TASK_PROCESSED,
+        kind=InputKind.TASK_PROCESSED,
         dest=dest,
         mirrors=_task_mirrors(artifact_id),
         needed_by=needed_by,
@@ -149,11 +65,11 @@ def _task(
 
 _REFS = "refs"
 
-ARTIFACTS: tuple[Artifact, ...] = (
+ARTIFACTS: tuple[InputArtifact, ...] = (
     # Shared genome references — declared once, required by many tasks.
-    Artifact(
+    InputArtifact(
         id=_REFS,
-        kind=Kind.SHARED_REFERENCE,
+        kind=InputKind.SHARED_REFERENCE,
         dest="data/tasks",
         include=(
             "R64-1-1.fa", "R64-1-1.fa.fai", "R64-1-1.115.gtf",
@@ -267,9 +183,9 @@ ARTIFACTS: tuple[Artifact, ...] = (
     # Shorkie: authors' PUBLIC bucket — fetchable today, no re-hosting.
     # Local layout is f{i}.h5 + params.json; the bucket stores f{i}/model_best.h5
     # and params.json lives in the shorkie-pytorch repo.
-    Artifact(
+    InputArtifact(
         id="shorkie",
-        kind=Kind.MODEL_WEIGHTS,
+        kind=InputKind.MODEL_WEIGHTS,
         dest="data/models/shorkie",
         needed_by=("shorkie",),
         include=("checkpoints/f0.h5", "checkpoints/f1.h5", "checkpoints/f2.h5",
@@ -301,10 +217,11 @@ ARTIFACTS: tuple[Artifact, ...] = (
     ),
     # Yorzoi + CodonTransformer: HF-hub models the adapters load via
     # from_pretrained at runtime. `get` warms the HF cache; nothing lands
-    # under data/, so there's nothing to lock/verify locally.
-    Artifact(
+    # under data/. The lock records their repository revision without a local
+    # file inventory; the loaders request that exact snapshot.
+    InputArtifact(
         id="yorzoi",
-        kind=Kind.MODEL_WEIGHTS,
+        kind=InputKind.MODEL_WEIGHTS,
         dest="",
         needed_by=("yorzoi",),
         cache_only=True,
@@ -312,9 +229,9 @@ ARTIFACTS: tuple[Artifact, ...] = (
         license=License.PUBLIC,
         mirrors=(Mirror(BackendKind.HF, base="tom-ellis-lab/yorzoi", repo_type="model"),),
     ),
-    Artifact(
+    InputArtifact(
         id="codon_transformer",
-        kind=Kind.MODEL_WEIGHTS,
+        kind=InputKind.MODEL_WEIGHTS,
         dest="",
         needed_by=("codon_transformer",),
         cache_only=True,
@@ -327,10 +244,10 @@ ARTIFACTS: tuple[Artifact, ...] = (
     # Bi-LSTM-core composite — NOT 0_1_0_0, which is DREAM-CNN); plasmid.json from
     # the de-Boer-Lab repo (MIT). Both are small + redistributable, so they're
     # re-hosted on our data mirrors rather than fetched from the 2.3 GB tarball.
-    # Publish the two files to the HF/GCS mirrors, then `ybench data lock`.
-    Artifact(
+    # Lock the two files locally, then publish them to the HF/GCS mirrors.
+    InputArtifact(
         id="dream_rnn",
-        kind=Kind.MODEL_WEIGHTS,
+        kind=InputKind.MODEL_WEIGHTS,
         dest="data/models/dream_rnn",
         needed_by=("dream_rnn",),
         include=("model_best.pth", "plasmid.json"),
@@ -353,7 +270,7 @@ MODELS_WITHOUT_ARTIFACTS: frozenset[str] = frozenset({"cai"})
 _BY_ID = {a.id: a for a in ARTIFACTS}
 
 
-def artifact_by_id(artifact_id: str) -> Artifact:
+def artifact_by_id(artifact_id: str) -> InputArtifact:
     try:
         return _BY_ID[artifact_id]
     except KeyError:
@@ -365,7 +282,7 @@ def artifact_by_id(artifact_id: str) -> Artifact:
 def artifacts_for(
     tasks: list[str] | None = None,
     models: list[str] | None = None,
-) -> list[Artifact]:
+) -> list[InputArtifact]:
     """Resolve the artifacts needed by the given task/model names, closing
     over ``requires`` (shared references). With both ``None``, returns every
     artifact. Order is stable and deduplicated.
@@ -376,9 +293,9 @@ def artifacts_for(
         return list(ARTIFACTS)
 
     wanted = set(tasks or []) | set(models or [])
-    selected: dict[str, Artifact] = {}
+    selected: dict[str, InputArtifact] = {}
 
-    def _add(art: Artifact) -> None:
+    def _add(art: InputArtifact) -> None:
         if art.id in selected:
             return
         selected[art.id] = art
