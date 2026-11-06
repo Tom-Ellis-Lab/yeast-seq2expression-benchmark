@@ -229,7 +229,8 @@ not as targets to beat.
 ![Shorkie over M. pneumoniae (the hardest case).](../../img/results/meneu_foreign_dna/shorkie_Mpneumo.png)
 
 - Both models sit well below the ExoShorkie transfer-learning ladder (≈ 0.46–0.76 shape Pearson) — expected for far-OOD bacterial sequence neither model trained on. Yorzoi edges Shorkie on shape for both contigs.
-- *M. mycoides* (higher GC, closer to yeast) is the easier contig for both; *M. pneumoniae* is near the noise floor. Read the fold-change spread (sd) as the magnitude signal — the means are confounded by over-prediction vs dispersion (see the Metrics caveat).
+- Which contig looks easier depends on the metric. *M. mycoides* scores about three times the shape Pearson of *M. pneumoniae* for both models, even though it is the contig further from yeast in GC (24% against yeast's 38%; *M. pneumoniae* is 40%). JS divergence and the fold-change spread rank them the other way, with *M. pneumoniae* ahead on both. The likely cause is transcription, not composition: *M. pneumoniae* is covered almost everywhere while *M. mycoides* is near-silent and spiky, and per-window Pearson rewards the on/off contrast a spiky profile offers. ExoShorkie reports the same Pearson ordering, so this is a property of the data rather than of our pipeline.
+- Read the fold-change spread (sd) as the magnitude signal — the means are confounded by over-prediction vs dispersion (see the *Metrics* caveat).
 
 Why the numbers look the way they do: [`model_failures.md`](model_failures.md). Artifacts: `results/meneu/{shorkie,yorzoi}__meneu_foreign_dna/summary.json` and `results/meneu/compare/summary.md`.
 
