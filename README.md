@@ -73,7 +73,10 @@ uv run ybench data get --config configs/default.yaml  # download data + weights
 uv run ybench run --config configs/default.yaml       # score every (model, task) pair
 ```
 
-Results land in `results/default/<model>__<task>/`. For everything else — the
+The default config includes all eleven tasks, including Brooks and Meneu.
+Results land in `results/default/<model>__<task>/`. The separate
+`configs/brooks.yaml` and `configs/meneu.yaml` remain available for focused runs.
+For everything else — the
 other models, partial data pulls, GPU selection, every flag, and the output
 layout — see the [CLI reference](docs/cli.md).
 
