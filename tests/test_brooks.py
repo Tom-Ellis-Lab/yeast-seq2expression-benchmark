@@ -180,9 +180,12 @@ class TestBrooksBenchmark:
         res = b.evaluate(_mock(b, lfcs))
         assert res.n_total == 6 and res.n_scored == 6
         assert res.n_calibration == 6 and res.n_weak_baseline == 0
-        assert res.dir_balanced_acc > 0.99
-        assert res.pearson_r > 0.95
+        assert np.all(res.dir_balanced_acc_per_rep > 0.99)
+        assert np.all(res.pearson_r_per_rep > 0.95)
         assert (res.n_reps_supported == 3).all()
+        # every sample backs every replicate, so each per-rep cohort is full
+        assert np.all(res.n_scored_per_rep == 6)
+        assert np.all(res.n_ceiling_per_rep == 6)
 
     def test_save_load_roundtrip(self, brooks_dir, tmp_path):
         d, lfcs = brooks_dir
@@ -200,6 +203,12 @@ class TestBrooksBenchmark:
                                              res.pearson_r_per_rep)
         np.testing.assert_array_almost_equal(loaded.ceiling_r_per_rep,
                                              res.ceiling_r_per_rep)
+        np.testing.assert_array_almost_equal(loaded.ceiling_rho_per_rep,
+                                             res.ceiling_rho_per_rep)
+        np.testing.assert_array_equal(loaded.n_scored_per_rep,
+                                      res.n_scored_per_rep)
+        np.testing.assert_array_equal(loaded.n_ceiling_per_rep,
+                                      res.n_ceiling_per_rep)
 
     def test_plot_and_summary_and_headline(self, brooks_dir, tmp_path):
         d, lfcs = brooks_dir
@@ -210,15 +219,33 @@ class TestBrooksBenchmark:
         assert (tmp_path / "p" / "lfc_per_sample.png").exists()
         s = b.summary_dict(res)
         for k in ("n_total", "n_scored", "n_calibration", "n_weak_baseline",
-                  "lfc_dir_balanced_acc", "lfc_pearson_r", "lfc_ceiling_pearson_r",
-                  "lfc_ceiling_dir_balanced_acc", "lfc_pearson_r_per_rep",
-                  "lfc_ceiling_r_per_rep", "lfc_within_range_rate",
-                  "lfc_mean_abs_z", "shape_pearson_mean", "shape_js_mean"):
+                  "lfc_n_scored_per_rep", "lfc_pearson_r_per_rep",
+                  "lfc_spearman_rho_per_rep", "lfc_dir_balanced_acc_per_rep",
+                  "lfc_n_ceiling_per_rep", "lfc_ceiling_r_per_rep",
+                  "lfc_ceiling_rho_per_rep", "lfc_ceiling_dir_acc_per_rep",
+                  "lfc_within_range_rate", "lfc_mean_abs_z",
+                  "shape_pearson_mean", "shape_js_mean"):
             assert k in s
-        assert len(s["lfc_pearson_r_per_rep"]) == 3
-        assert len(s["lfc_ceiling_r_per_rep"]) == 3
+        for k in ("lfc_n_scored_per_rep", "lfc_pearson_r_per_rep",
+                  "lfc_spearman_rho_per_rep", "lfc_dir_balanced_acc_per_rep",
+                  "lfc_n_ceiling_per_rep", "lfc_ceiling_r_per_rep",
+                  "lfc_ceiling_rho_per_rep", "lfc_ceiling_dir_acc_per_rep"):
+            assert len(s[k]) == 3
+        # No averaged-across-replicate scalar may reappear: those were the
+        # numbers that silently weighted unequal cohorts equally.
+        for k in ("lfc_pearson_r", "lfc_spearman_rho", "lfc_dir_balanced_acc",
+                  "lfc_ceiling_pearson_r", "lfc_ceiling_dir_balanced_acc"):
+            assert k not in s
+        # ...but each replicate is also emitted as a named scalar, so the
+        # cross-task summary.csv/summary.md (scalars only) still see Brooks.
+        for alias in ("JS94_r0", "JS94_r1", "JS94_r2"):
+            assert isinstance(s[f"lfc_pearson_r_{alias}"], float)
+            assert isinstance(s[f"lfc_n_scored_{alias}"], int)
         h = b.headline(res)
         assert "LFC" in h and "ceiling" in h and "shape" in h
+        # one line per replicate, each naming its cohort size
+        for alias in ("JS94_r0", "JS94_r1", "JS94_r2"):
+            assert alias in h
 
     def test_low_support_dropped(self, brooks_dir):
         d, lfcs = brooks_dir
@@ -242,9 +269,10 @@ class TestBrooksBenchmark:
         d, lfcs = brooks_dir
         b = BrooksScrambleBenchmark(d, INFO)
         res = b.evaluate(_mock(b, lfcs))
-        assert res.ceiling_pearson_r > 0.99
-        assert res.ceiling_dir_balanced_acc > 0.99
+        assert np.all(res.ceiling_r_per_rep > 0.99)
+        assert np.all(res.ceiling_dir_acc_per_rep > 0.99)
         assert np.all(np.isfinite(res.ceiling_r_per_rep))
+        assert np.all(np.isfinite(res.ceiling_rho_per_rep))
 
     def test_broadcast_adapter_yields_identical_pred_columns(self, brooks_dir):
         d, lfcs = brooks_dir
@@ -266,6 +294,10 @@ class TestBrooksBenchmark:
         res = b.evaluate(_mock(b, lfcs))
         assert res.n_scored == 6 and res.n_calibration == 5
         assert res.n_reps_supported[0] == 2 and res.n_reps_supported[1] == 1
+        # The replicates now cover different cohorts, which is exactly why the
+        # per-rep numbers are reported separately rather than averaged: r0
+        # loses both edited samples, r1 loses one, r2 keeps all six.
+        np.testing.assert_array_equal(res.n_scored_per_rep, [4, 5, 6])
 
 
 class TestWindowDependentMembership:

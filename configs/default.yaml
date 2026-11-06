@@ -67,6 +67,11 @@ tasks_config:
     random_path: data/tasks/cuperus_mpra_5utr/random_utrs.tsv
     native_path: data/tasks/cuperus_mpra_5utr/native_utrs.tsv
     fasta_path: data/tasks/R64-1-1.fa
+  ytk_promoter:
+    labels_path: data/tasks/ytk_promoter/figure3a.tsv
+    constructs_path: data/tasks/ytk_promoter/constructs.tsv
+    constructs_fasta: data/tasks/ytk_promoter/constructs.fasta
+    fasta_path: data/tasks/R64-1-1.fa
 
 runs:
   - model: shorkie
@@ -80,6 +85,7 @@ runs:
         hong_igr,
         chen_synonymous,
         cuperus_utr,
+        ytk_promoter,
       ]
     model_config:
       params_path: data/models/shorkie/params.json
@@ -106,6 +112,7 @@ runs:
         hong_igr,
         chen_synonymous,
         cuperus_utr,
+        ytk_promoter,
       ]
     model_config:
       hf_repo: tom-ellis-lab/yorzoi

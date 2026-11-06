@@ -19,6 +19,7 @@ from yeastbench.adapters.protocols import (
     CoverageTrackPredictor,
     FivePrimeUtrReporterExpressionPredictor,
     IGRInsertionExpressionPredictor,
+    IntegratedPromoterPanelPredictor,
     LocalCodingVariantPredictor,
     SequenceExpressionScorer,
     TerminatorMarginalizedExpressionPredictor,
@@ -33,6 +34,7 @@ from yeastbench.benchmarks.mpra import MPRAMarginalizedBenchmark
 from yeastbench.benchmarks.shalem import ShalemMPRAMarginalizedBenchmark
 from yeastbench.benchmarks.rfpins import RFPInsertionBenchmark
 from yeastbench.benchmarks.cuperus import CuperusUTRBenchmark
+from yeastbench.benchmarks.ytk_promoter import YTKPromoterBenchmark
 
 ModelFactory = Callable[..., Any]
 TaskFactory = Callable[..., Benchmark]
@@ -208,10 +210,26 @@ def _shorkie_cuperus_adapter(device, fasta_path, **cfg):
     )
 
 
+def _shorkie_ytk_adapter(device, fasta_path, **cfg):
+    from yeastbench.adapters.shorkie_ytk import ShorkieYTKPredictor
+
+    return ShorkieYTKPredictor.from_checkpoints(
+        fasta_path=fasta_path, device=device, **cfg,
+    )
+
+
 def _yorzoi_cuperus_adapter(device, fasta_path, **cfg):
     from yeastbench.adapters.yorzoi_cuperus import YorzoiCuperusPredictor
 
     return YorzoiCuperusPredictor.from_pretrained(
+        fasta_path=fasta_path, device=device, **cfg,
+    )
+
+
+def _yorzoi_ytk_adapter(device, fasta_path, **cfg):
+    from yeastbench.adapters.yorzoi_ytk import YorzoiYTKPredictor
+
+    return YorzoiYTKPredictor.from_pretrained(
         fasta_path=fasta_path, device=device, **cfg,
     )
 
@@ -244,6 +262,7 @@ SHORKIE_ADAPTERS: dict[type, tuple[Callable, tuple[str, ...]]] = {
     CassetteExpressionPredictor: (_shorkie_wu_adapter, REFS_FIELDS),
     IGRInsertionExpressionPredictor: (_shorkie_hong_adapter, FASTA_ONLY),
     FivePrimeUtrReporterExpressionPredictor: (_shorkie_cuperus_adapter, FASTA_ONLY),
+    IntegratedPromoterPanelPredictor: (_shorkie_ytk_adapter, FASTA_ONLY),
     CoverageTrackPredictor: (_shorkie_brooks_adapter, ()),
     TiledCoverageTrackPredictor: (_shorkie_meneu_adapter, ()),
     LocalCodingVariantPredictor: (_shorkie_chen_adapter, CHEN_FIELDS),
@@ -256,6 +275,7 @@ YORZOI_ADAPTERS: dict[type, tuple[Callable, tuple[str, ...]]] = {
     CassetteExpressionPredictor: (_yorzoi_wu_adapter, REFS_FIELDS),
     IGRInsertionExpressionPredictor: (_yorzoi_hong_adapter, FASTA_ONLY),
     FivePrimeUtrReporterExpressionPredictor: (_yorzoi_cuperus_adapter, FASTA_ONLY),
+    IntegratedPromoterPanelPredictor: (_yorzoi_ytk_adapter, FASTA_ONLY),
     CoverageTrackPredictor: (_yorzoi_brooks_adapter, ()),
     TiledCoverageTrackPredictor: (_yorzoi_meneu_adapter, ()),
     LocalCodingVariantPredictor: (_yorzoi_chen_adapter, CHEN_FIELDS),
@@ -529,6 +549,28 @@ def _build_cuperus_utr(
     )
 
 
+def _build_ytk_promoter(
+    labels_path: str | Path,
+    constructs_path: str | Path,
+    constructs_fasta: str | Path,
+    fasta_path: str | Path,
+) -> Benchmark:
+    return YTKPromoterBenchmark(
+        labels_path=Path(labels_path),
+        constructs_path=Path(constructs_path),
+        constructs_fasta=Path(constructs_fasta),
+        fasta_path=Path(fasta_path),
+        info=BenchmarkInfo(
+            name="ytk_promoter",
+            version="v1",
+            description=(
+                "Lee et al. YTK constitutive-promoter reporter range"
+            ),
+            distribution_uri="",
+        ),
+    )
+
+
 TASKS: dict[str, TaskFactory] = {
     "caudal_eqtl": _build_caudal_eqtl,
     "kita_eqtl": _build_kita_eqtl,
@@ -540,4 +582,5 @@ TASKS: dict[str, TaskFactory] = {
     "meneu_foreign_dna": _build_meneu,
     "chen_synonymous": _build_chen,
     "cuperus_utr": _build_cuperus_utr,
+    "ytk_promoter": _build_ytk_promoter,
 }

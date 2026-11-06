@@ -111,6 +111,18 @@ def test_validate_gpu_rejects_a_device_index():
         _validate_gpu("0")
 
 
+def test_modal_executable_falls_back_beside_python(tmp_path, monkeypatch):
+    pytest.importorskip("modal")
+    from yeastbench.modal import cli
+
+    python = tmp_path / "python"
+    modal = tmp_path / "modal"
+    modal.touch()
+    monkeypatch.setattr(cli.shutil, "which", lambda name: None)
+    monkeypatch.setattr(cli.sys, "executable", str(python))
+    assert cli._modal_executable() == str(modal)
+
+
 def test_modal_app_spec_is_two_volumes():
     pytest.importorskip("modal")
     from yeastbench.modal import app as modal_app

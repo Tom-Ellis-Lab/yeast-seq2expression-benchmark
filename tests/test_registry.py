@@ -2,9 +2,13 @@
 from __future__ import annotations
 
 
-from yeastbench.adapters.protocols import VariantEffectScorer
+from yeastbench.adapters.protocols import (
+    IntegratedPromoterPanelPredictor,
+    VariantEffectScorer,
+)
 from yeastbench.benchmarks.base import Benchmark
 from yeastbench.benchmarks.eqtl import EQTLClassificationBenchmark
+from yeastbench.benchmarks.ytk_promoter import YTKPromoterBenchmark
 from yeastbench.registry import MODELS, TASKS
 
 
@@ -17,6 +21,15 @@ class TestRegistry:
 
     def test_yorzoi_registered(self):
         assert "yorzoi" in MODELS
+
+    def test_ytk_promoter_registered(self):
+        assert "ytk_promoter" in TASKS
+
+    def test_ytk_promoter_protocol(self):
+        assert (
+            YTKPromoterBenchmark.adapter_protocol
+            is IntegratedPromoterPanelPredictor
+        )
 
     def test_caudal_factory_produces_benchmark(self, synthetic_distribution):
         task = TASKS["caudal_eqtl"](

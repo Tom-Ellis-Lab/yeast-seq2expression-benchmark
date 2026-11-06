@@ -48,8 +48,8 @@ FIGURES: dict[str, list[tuple[str, str]]] = {
         ("default/shorkie__hong_igr/scatter_inttrain_fitted.png", "scatter_inttrain_fitted.png"),
     ],
     "brooks_scramble": [
-        ("brooks/compare/per_task/brooks_scramble/shared_tier1.png", "shared_tier1.png"),
-        ("brooks/compare/per_task/brooks_scramble/shared_per_sample.png", "shared_per_sample.png"),
+        ("brooks/compare/per_task/brooks_scramble/shared_lfc.svg", "shared_lfc.svg"),
+        ("brooks/compare/per_task/brooks_scramble/shared_per_sample.svg", "shared_per_sample.svg"),
     ],
     "cuperus_mpra_5utr": [
         ("default/shorkie__cuperus_utr/cuperus.png", "cuperus.png"),

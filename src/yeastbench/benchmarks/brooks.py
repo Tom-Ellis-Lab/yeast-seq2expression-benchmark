@@ -6,11 +6,19 @@ Two tiers (see ``docs/benchmarks/brooks_scramble.md``):
     each sample, compute ``log2((norm_cov_strain + 1) / (norm_cov_js94_k + 1))``
     for each JS94 deep run ``k`` whose raw CDS read count for the gene
     meets ``MIN_READS_PER_RUN`` (default 10). Yields 0–3 supporting
-    LFCs per sample. Predicted LFC is a single scalar (from per-base
-    predicted-count units, alt CDS sum vs native CDS sum).
-    Headline metrics over ``n_reps ≥ 1`` AND not ``low_support``:
-      * Pearson r and Spearman ρ of ``pred_lfc`` vs mean true LFC
-      * Direction balanced accuracy on the sign of the mean true LFC.
+    LFCs per sample. Predicted LFC is per-replicate too (from per-base
+    predicted-count units, alt CDS sum vs native CDS sum against run k).
+    Headline metrics are reported **per JS94 replicate** — one Pearson r,
+    Spearman ρ and direction balanced accuracy for each run k, over the
+    samples that run supports (finite true *and* predicted LFC for k, and
+    not ``low_support``). They are never averaged across replicates: the
+    three runs cover different gene sets of very different size (a gene
+    needs ``MIN_READS_PER_RUN`` reads *in that run*, and the cutoff is
+    decided per gene, so the shallow run's cohort is the strongly
+    expressed genes), and averaging correlations over unequal, unlike
+    cohorts is not a meaningful summary. ``n_scored_per_rep`` records the
+    cohort size behind each number; each run carries its own leave-one-out
+    ceiling on the same axis, counted by ``n_ceiling_per_rep``.
     Calibration metrics over the ``n_reps ≥ 2`` subset (range defined):
       * Within-range hit rate — fraction of samples where ``pred_lfc``
         lies in ``[min(true_lfcs), max(true_lfcs)]``.
@@ -59,6 +67,77 @@ RANGE_EPS = 1e-6  # avoid division by zero in |z| when min == max
 JS94_REPLICATE_STRAIN_KEYS: tuple[str, ...] = ("JS94_r0", "JS94_r1", "JS94_r2")
 
 
+def per_rep_lfc_metrics(
+    true_lfc_runs: np.ndarray,
+    pred_lfc_runs: np.ndarray,
+    low_support: np.ndarray,
+) -> dict[str, np.ndarray]:
+    """Per-JS94-replicate LFC metrics + leave-one-out ceiling.
+
+    The single source of truth for the reported LFC numbers: ``evaluate``,
+    ``load_results`` and the cross-model compare path all call this, so the
+    three can never drift apart.
+
+    For each replicate ``k`` the metric cohort is the samples where the true
+    *and* predicted LFC against run ``k`` are both finite and the sample is
+    not ``low_support``. The ceiling cohort drops the predicted-finite
+    requirement and instead needs the mean of the *other* replicates to be
+    finite, so the two cohorts differ and both sizes are returned.
+
+    Nothing here is averaged across ``k``. The replicates cover different,
+    unequal gene sets (the read-depth cutoff is applied per gene per run),
+    so a mean over ``k`` would weight unlike cohorts equally.
+    """
+    n_reps = true_lfc_runs.shape[1]
+    finite_t = np.isfinite(true_lfc_runs)
+    finite_p = np.isfinite(pred_lfc_runs)
+    ok = ~low_support
+
+    out = {
+        name: np.full(n_reps, np.nan)
+        for name in (
+            "pearson_r_per_rep",
+            "spearman_rho_per_rep",
+            "dir_balanced_acc_per_rep",
+            "ceiling_r_per_rep",
+            "ceiling_rho_per_rep",
+            "ceiling_dir_acc_per_rep",
+        )
+    }
+    out["n_scored_per_rep"] = np.zeros(n_reps, dtype=np.int64)
+    out["n_ceiling_per_rep"] = np.zeros(n_reps, dtype=np.int64)
+
+    for k in range(n_reps):
+        mk = ok & finite_t[:, k] & finite_p[:, k]
+        out["n_scored_per_rep"][k] = int(mk.sum())
+        if mk.sum() >= 2:
+            t_k, p_k = true_lfc_runs[mk, k], pred_lfc_runs[mk, k]
+            out["pearson_r_per_rep"][k] = float(pearsonr(p_k, t_k).statistic)
+            out["spearman_rho_per_rep"][k] = float(spearmanr(p_k, t_k).statistic)
+            out["dir_balanced_acc_per_rep"][k] = float(
+                balanced_accuracy_score(
+                    np.sign(t_k).astype(int), np.sign(p_k).astype(int)
+                )
+            )
+
+        others = [j for j in range(n_reps) if j != k]
+        with np.errstate(invalid="ignore"), warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            loo_true = np.nanmean(true_lfc_runs[:, others], axis=1)
+        ck = ok & finite_t[:, k] & np.isfinite(loo_true)
+        out["n_ceiling_per_rep"][k] = int(ck.sum())
+        if ck.sum() >= 2:
+            t_k, l_k = true_lfc_runs[ck, k], loo_true[ck]
+            out["ceiling_r_per_rep"][k] = float(pearsonr(l_k, t_k).statistic)
+            out["ceiling_rho_per_rep"][k] = float(spearmanr(l_k, t_k).statistic)
+            out["ceiling_dir_acc_per_rep"][k] = float(
+                balanced_accuracy_score(
+                    np.sign(t_k).astype(int), np.sign(l_k).astype(int)
+                )
+            )
+    return out
+
+
 @dataclass(frozen=True)
 class BrooksResults:
     sample_ids: list[str]
@@ -78,21 +157,21 @@ class BrooksResults:
     n_calibration: int  # n_reps >= 2 AND not low_support
     n_weak_baseline: int  # n_reps == 0 (per-gene, all JS94 thin)
     n_low_support: int  # low_support == True
-    # Per-replicate headline + ceiling. Each k uses only samples where
-    # both true_lfc_runs[:, k] and pred_lfc_runs[:, k] are finite and
-    # the sample is not low_support; ceiling_k uses the mean of the
-    # *other* JS94 replicates as a "test-retest predictor".
+    # Per-replicate headline + ceiling — the reported numbers. Each k uses
+    # only samples where both true_lfc_runs[:, k] and pred_lfc_runs[:, k]
+    # are finite and the sample is not low_support; ceiling_k uses the mean
+    # of the *other* JS94 replicates as a "test-retest predictor". Never
+    # averaged across k — see the module docstring.
     pearson_r_per_rep: np.ndarray  # (3,) float64
     spearman_rho_per_rep: np.ndarray  # (3,) float64
     dir_balanced_acc_per_rep: np.ndarray  # (3,) float64
     ceiling_r_per_rep: np.ndarray  # (3,) float64
+    ceiling_rho_per_rep: np.ndarray  # (3,) float64
     ceiling_dir_acc_per_rep: np.ndarray  # (3,) float64
-    # Headline = mean across replicates (NaN-aware).
-    pearson_r: float
-    spearman_rho: float
-    dir_balanced_acc: float
-    ceiling_pearson_r: float
-    ceiling_dir_balanced_acc: float
+    # Cohort size behind each per-replicate number. The metric and ceiling
+    # masks differ (pred-finite vs leave-one-out-finite), so both are kept.
+    n_scored_per_rep: np.ndarray  # (3,) int64
+    n_ceiling_per_rep: np.ndarray  # (3,) int64
     # Calibration on the sample-level mean LFCs (n_reps >= 2 cohort)
     within_range_rate: float
     mean_abs_z: float
@@ -357,12 +436,10 @@ class BrooksScrambleBenchmark(Benchmark[CoverageTrackPredictor, BrooksResults]):
                 spearman_rho_per_rep=nan_reps.copy(),
                 dir_balanced_acc_per_rep=nan_reps.copy(),
                 ceiling_r_per_rep=nan_reps.copy(),
+                ceiling_rho_per_rep=nan_reps.copy(),
                 ceiling_dir_acc_per_rep=nan_reps.copy(),
-                pearson_r=float("nan"),
-                spearman_rho=float("nan"),
-                dir_balanced_acc=float("nan"),
-                ceiling_pearson_r=float("nan"),
-                ceiling_dir_balanced_acc=float("nan"),
+                n_scored_per_rep=np.zeros(n_reps, dtype=np.int64),
+                n_ceiling_per_rep=np.zeros(n_reps, dtype=np.int64),
                 within_range_rate=float("nan"),
                 mean_abs_z=float("nan"),
                 shape_pearson_mean=float("nan"),
@@ -494,67 +571,8 @@ class BrooksScrambleBenchmark(Benchmark[CoverageTrackPredictor, BrooksResults]):
         n_weak_baseline = int((n_reps_supported == 0).sum())
         n_low = int(low.sum())
 
-        # ── per-replicate headline metrics ───────────────────────
-        # For each JS94 replicate k, compute r/ρ/dir-acc over samples
-        # where both pred and truth are finite for that replicate and
-        # the sample is not low_support. Headline = mean across k.
-        pr_per = np.full(n_reps, np.nan)
-        sr_per = np.full(n_reps, np.nan)
-        da_per = np.full(n_reps, np.nan)
-        for k in range(n_reps):
-            mk = (~low) & finite_true[:, k] & np.isfinite(pred_lfc_runs[:, k])
-            if mk.sum() < 2:
-                continue
-            t_k = true_lfc_runs[mk, k]
-            p_k = pred_lfc_runs[mk, k]
-            pr_per[k] = float(pearsonr(p_k, t_k).statistic)
-            sr_per[k] = float(spearmanr(p_k, t_k).statistic)
-            da_per[k] = float(
-                balanced_accuracy_score(
-                    np.sign(t_k).astype(int),
-                    np.sign(p_k).astype(int),
-                )
-            )
-
-        # ── LOO reproducibility ceiling ──────────────────────────
-        # For each k, compare true_lfc_runs[:, k] against the mean of
-        # the other replicates' true LFCs. The correlation between the
-        # two is an upper bound on what any predictor can achieve on
-        # the per-replicate k label (denominator-side noise only;
-        # strain numerator is single-rep, so this is conservative).
-        ceil_pr_per = np.full(n_reps, np.nan)
-        ceil_da_per = np.full(n_reps, np.nan)
-        for k in range(n_reps):
-            others = [j for j in range(n_reps) if j != k]
-            with np.errstate(invalid="ignore"), warnings.catch_warnings():
-                warnings.simplefilter("ignore", RuntimeWarning)
-                loo_true = np.nanmean(true_lfc_runs[:, others], axis=1)
-            mk = (~low) & finite_true[:, k] & np.isfinite(loo_true)
-            if mk.sum() < 2:
-                continue
-            t_k = true_lfc_runs[mk, k]
-            l_k = loo_true[mk]
-            ceil_pr_per[k] = float(pearsonr(l_k, t_k).statistic)
-            ceil_da_per[k] = float(
-                balanced_accuracy_score(
-                    np.sign(t_k).astype(int),
-                    np.sign(l_k).astype(int),
-                )
-            )
-
-        pr = float(np.nanmean(pr_per)) if np.any(np.isfinite(pr_per)) else float("nan")
-        sr = float(np.nanmean(sr_per)) if np.any(np.isfinite(sr_per)) else float("nan")
-        da = float(np.nanmean(da_per)) if np.any(np.isfinite(da_per)) else float("nan")
-        ceiling_pr = (
-            float(np.nanmean(ceil_pr_per))
-            if np.any(np.isfinite(ceil_pr_per))
-            else float("nan")
-        )
-        ceiling_da = (
-            float(np.nanmean(ceil_da_per))
-            if np.any(np.isfinite(ceil_da_per))
-            else float("nan")
-        )
+        # ── per-replicate LFC metrics + LOO ceiling (the reported numbers) ──
+        per_rep = per_rep_lfc_metrics(true_lfc_runs, pred_lfc_runs, low)
 
         # ── calibration on the sample-mean LFCs (n_reps >= 2 cohort) ──
         if n_calibration < 1:
@@ -598,16 +616,7 @@ class BrooksScrambleBenchmark(Benchmark[CoverageTrackPredictor, BrooksResults]):
             n_calibration=n_calibration,
             n_weak_baseline=n_weak_baseline,
             n_low_support=n_low,
-            pearson_r_per_rep=pr_per,
-            spearman_rho_per_rep=sr_per,
-            dir_balanced_acc_per_rep=da_per,
-            ceiling_r_per_rep=ceil_pr_per,
-            ceiling_dir_acc_per_rep=ceil_da_per,
-            pearson_r=pr,
-            spearman_rho=sr,
-            dir_balanced_acc=da,
-            ceiling_pearson_r=ceiling_pr,
-            ceiling_dir_balanced_acc=ceiling_da,
+            **per_rep,
             within_range_rate=within_range_rate,
             mean_abs_z=mean_abs_z,
             shape_pearson_mean=shape_pearson_mean,
@@ -695,18 +704,27 @@ class BrooksScrambleBenchmark(Benchmark[CoverageTrackPredictor, BrooksResults]):
         ax.set_aspect("equal", "box")
         ax.set_xlabel("true log2 LFC (mean over supporting JS94 runs)")
         ax.set_ylabel("predicted log2 LFC (mean over supporting JS94 runs)")
+        # Points are the per-sample means (with replicate envelopes); the
+        # reported metrics are per JS94 replicate, so the title lists all
+        # three rather than a single aggregate.
+        per_rep_lines = "\n".join(
+            f"{alias} (n={int(results.n_scored_per_rep[k])}): "
+            f"dir-acc={results.dir_balanced_acc_per_rep[k]:.3f} "
+            f"(ceiling {results.ceiling_dir_acc_per_rep[k]:.3f})  "
+            f"r={results.pearson_r_per_rep[k]:.3f} "
+            f"(ceiling {results.ceiling_r_per_rep[k]:.3f})  "
+            f"ρ={results.spearman_rho_per_rep[k]:.3f}"
+            for k, alias in enumerate(JS94_REPLICATE_STRAIN_KEYS)
+        )
         ax.set_title(
-            f"Brooks SCRaMBLE — LFC"
+            "Brooks SCRaMBLE — LFC"
             + (f" — {title_model}" if title_model else "")
-            + f"\nn_scored={results.n_scored}  "
-            f"dir-acc={results.dir_balanced_acc:.3f} "
-            f"(ceiling {results.ceiling_dir_balanced_acc:.3f})  "
-            f"r={results.pearson_r:.3f} "
-            f"(ceiling {results.ceiling_pearson_r:.3f})  "
-            f"ρ={results.spearman_rho:.3f}\n"
-            f"calibration (n={results.n_calibration}): "
+            + f"\nn_scored={results.n_scored} overall; metrics per JS94 replicate\n"
+            + per_rep_lines
+            + f"\ncalibration (n={results.n_calibration}): "
             f"within-range={results.within_range_rate:.3f}  "
-            f"|z|={results.mean_abs_z:.3f}"
+            f"|z|={results.mean_abs_z:.3f}",
+            fontsize=8,
         )
         fig.tight_layout()
         fig.savefig(out_dir / "lfc_scatter.png", dpi=150)
@@ -764,8 +782,18 @@ class BrooksScrambleBenchmark(Benchmark[CoverageTrackPredictor, BrooksResults]):
             ax.set_title(
                 "Brooks SCRaMBLE — per-sample LFC ranges"
                 + (f" — {title_model}" if title_model else "")
-                + f"   |   r={results.pearson_r:.3f} "
-                f"(ceiling {results.ceiling_pearson_r:.3f})"
+                + "   |   r per JS94 replicate: "
+                + " / ".join(
+                    f"{results.pearson_r_per_rep[k]:.3f}"
+                    for k in range(len(JS94_REPLICATE_STRAIN_KEYS))
+                )
+                + "  (ceiling "
+                + " / ".join(
+                    f"{results.ceiling_r_per_rep[k]:.3f}"
+                    for k in range(len(JS94_REPLICATE_STRAIN_KEYS))
+                )
+                + ")",
+                fontsize=9,
             )
             ax.legend(loc="upper left", fontsize=9)
             fig.tight_layout()
@@ -796,10 +824,8 @@ class BrooksScrambleBenchmark(Benchmark[CoverageTrackPredictor, BrooksResults]):
         n_reps_supported = np.load(out_dir / "n_reps_supported.npy").astype(np.int64)
         low = np.asarray(meta["low_support"], dtype=bool)
         n = len(low)
-        n_reps_k = pred_lfc_runs.shape[1]
 
         finite_true = np.isfinite(true_lfc_runs)
-        finite_pred = np.isfinite(pred_lfc_runs)
         with np.errstate(invalid="ignore"), warnings.catch_warnings():
             warnings.simplefilter("ignore", RuntimeWarning)
             mean_true = np.where(
@@ -816,37 +842,7 @@ class BrooksScrambleBenchmark(Benchmark[CoverageTrackPredictor, BrooksResults]):
         )
         calib = scored & (n_reps_supported >= 2)
 
-        pr_per = np.full(n_reps_k, np.nan)
-        sr_per = np.full(n_reps_k, np.nan)
-        da_per = np.full(n_reps_k, np.nan)
-        ceil_pr_per = np.full(n_reps_k, np.nan)
-        ceil_da_per = np.full(n_reps_k, np.nan)
-        for k in range(n_reps_k):
-            mk = (~low) & finite_true[:, k] & finite_pred[:, k]
-            if mk.sum() >= 2:
-                t_k = true_lfc_runs[mk, k]
-                p_k = pred_lfc_runs[mk, k]
-                pr_per[k] = float(pearsonr(p_k, t_k).statistic)
-                sr_per[k] = float(spearmanr(p_k, t_k).statistic)
-                da_per[k] = float(
-                    balanced_accuracy_score(
-                        np.sign(t_k).astype(int), np.sign(p_k).astype(int)
-                    )
-                )
-            others = [j for j in range(n_reps_k) if j != k]
-            with np.errstate(invalid="ignore"), warnings.catch_warnings():
-                warnings.simplefilter("ignore", RuntimeWarning)
-                loo = np.nanmean(true_lfc_runs[:, others], axis=1)
-            ck = (~low) & finite_true[:, k] & np.isfinite(loo)
-            if ck.sum() >= 2:
-                t_k = true_lfc_runs[ck, k]
-                l_k = loo[ck]
-                ceil_pr_per[k] = float(pearsonr(l_k, t_k).statistic)
-                ceil_da_per[k] = float(
-                    balanced_accuracy_score(
-                        np.sign(t_k).astype(int), np.sign(l_k).astype(int)
-                    )
-                )
+        per_rep = per_rep_lfc_metrics(true_lfc_runs, pred_lfc_runs, low)
 
         if calib.sum() >= 1:
             hits = 0
@@ -875,26 +871,7 @@ class BrooksScrambleBenchmark(Benchmark[CoverageTrackPredictor, BrooksResults]):
             n_calibration=int(calib.sum()),
             n_weak_baseline=int((n_reps_supported == 0).sum()),
             n_low_support=int(low.sum()),
-            pearson_r_per_rep=pr_per,
-            spearman_rho_per_rep=sr_per,
-            dir_balanced_acc_per_rep=da_per,
-            ceiling_r_per_rep=ceil_pr_per,
-            ceiling_dir_acc_per_rep=ceil_da_per,
-            pearson_r=float(np.nanmean(pr_per))
-            if np.any(np.isfinite(pr_per))
-            else float("nan"),
-            spearman_rho=float(np.nanmean(sr_per))
-            if np.any(np.isfinite(sr_per))
-            else float("nan"),
-            dir_balanced_acc=float(np.nanmean(da_per))
-            if np.any(np.isfinite(da_per))
-            else float("nan"),
-            ceiling_pearson_r=float(np.nanmean(ceil_pr_per))
-            if np.any(np.isfinite(ceil_pr_per))
-            else float("nan"),
-            ceiling_dir_balanced_acc=float(np.nanmean(ceil_da_per))
-            if np.any(np.isfinite(ceil_da_per))
-            else float("nan"),
+            **per_rep,
             within_range_rate=within,
             mean_abs_z=mz,
             shape_pearson_mean=float("nan"),
@@ -902,42 +879,70 @@ class BrooksScrambleBenchmark(Benchmark[CoverageTrackPredictor, BrooksResults]):
         )
 
     def summary_dict(self, results: BrooksResults) -> dict[str, Any]:
-        return {
+        out: dict[str, Any] = {
             "n_total": results.n_total,
             "n_scored": results.n_scored,
             "n_calibration": results.n_calibration,
             "n_weak_baseline": results.n_weak_baseline,
             "n_low_support": results.n_low_support,
-            "lfc_dir_balanced_acc": results.dir_balanced_acc,
-            "lfc_pearson_r": results.pearson_r,
-            "lfc_spearman_rho": results.spearman_rho,
-            "lfc_ceiling_dir_balanced_acc": results.ceiling_dir_balanced_acc,
-            "lfc_ceiling_pearson_r": results.ceiling_pearson_r,
+            # Reported per JS94 replicate; never averaged across replicates
+            # (the three cover different, unequal gene sets).
+            "lfc_n_scored_per_rep": results.n_scored_per_rep.tolist(),
             "lfc_pearson_r_per_rep": results.pearson_r_per_rep.tolist(),
             "lfc_spearman_rho_per_rep": results.spearman_rho_per_rep.tolist(),
             "lfc_dir_balanced_acc_per_rep": results.dir_balanced_acc_per_rep.tolist(),
+            "lfc_n_ceiling_per_rep": results.n_ceiling_per_rep.tolist(),
             "lfc_ceiling_r_per_rep": results.ceiling_r_per_rep.tolist(),
+            "lfc_ceiling_rho_per_rep": results.ceiling_rho_per_rep.tolist(),
             "lfc_ceiling_dir_acc_per_rep": results.ceiling_dir_acc_per_rep.tolist(),
             "lfc_within_range_rate": results.within_range_rate,
             "lfc_mean_abs_z": results.mean_abs_z,
             "shape_pearson_mean": results.shape_pearson_mean,
             "shape_js_mean": results.shape_js_mean,
         }
+        # The cross-task summary.csv / summary.md keep only scalar values, so
+        # also emit each replicate under its own key. Named, not indexed, so
+        # the aggregate table stays readable.
+        per_rep_scalars = (
+            ("lfc_n_scored", results.n_scored_per_rep),
+            ("lfc_pearson_r", results.pearson_r_per_rep),
+            ("lfc_spearman_rho", results.spearman_rho_per_rep),
+            ("lfc_dir_balanced_acc", results.dir_balanced_acc_per_rep),
+            ("lfc_n_ceiling", results.n_ceiling_per_rep),
+            ("lfc_ceiling_r", results.ceiling_r_per_rep),
+            ("lfc_ceiling_rho", results.ceiling_rho_per_rep),
+            ("lfc_ceiling_dir_acc", results.ceiling_dir_acc_per_rep),
+        )
+        for stem, arr in per_rep_scalars:
+            for k, alias in enumerate(JS94_REPLICATE_STRAIN_KEYS):
+                if k < len(arr):
+                    out[f"{stem}_{alias}"] = (
+                        int(arr[k]) if stem.startswith("lfc_n_") else float(arr[k])
+                    )
+        return out
 
     def headline(self, results: BrooksResults) -> str:
-        return (
-            f"LFC (n_scored={results.n_scored}): "
-            f"dir-acc {results.dir_balanced_acc:.3f} "
-            f"(ceiling {results.ceiling_dir_balanced_acc:.3f})  "
-            f"r {results.pearson_r:.3f} "
-            f"(ceiling {results.ceiling_pearson_r:.3f})  "
-            f"ρ {results.spearman_rho:.3f}  | "
+        # One line per JS94 replicate — the three are not comparable to each
+        # other (different gene sets, different ceilings), so no aggregate.
+        lines = [f"LFC per JS94 replicate (n_scored={results.n_scored} overall):"]
+        for k, alias in enumerate(JS94_REPLICATE_STRAIN_KEYS):
+            lines.append(
+                f"  {alias} (n={int(results.n_scored_per_rep[k])}): "
+                f"dir-acc {results.dir_balanced_acc_per_rep[k]:.3f} "
+                f"(ceiling {results.ceiling_dir_acc_per_rep[k]:.3f})  "
+                f"r {results.pearson_r_per_rep[k]:.3f} "
+                f"(ceiling {results.ceiling_r_per_rep[k]:.3f})  "
+                f"ρ {results.spearman_rho_per_rep[k]:.3f} "
+                f"(ceiling {results.ceiling_rho_per_rep[k]:.3f})"
+            )
+        lines.append(
             f"calibration (n={results.n_calibration}): "
             f"within-range {results.within_range_rate:.3f}  "
             f"|z| {results.mean_abs_z:.3f}  | "
             f"shape: r̄ {results.shape_pearson_mean:.3f}  "
             f"JS̄ {results.shape_js_mean:.3f}"
         )
+        return "\n".join(lines)
 
     # ── Cross-model comparison override ──────────────────────────────────
     #
@@ -1005,7 +1010,12 @@ class BrooksScrambleBenchmark(Benchmark[CoverageTrackPredictor, BrooksResults]):
             "note": (
                 "Headline metrics are computed on the intersection of all "
                 "models' sample sets. Full-set metrics for each model are "
-                "kept as secondary so the gap is documented."
+                "kept as secondary so the gap is documented. LFC metrics are "
+                "reported per JS94 replicate and are never averaged across "
+                "replicates: each replicate scores a different, unequally "
+                "sized gene set (the read-depth cutoff is applied per gene "
+                "per run) against its own leave-one-out ceiling, so the three "
+                "are not comparable to one another either."
             ),
         }
         (out_dir / "summary.json").write_text(json.dumps(out_summary, indent=2))
@@ -1044,46 +1054,15 @@ def _load_brooks_run_dir(model_dir: Path) -> dict | None:
 
 def _brooks_metrics(d: dict, idx: np.ndarray) -> dict:
     """Per-replicate r / ρ / dir-acc + LOO ceiling + calibration metrics
-    on the row subset ``idx``. Mirrors the in-class compute path so the
-    cross-model comparison uses identical definitions."""
+    on the row subset ``idx``. Shares ``per_rep_lfc_metrics`` with the
+    in-class compute path so the two can never drift."""
     pred = d["pred_lfc_runs"][idx]
     true = d["true_lfc_runs"][idx]
     n_reps = d["n_reps_supported"][idx]
     low = d["low_support"][idx]
-    nk = pred.shape[1]
-
-    pr_per = np.full(nk, np.nan)
-    sr_per = np.full(nk, np.nan)
-    da_per = np.full(nk, np.nan)
-    ceil_pr_per = np.full(nk, np.nan)
-    ceil_da_per = np.full(nk, np.nan)
 
     finite_t = np.isfinite(true)
-    finite_p = np.isfinite(pred)
-    for k in range(nk):
-        mk = (~low) & finite_t[:, k] & finite_p[:, k]
-        if mk.sum() >= 2:
-            t_k, p_k = true[mk, k], pred[mk, k]
-            pr_per[k] = float(pearsonr(p_k, t_k).statistic)
-            sr_per[k] = float(spearmanr(p_k, t_k).statistic)
-            da_per[k] = float(
-                balanced_accuracy_score(
-                    np.sign(t_k).astype(int), np.sign(p_k).astype(int)
-                )
-            )
-        others = [j for j in range(nk) if j != k]
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", RuntimeWarning)
-            loo = np.nanmean(true[:, others], axis=1)
-        ck = (~low) & finite_t[:, k] & np.isfinite(loo)
-        if ck.sum() >= 2:
-            t_k, l_k = true[ck, k], loo[ck]
-            ceil_pr_per[k] = float(pearsonr(l_k, t_k).statistic)
-            ceil_da_per[k] = float(
-                balanced_accuracy_score(
-                    np.sign(t_k).astype(int), np.sign(l_k).astype(int)
-                )
-            )
+    per_rep = per_rep_lfc_metrics(true, pred, low)
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", RuntimeWarning)
@@ -1114,30 +1093,15 @@ def _brooks_metrics(d: dict, idx: np.ndarray) -> dict:
         "n_scored": int(scored.sum()),
         "n_calibration": int(calib_mask.sum()),
         "n_weak_baseline": int((n_reps == 0).sum()),
-        "pearson_r": (
-            float(np.nanmean(pr_per)) if np.any(np.isfinite(pr_per)) else float("nan")
-        ),
-        "spearman_rho": (
-            float(np.nanmean(sr_per)) if np.any(np.isfinite(sr_per)) else float("nan")
-        ),
-        "dir_balanced_acc": (
-            float(np.nanmean(da_per)) if np.any(np.isfinite(da_per)) else float("nan")
-        ),
-        "ceiling_pearson_r": (
-            float(np.nanmean(ceil_pr_per))
-            if np.any(np.isfinite(ceil_pr_per))
-            else float("nan")
-        ),
-        "ceiling_dir_balanced_acc": (
-            float(np.nanmean(ceil_da_per))
-            if np.any(np.isfinite(ceil_da_per))
-            else float("nan")
-        ),
-        "pearson_r_per_rep": pr_per.tolist(),
-        "spearman_rho_per_rep": sr_per.tolist(),
-        "dir_balanced_acc_per_rep": da_per.tolist(),
-        "ceiling_pearson_r_per_rep": ceil_pr_per.tolist(),
-        "ceiling_dir_balanced_acc_per_rep": ceil_da_per.tolist(),
+        # Per JS94 replicate; never averaged across replicates.
+        "n_scored_per_rep": per_rep["n_scored_per_rep"].tolist(),
+        "pearson_r_per_rep": per_rep["pearson_r_per_rep"].tolist(),
+        "spearman_rho_per_rep": per_rep["spearman_rho_per_rep"].tolist(),
+        "dir_balanced_acc_per_rep": per_rep["dir_balanced_acc_per_rep"].tolist(),
+        "n_ceiling_per_rep": per_rep["n_ceiling_per_rep"].tolist(),
+        "ceiling_pearson_r_per_rep": per_rep["ceiling_r_per_rep"].tolist(),
+        "ceiling_spearman_rho_per_rep": per_rep["ceiling_rho_per_rep"].tolist(),
+        "ceiling_dir_balanced_acc_per_rep": per_rep["ceiling_dir_acc_per_rep"].tolist(),
         "within_range_rate": within,
         "mean_abs_z": mz,
     }
@@ -1150,27 +1114,32 @@ def _plot_brooks_shared_metrics(
     out_path: Path,
 ) -> None:
     """Bar chart of Pearson r / Spearman ρ / dir-acc per model on the
-    shared cohort. Ceiling marked as a grey dashed line where defined."""
+    shared cohort, one row per (metric, JS94 replicate). Each replicate
+    carries its own leave-one-out ceiling and its own cohort size — the
+    three are not averaged, and are not comparable to each other (they
+    cover different gene sets)."""
     import matplotlib.pyplot as plt
 
-    rows = [
-        ("Pearson r", "pearson_r", "ceiling_pearson_r"),
-        ("Spearman ρ", "spearman_rho", None),
-        ("dir-acc", "dir_balanced_acc", "ceiling_dir_balanced_acc"),
+    metrics = [
+        ("Pearson r", "pearson_r_per_rep", "ceiling_pearson_r_per_rep"),
+        ("Spearman ρ", "spearman_rho_per_rep", "ceiling_spearman_rho_per_rep"),
+        ("dir-acc", "dir_balanced_acc_per_rep", "ceiling_dir_balanced_acc_per_rep"),
     ]
     model_names = sorted(loaded.keys())
     colors = [model_color(m, model_names) for m in model_names]
-    fig, axes = plt.subplots(len(rows), 1, figsize=(8, 1.7 * len(rows)), squeeze=False)
-    for i, (metric_name, key, ceil_key) in enumerate(rows):
+    n_reps = len(shared_cohort[model_names[0]]["pearson_r_per_rep"])
+    rows = [(mn, key, ck, k) for mn, key, ck in metrics for k in range(n_reps)]
+
+    fig, axes = plt.subplots(len(rows), 1, figsize=(8, 1.5 * len(rows)), squeeze=False)
+    for i, (metric_name, key, ceil_key, k) in enumerate(rows):
         ax = axes[i, 0]
-        ys = [shared_cohort[m][key] for m in model_names]
+        ys = [shared_cohort[m][key][k] for m in model_names]
         bars = ax.barh(model_names, ys, color=colors, alpha=0.85)
         ax.axvline(0, color="grey", lw=0.5)
-        if ceil_key:
-            # The ceiling depends only on the truth labels, which are
-            # identical for all models on the shared cohort — read it
-            # from the first model.
-            ceil = shared_cohort[model_names[0]][ceil_key]
+        # The ceiling depends only on the truth labels, which are identical
+        # for all models on the shared cohort — read it from the first model.
+        ceil = shared_cohort[model_names[0]][ceil_key][k]
+        if np.isfinite(ceil):
             ax.axvline(
                 ceil, color="grey", lw=1.0, ls="--", label=f"LOO ceiling {ceil:+.3f}"
             )
@@ -1183,13 +1152,11 @@ def _plot_brooks_shared_metrics(
                 va="center",
                 fontsize=9,
             )
-        all_vals = ys + (
-            [shared_cohort[model_names[0]].get(ceil_key, 0)] if ceil_key else []
-        )
+        all_vals = [v for v in ys + [ceil] if np.isfinite(v)] or [0.0]
         ax.set_xlim(min(-0.05, min(all_vals) - 0.05), max(1.0, *all_vals) * 1.05 + 0.05)
+        n_k = shared_cohort[model_names[0]]["n_scored_per_rep"][k]
         ax.set_title(
-            f"{metric_name}  (shared cohort, n_scored="
-            f"{shared_cohort[model_names[0]]['n_scored']})",
+            f"{metric_name}  ({JS94_REPLICATE_STRAIN_KEYS[k]}, n={n_k})",
             fontsize=10,
         )
     fig.tight_layout()

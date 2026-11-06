@@ -20,8 +20,9 @@ per-metric tables for each comparison live next to the runs in
 | [Chen synonymous MPRA](#chen-synonymous-mpra) | CAI, CodonTransformer, Shorkie, Yorzoi | Pearson r / Spearman ρ | **Mixed** (Shorkie on GFP, CAI on TDH3) |
 | [Wu RFP insertions](#wu-rfp-insertions) | Shorkie, Yorzoi | Pearson r / Spearman ρ | **Neither** (both ≈ 0) |
 | [Hong IGR insertions](#hong-igr-insertions) | Shorkie, Yorzoi | Spearman ρ (held-out test set) | **Neither** (both ≈ 0) |
-| [Brooks SCRaMBLE](#brooks-scramble) | Shorkie, Yorzoi | LFC direction balanced acc. | **Yorzoi** |
+| [Brooks SCRaMBLE](#brooks-scramble) | Shorkie, Yorzoi | LFC direction balanced acc., per JS94 run | **Yorzoi** (all 3 runs) |
 | [Cuperus 5′-UTR](#cuperus-5-utr) | Shorkie, Yorzoi | Spearman ρ (+ partial correlation) | **Shorkie** |
+| [Lee YTK promoters](#lee-ytk-promoters) | Shorkie, Yorzoi | consensus dynamic-range recovery + Spearman ρ | **Shorkie** |
 | [Meneu foreign DNA](#meneu-foreign-dna) | Shorkie, Yorzoi | per-window shape Pearson / JS↓ | **Yorzoi** |
 
 ---
@@ -145,24 +146,36 @@ an unscrambled parental control, against a leave-one-out reproducibility ceiling
 ([spec](benchmarks/brooks_scramble.md))
 
 Shared cohort (n = 327 — the intersection both models' receptive fields support,
-the apples-to-apples view).
+the apples-to-apples view). Metrics are reported **per JS94 parental run** and
+never averaged across the three: each run scores a different set of genes (a
+gene needs enough reads *in that run*, and the cutoff falls per gene), so the
+cohorts differ in size and composition and each has its own ceiling. Compare
+models within a row, never across rows.
 
-| metric | Shorkie | Yorzoi | LOO ceiling |
-| --- | --- | --- | --- |
-| LFC direction balanced acc. | 0.5533 | **0.6348** | 0.8058 |
-| LFC Spearman ρ | -0.0377 | **0.3128** | — |
-| LFC Pearson r | -0.0199 | **0.2205** | 0.8046 |
+| metric | run (n) | Shorkie | Yorzoi | LOO ceiling |
+| --- | --- | --- | --- | --- |
+| LFC direction balanced acc. | JS94_r0 (205) | 0.514 | **0.624** | 0.761 |
+| | JS94_r1 (80) | 0.613 | **0.650** | 0.963 |
+| | JS94_r2 (291) | 0.534 | **0.630** | 0.694 |
+| LFC Spearman ρ | JS94_r0 (205) | -0.065 | **0.439** | 0.779 |
+| | JS94_r1 (80) | -0.157 | **0.275** | 0.955 |
+| | JS94_r2 (291) | 0.109 | **0.224** | 0.589 |
+| LFC Pearson r | JS94_r0 (205) | -0.087 | **0.297** | 0.789 |
+| | JS94_r1 (80) | 0.004 | **0.212** | 0.954 |
+| | JS94_r2 (291) | 0.023 | **0.153** | 0.671 |
 
-**Winner: Yorzoi** — leads every LFC metric; Shorkie's direction accuracy is at
-chance (0.55). Full-set numbers (Shorkie n=528, Yorzoi n=327) are kept as
-secondary in `results/brooks/compare/`. The coverage-**shape** metric (Yorzoi
-0.83 / Shorkie 0.42 Pearson) is **deferred to v2** — cross-model shape numbers
-aren't comparable until a common readout window is fixed (see the
-[spec](benchmarks/brooks_scramble.md)).
+**Winner: Yorzoi** — leads Shorkie on all three metrics in all three parental
+runs, nine out of nine. Shorkie sits at chance throughout. Both stay well short
+of the reproducibility ceiling in every run. Full-set numbers (Shorkie n=528,
+Yorzoi n=327) are kept as secondary in `results/brooks/compare/`. The
+coverage-**shape** metric (Yorzoi 0.83 / Shorkie 0.42 Pearson) is **deferred to
+v2** — cross-model shape numbers aren't comparable until a common readout
+window is fixed (see the [spec](benchmarks/brooks_scramble.md)).
 
-> 2026-07-31 Modal run; reproduces the pre-refactor numbers to the printed
-> precision (the `tier1_*`/`tier2_*` → `lfc_*`/`shape_*` rename was
-> metric-preserving).
+> 2026-07-31 Modal run, recomputed per replicate 2026-09-02 from the saved
+> per-replicate arrays — the models were not re-run. The earlier single-number
+> headline averaged these three correlations, which weighted the 80-sample run
+> equally with the 291-sample one.
 
 ## Cuperus 5′-UTR
 
@@ -180,6 +193,26 @@ in the HIS3 reporter. ([spec](benchmarks/cuperus_mpra_5utr.md))
 **Winner: Shorkie** — leads every cut, and retains signal in the partial
 correlation (after regressing out hand-crafted Kozak features) where Yorzoi
 drops to ≈ 0.
+
+## Lee YTK promoters
+
+Nineteen promoters driving mRuby2 or Venus from the same integrated construct
+context. The main question is whether the models recover the measured max/min
+range, not only promoter rank. ([spec](benchmarks/ytk_promoter.md))
+
+Zero-shot, 2026-08-25 Modal A10 run. Both models scored all 38 constructs.
+
+| consensus metric | Shorkie | Yorzoi |
+| --- | ---: | ---: |
+| predicted max/min (observed 162.079×) | **2.315×** | 1.739× |
+| dynamic-range recovery | **0.1650** | 0.1088 |
+| range fidelity | **0.1650** | 0.1088 |
+| Spearman ρ | **0.6526** | 0.5702 |
+| log10 Pearson *r* | **0.6660** | 0.5358 |
+
+**Winner: Shorkie**, though both predictions are severely compressed. Shorkie
+recovers some ordering but only 16.5% of the observed log10 span; Yorzoi recovers
+10.9%.
 
 ## Meneu foreign DNA
 

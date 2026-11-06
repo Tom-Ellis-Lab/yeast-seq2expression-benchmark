@@ -9,7 +9,9 @@ the rest of the CLI work even when the ``modal`` extra isn't fully importable.
 """
 from __future__ import annotations
 
+import shutil
 import subprocess
+import sys
 from pathlib import Path
 from typing import Annotated, Optional
 
@@ -47,6 +49,17 @@ def _validate_gpu(gpu: str) -> str:
     return gpu
 
 
+def _modal_executable() -> str:
+    """Find the Modal CLI, including beside an explicitly-invoked venv Python."""
+    on_path = shutil.which("modal")
+    if on_path is not None:
+        return on_path
+    beside_python = Path(sys.executable).with_name("modal")
+    if beside_python.is_file():
+        return str(beside_python)
+    return "modal"
+
+
 def _download_results(out: Path, remote: str = "/") -> None:
     """Download ``remote`` from the results volume into ``out``.
 
@@ -59,7 +72,15 @@ def _download_results(out: Path, remote: str = "/") -> None:
     """
     out.mkdir(parents=True, exist_ok=True)
     subprocess.run(
-        ["modal", "volume", "get", "--force", "ybench-results", remote, str(out)],
+        [
+            _modal_executable(),
+            "volume",
+            "get",
+            "--force",
+            "ybench-results",
+            remote,
+            str(out),
+        ],
         check=True,
     )
 
@@ -177,4 +198,6 @@ def status() -> None:
     """List what's currently on the data and results volumes."""
     for vol in ("ybench-data", "ybench-results"):
         _echo(f"\n# {vol}")
-        subprocess.run(["modal", "volume", "ls", vol], check=False)
+        subprocess.run(
+            [_modal_executable(), "volume", "ls", vol], check=False
+        )

@@ -30,6 +30,7 @@
       - [Wu et al. (RFP insertions)](#wu-et-al-rfp-insertions)
       - [Hong et al. (mCherry IGR insertions)](#hong-et-al-mcherry-igr-insertions)
       - [Cuperus et al. (5′ UTR)](#cuperus-et-al-5-utr)
+      - [Lee et al. (YTK promoter panel)](#lee-et-al-ytk-promoter-panel)
     - [Structural rearrangements](#structural-rearrangements)
     - [Foreign-DNA integration](#foreign-dna-integration)
     - [Code-structure refactor](#code-structure-refactor)
@@ -59,12 +60,13 @@ files under `docs/benchmarks/`. This roadmap tracks status only.
 
 ### Infrastructure
 
-- [x] Protocol-based adapter dispatch — 9 protocols
-  (`VariantEffectScorer`, `MarginalizedSequenceExpressionPredictor`,
+- [x] Protocol-based adapter dispatch — 10 protocols
+  (`VariantEffectScorer`, `SequenceExpressionScorer`,
   `TerminatorMarginalizedExpressionPredictor`, `CassetteExpressionPredictor`,
   `IGRInsertionExpressionPredictor`, `CoverageTrackPredictor`,
   `TiledCoverageTrackPredictor`, `LocalCodingVariantPredictor`,
-  `FivePrimeUtrReporterExpressionPredictor`)
+  `FivePrimeUtrReporterExpressionPredictor`,
+  `IntegratedPromoterPanelPredictor`)
 - [x] Benchmark ABC (`evaluate` / `plot` / `save_results` / `load_results` /
   `summary_dict` / `headline`)
 - [x] Registry (`SHORKIE_ADAPTERS` / `YORZOI_ADAPTERS` keyed by protocol;
@@ -73,7 +75,7 @@ files under `docs/benchmarks/`. This roadmap tracks status only.
   `configs/default.yaml`)
 - [x] Run UX (PR #23): hardware banner (`describe_device`), `--gpu` / `--device`
   selection, per-pair ETA (`hardware.py`, `cli.py`, `tests/test_run_progress.py`)
-- [x] 282-test pytest suite
+- [x] 331-test pytest suite
 - [x] Cross-model comparison runner (`compare.py`): per-task
   `compare/per_task/<task>/` plots via each benchmark's `compare_plot` hook,
   plus cross-task `summary.csv` / `summary.md`; auto-runs after every
@@ -232,6 +234,19 @@ files under `docs/benchmarks/`. This roadmap tracks status only.
 - [x] GPU run (Shorkie / Yorzoi) recorded; scored single-HIS3 (the `backgrounds=`
   machinery was removed after a divergence check, 2026-06-03)
 
+#### Lee et al. (YTK promoter panel)
+
+- [x] Figure 3A digitised for 19 promoters × mRuby2/Venus
+- [x] YTK constructs rebuilt from the official GenBank parts and URA3 assembly
+  rules; exact reporter CDS coordinates frozen
+- [x] Raw, untransformed, unbinned per-base CDS-sum adapters for Shorkie and
+  Yorzoi
+- [x] Consensus max/min dynamic-range recovery and per-reporter metrics
+- [x] GPU run (Shorkie / Yorzoi) on Modal A10, 2026-08-25; Shorkie recovers
+  0.165 of the consensus log-range, Yorzoi 0.109
+- [ ] v2: ask the authors for original per-replicate Figure 3A values and final
+  promoter-test plasmid sequences; replace both digitisation and reconstruction
+
 ### Structural rearrangements
 
 Brooks et al. SCRaMBLE chromosome 9 — spec `docs/benchmarks/brooks_scramble.md`.
@@ -260,9 +275,15 @@ Brooks et al. SCRaMBLE chromosome 9 — spec `docs/benchmarks/brooks_scramble.md
 - [x] Shorkie adapter `ShorkieBrooksPredictor`: 8-fold, T0 tracks, softplus raw
   counts, 16 bp unbin, `varies_by_strain = False`
 - [x] `BrooksScrambleBenchmark`: per-replicate LFC design (0–3 true + 0–3
-  predicted LFCs per sample); LFC headline (scored: r / ρ / dir-acc;
+  predicted LFCs per sample); LFC metrics (scored: r / ρ / dir-acc;
   calibration: within-range + mean |z|); shape metrics (per-base r + JS
   divergence); LOO noise ceiling. JS94 replicate aliases in `_yorzoi_constants.py`
+- [x] LFC metrics reported **per JS94 replicate**, never averaged across the
+  three (2026-09-02). Each replicate scores a different, unequally sized gene
+  set — the read-depth cutoff is applied per gene per run — against its own
+  ceiling, so a mean over replicates weighted unlike cohorts equally. One
+  shared `per_rep_lfc_metrics` now serves `evaluate` / `load_results` /
+  compare, and `n_scored_per_rep` ships with every number
 - [x] Cross-model shared-cohort convention: headline on the intersection of the
   two models' sample sets; `ybench compare` Brooks logic in `benchmarks/brooks.py`
   writes the shared-cohort summary + charts. Reconciles the sample set + LFC
@@ -402,12 +423,13 @@ Per-task adapters (once integration lands) — each is a thin adapter on an
 `ExoShorkie` wrapper reusing the task's existing scaffold; only the model changes.
 Migrate back under their benchmark sections when ExoShorkie becomes active.
 
-- [ ] Rafi / de Boer marginalized (`MarginalizedSequenceExpressionPredictor`)
+- [ ] Rafi / de Boer marginalized (`SequenceExpressionScorer`)
 - [ ] Shalem terminator (`TerminatorMarginalizedExpressionPredictor`)
 - [ ] Chen synonymous CDS (`LocalCodingVariantPredictor`)
 - [ ] Wu RFP insertions (`CassetteExpressionPredictor`)
 - [ ] Hong IGR insertions (`IGRInsertionExpressionPredictor`)
 - [ ] Cuperus 5′ UTR (`FivePrimeUtrReporterExpressionPredictor`)
+- [ ] Lee YTK promoters (`IntegratedPromoterPanelPredictor`)
 - [ ] Brooks SCRaMBLE (`CoverageTrackPredictor`)
 - [ ] Meneu foreign DNA (`TiledCoverageTrackPredictor`)
 - [ ] Meneu: check ExoShorkie vs the paper (reproduce the paper's exact metric —
@@ -532,6 +554,9 @@ under small shifts). Relevant to every binned model in the suite.
 
 - [ ] Quantify input-shift sensitivity per adapter; add a jittered readout if
   material
+
+### Random short promoters in genome
+https://www.nature.com/articles/s41467-023-37610-w
 
 ### Baselines as first-class models
 

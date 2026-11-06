@@ -259,6 +259,22 @@
           "size": 28327
         }
       }
+    },
+    "ytk_promoter": {
+      "files": {
+        "constructs.fasta": {
+          "sha256": "4ea80d3eba905bee241c5e91f725cb0160d6343292df0ec492d23da5cfc19ab1",
+          "size": 117288
+        },
+        "constructs.tsv": {
+          "sha256": "1981d53a4b805aa76ddd2b3c093c0a42a2867c8fe4f972d38ceccaf99afa3b6c",
+          "size": 3826
+        },
+        "figure3a.tsv": {
+          "sha256": "6ae7f3801755c78b4877a7c0655fc816165017dc2f4eee307be5c10907e1689c",
+          "size": 1546
+        }
+      }
     }
   },
   "version": 1

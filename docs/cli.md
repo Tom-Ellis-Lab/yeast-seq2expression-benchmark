@@ -71,12 +71,12 @@ left:
 
 ```
 hardware:      cuda:0  NVIDIA A100-80GB  (79.2/80.0 GB free)
-data:          ✓ ready  19/19 files (474.0MB)
-runs:          12 pair(s)
+data:          ✓ ready  50/50 files (562.6MB/562.6MB), 2 hf-cache model(s)
+runs:          21 pair(s)
 
-[ 1/12] shorkie × caudal_eqtl → results/default/shorkie__caudal_eqtl
+[ 1/21] shorkie × caudal_eqtl → results/default/shorkie__caudal_eqtl
   …
-  ✓ done in 41s · elapsed 41s · mean 41s/pair · ETA ~7m32s
+  ✓ done in 41s · elapsed 41s · mean 41s/pair · ETA ~13m40s
 ```
 
 Before executing, `run` pre-flights the data: a real run **stops** if any

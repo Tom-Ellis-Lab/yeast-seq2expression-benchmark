@@ -44,18 +44,43 @@ expression change. That ceiling is intrinsic and is reported explicitly
 
 ## Results
 
-*2026-07-31 Modal run (v1, unified `brooks_scramble` task, 3-file artifact). The headline is the shared-cohort intersection (n = 327 scored) — the apples-to-apples comparison. (The pre-unification 2026-05-28 build reproduces these numbers to the printed precision, so the refactor was metric-preserving.)*
+*2026-07-31 Modal run (v1, unified `brooks_scramble` task, 3-file artifact), recomputed per replicate 2026-09-02 from the saved per-replicate arrays — no model re-run. The cohort is the shared-cohort intersection (n = 327 scored) — the apples-to-apples comparison.*
 
-| LFC, shared cohort (n = 327 scored) | Shorkie | Yorzoi | reproducibility ceiling |
+Metrics are reported **per JS94 parental run** and are never averaged across
+the three. Each run scores a different set of genes: a gene needs
+`MIN_READS_PER_RUN` reads *in that run*, and because the cutoff falls per gene,
+the shallow run's cohort is the strongly expressed genes. The three cohorts
+therefore differ in size and in composition, and each carries its own
+leave-one-out ceiling — so the three columns are not comparable to one another
+either. Read each model against the ceiling in its own row, never across rows.
+
+| LFC, shared cohort | JS94_r0 (n = 205) | JS94_r1 (n = 80) | JS94_r2 (n = 291) |
 | --- | ---: | ---: | ---: |
-| direction balanced accuracy | 0.553 | 0.635 | 0.806 |
-| Pearson r | −0.020 | 0.221 | 0.805 |
-| Spearman ρ | −0.038 | 0.313 | — |
+| **direction balanced accuracy** | | | |
+| Shorkie | 0.514 | 0.613 | 0.534 |
+| Yorzoi | **0.624** | **0.650** | **0.630** |
+| *reproducibility ceiling* | *0.761* | *0.963* | *0.694* |
+| **Pearson r** | | | |
+| Shorkie | −0.087 | 0.004 | 0.023 |
+| Yorzoi | **0.297** | **0.212** | **0.153** |
+| *reproducibility ceiling* | *0.789* | *0.954* | *0.671* |
+| **Spearman ρ** | | | |
+| Shorkie | −0.065 | −0.157 | 0.109 |
+| Yorzoi | **0.439** | **0.275** | **0.224** |
+| *reproducibility ceiling* | *0.779* | *0.955* | *0.589* |
 
-![Shared-cohort LFC, Shorkie vs Yorzoi, against the leave-one-out reproducibility ceiling.](../../img/results/brooks_scramble/shared_tier1.png)
-![Per-SCRaMBLE-strain LFC agreement on the shared cohort.](../../img/results/brooks_scramble/shared_per_sample.png)
+The ceiling is computed on its own cohort (n = 198 / 80 / 169), which is not the
+scoring cohort: it needs the *other* replicates to be finite, where the model
+metric needs a finite prediction.
 
-- Yorzoi recovers a real but modest slice of the cis-predictable LFC (dir-acc 0.635, r 0.221) against an 0.806 / 0.805 reproducibility ceiling.
+![Shared-cohort LFC per JS94 replicate, Shorkie vs Yorzoi, each against its own leave-one-out reproducibility ceiling.](../../img/results/brooks_scramble/shared_lfc.svg)
+![Per-SCRaMBLE-strain LFC agreement on the shared cohort.](../../img/results/brooks_scramble/shared_per_sample.svg)
+
+- Yorzoi leads Shorkie on every metric in every one of the three parental runs.
+- Yorzoi recovers a real but modest slice of the cis-predictable LFC, and the
+  slice shrinks as the reference run gets deeper and its cohort widens (r 0.297
+  on r0's 205 genes, 0.153 on r2's 291). Against ceilings of 0.789 / 0.954 /
+  0.671 it is well short throughout.
 - Shorkie sits at ~0 on LFC — a readout limit, not a wrong call. The rearrangement keeps each gene's promoter and CDS intact and only changes its downstream context; Shorkie's score is RNA-seq coverage summed over the (unchanged) CDS, so its predicted rearranged and parental coverage come out nearly equal and the predicted log-fold-change is ~0 (see [Model contract](#model-contract)). Its magnitude is better-calibrated than Yorzoi's (mean |z| 2.0 vs 11.2), but that's calibration, not ranking.
 
 Why the numbers look the way they do: [`model_failures.md`](model_failures.md). Artifacts: `results/brooks/compare/per_task/brooks_scramble/summary.json` (shared cohort) and `results/brooks/{shorkie,yorzoi}__*/summary.json`.
@@ -232,15 +257,29 @@ replicates — it is **not** the cause of the ~0 score.)
 
 ### LFC — scalar effect size (Yorzoi primary; Shorkie via T0 RNA-seq proxy track)
 
-1. Per sample: `pred_LFC = log2( Σ_pred(alt CDS bins) / Σ_pred(native
-   CDS bins) )`; `true_LFC` from native-normalised Nanopore CDS coverage
-   (per-copy), gene strand.
+1. Per sample **and per JS94 parental run k**:
+   `pred_LFC_k = log2( Σ_pred(alt CDS bins) / Σ_pred(native CDS bins, run k) )`;
+   `true_LFC_k = log2( norm_cov_strain / norm_cov_js94_k )` from
+   native-normalised Nanopore CDS coverage (per-copy), gene strand. Run `k`
+   contributes only if the gene cleared `MIN_READS_PER_RUN` reads in it, so a
+   sample carries 0–3 paired LFCs.
 2. Metrics, in order: **(1) direction balanced accuracy** —
-   `sign(pred_LFC)` vs `sign(true_LFC)`; **(2) Spearman ρ**;
-   **(3) Pearson r** — across all samples.
-3. Plot: predicted-vs-true LFC scatter, sign quadrants shaded, the
-   **JS94×3 reproducibility band** overlaid, r/ρ/acc annotated; plus a
-   per-rearrangement-class breakdown.
+   `sign(pred_LFC_k)` vs `sign(true_LFC_k)`; **(2) Spearman ρ**;
+   **(3) Pearson r** — each computed **within one run k**, across the samples
+   that run supports.
+3. **The three runs are reported separately and never averaged.** Averaging
+   correlations across them would weight unequal cohorts equally (205 / 80 /
+   291 samples here) and mix gene sets of different composition, since the
+   read cutoff is decided per gene: the shallow run scores only the strongly
+   expressed genes, and its ceiling is correspondingly higher. `n_scored_per_rep`
+   ships alongside every number so the cohort behind it is always visible.
+4. Each run is read against **its own** leave-one-out ceiling — run `k`'s true
+   LFCs predicted from the mean of the other runs'. Never compare a model's
+   number in one run to a ceiling from another.
+5. Plot: predicted-vs-true LFC scatter (points are per-sample means with
+   replicate envelopes), sign quadrants shaded, the **JS94×3 reproducibility
+   band** overlaid, per-run r/ρ/acc annotated; plus a per-rearrangement-class
+   breakdown.
 
 ### Shape — coverage profile (Yorzoi-only) — deferred to v2
 

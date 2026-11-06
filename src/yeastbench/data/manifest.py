@@ -42,6 +42,7 @@ class BackendKind(str, Enum):
 class License(str, Enum):
     OWN = "own"                # our data — mirror freely
     CC_BY_4_0 = "cc-by-4.0"    # mirror freely with attribution
+    CC_BY_NC_4_0 = "cc-by-nc-4.0"  # mirror with attribution, non-commercial use
     PUBLIC = "public"          # publicly hosted by upstream; fetch from origin
     GEO_TERMS = "geo-terms"    # NCBI GEO — do not re-host
     UNKNOWN = "unknown"
@@ -105,7 +106,7 @@ class Artifact:
 # billing project (`ybench data get/publish --billing-project …` or the
 # YBENCH_GCS_BILLING_PROJECT env var). Until a mirror is published, `get` from it
 # reports "not yet published" rather than failing hard.
-_HF_DATA_REPO = "tom-ellis-lab/yeast-seq2expression-data"
+_HF_DATA_REPO = "tom-ellis-lab/yeast-seq2expression-benchmark-data"
 _GCS_DATA_BUCKET = "gs://yeast-seq2expression-benchmark/"
 
 
@@ -135,7 +136,9 @@ def _task(
         requires=requires,
         include=include,
         license=license,
-        redistributable=(license in (License.OWN, License.CC_BY_4_0)),
+        redistributable=(
+            license in (License.OWN, License.CC_BY_4_0, License.CC_BY_NC_4_0)
+        ),
     )
 
 
@@ -249,6 +252,14 @@ ARTIFACTS: tuple[Artifact, ...] = (
         # One window-agnostic sidecar per contig (seq + fwd/rev); the benchmark
         # tiles to the model's receptive field at run time, so no per-window TSV.
         include=("meneu_cov_Mpneumo.npz", "meneu_cov_Mmmyco.npz"),
+    ),
+    _task(
+        "ytk_promoter",
+        dest="data/tasks/ytk_promoter",
+        needed_by=("ytk_promoter",),
+        requires=(_REFS,),
+        license=License.CC_BY_NC_4_0,
+        include=("figure3a.tsv", "constructs.tsv", "constructs.fasta"),
     ),
 
     # ── Model weights ──────────────────────────────────────────

@@ -8,7 +8,7 @@ by a registry:
   *type* of benchmark. Current protocols:
   - `VariantEffectScorer.score_variants(variants) -> np.ndarray`
     — for eQTL-style benchmarks.
-  - `MarginalizedSequenceExpressionPredictor.predict_marginalized_expressions(seqs) -> np.ndarray`
+  - `SequenceExpressionScorer.predict_expression_scores(seqs) -> np.ndarray`
     — for native-position marginalized MPRA scoring.
 - **Benchmarks** (`src/yeastbench/benchmarks/`) — a `Benchmark` subclass
   per task type. Each declares `adapter_protocol` (which protocol it

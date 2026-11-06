@@ -32,6 +32,19 @@ class CassetteExpressionPredictor(Protocol):
 
 
 @runtime_checkable
+class IntegratedPromoterPanelPredictor(Protocol):
+    """Predict RNA abundance for varying reporter constructs at one locus.
+
+    ``constructs`` contains complete promoter-reporter cassettes and the exact
+    reporter CDS span in each cassette. Implementations return one scalar per
+    construct, aligned to input order. Track models must sum raw, untransformed,
+    unbinned per-base coverage over those exact CDS bases.
+    """
+
+    def predict_reporter_expressions(self, constructs: Sequence) -> np.ndarray: ...
+
+
+@runtime_checkable
 class IGRInsertionExpressionPredictor(Protocol):
     """Predict expression of a reporter in one constant cassette that is
     integrated at varying genomic loci by **intergenic-region insertion**

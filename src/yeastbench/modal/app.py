@@ -32,7 +32,13 @@ if not (_REPO_ROOT / "pyproject.toml").exists():  # pragma: no cover - misconfig
         "The Modal backend ships this tree to the container, so it must run from "
         "a git checkout, not an installed wheel."
     )
-_IMAGE_IGNORE = ["data/**", "results/**", "**/__pycache__", ".venv/**"]
+_IMAGE_IGNORE = [
+    "data/**",
+    "results/**",
+    "tmp-ytk-implementation/**",
+    "**/__pycache__",
+    ".venv/**",
+]
 # .git is intentionally NOT ignored: `ybench run` records git_commit in
 # run_metadata.json, so the checkout needs to be baked into the image.
 

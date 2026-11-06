@@ -224,3 +224,4 @@ papers/*
 docs/modal_backend.md
 scripts/modal/spike.py
 tmp/
+.DS_Store
