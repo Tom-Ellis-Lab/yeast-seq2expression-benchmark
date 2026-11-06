@@ -72,6 +72,10 @@ tasks_config:
     constructs_path: data/tasks/ytk_promoter/constructs.tsv
     constructs_fasta: data/tasks/ytk_promoter/constructs.fasta
     fasta_path: data/tasks/R64-1-1.fa
+  brooks_scramble:
+    data_path: data/tasks/brooks_scramble
+  meneu_foreign_dna:
+    data_path: data/tasks/meneu_foreign_dna
 
 runs:
   - model: shorkie
@@ -87,7 +91,7 @@ runs:
         cuperus_utr,
         ytk_promoter,
       ]
-    model_config:
+    model_config: &shorkie_config
       params_path: data/models/shorkie/params.json
       checkpoint_paths:
         - data/models/shorkie/checkpoints/f0.h5
@@ -114,10 +118,32 @@ runs:
         cuperus_utr,
         ytk_promoter,
       ]
-    model_config:
+    model_config: &yorzoi_config
       hf_repo: tom-ellis-lab/yorzoi
       batch_size: 64
       use_rc: true
+
+  # Coverage tasks use the same weights with smaller batches, matching
+  # the adapter defaults used by configs/brooks.yaml and configs/meneu.yaml.
+  - model: shorkie
+    tasks: [brooks_scramble, meneu_foreign_dna]
+    model_config:
+      <<: *shorkie_config
+      batch_size: 4
+
+  - model: yorzoi
+    tasks: [brooks_scramble]
+    model_config:
+      <<: *yorzoi_config
+      batch_size: 16
+      track_mode: matched
+
+  - model: yorzoi
+    tasks: [meneu_foreign_dna]
+    model_config:
+      <<: *yorzoi_config
+      batch_size: 16
+      track_mode: illumina_exo
 
   - model: cai
     tasks: [chen_synonymous]

@@ -1,137 +1,347 @@
-"""The checksum lock — authoritative per-file sha256 + size for every artifact.
+"""Checksums and immutable download sources for benchmark inputs.
 
-The lock is generated from a local copy of the data (``ybench data lock``) and
-committed (``manifest.lock.json``, shipped with the wheel). Downloads verify
-fetched files against it; ``verify`` / ``status`` compare local files against
-it.
-
-Lock format::
-
-    {
-      "version": 1,
-      "artifacts": {
-        "<artifact id>": {
-          "files": { "<relpath>": {"sha256": "...", "size": 123}, ... }
-        }
-      }
-    }
+Version 2 adds Hugging Face commit revisions to the version 1 file inventory.
+Reading an old lock never invents a revision: its bytes remain verifiable, but
+its Hub sources must be pinned before it can support a publishable run.
 """
 
 from __future__ import annotations
 
+import copy
 import fnmatch
-import hashlib
 import json
-from dataclasses import dataclass
+from dataclasses import replace
 from pathlib import Path
 
-from yeastbench.data.manifest import Artifact
+from yeastbench.data.artifacts import BackendKind, InputArtifact, Mirror
+from yeastbench.storage.files import FileRecord, inventory_files, validate_relative_path
+from yeastbench.storage.hf import validate_hf_revision
+from yeastbench.storage.json import atomic_write_json
 
-LOCK_VERSION = 1
+LOCK_VERSION = 2
 LOCK_PATH = Path(__file__).with_name("manifest.lock.json")
 
-_CHUNK = 1 << 20  # 1 MiB
+
+class LockError(ValueError):
+    """An input lock is malformed, incomplete, or inconsistent with its artifacts."""
 
 
-# ──────────────────────────────────────────────────────────────
-# Hashing & file discovery
-# ──────────────────────────────────────────────────────────────
+def _relative(value: str, context: str) -> str:
+    try:
+        return validate_relative_path(value)
+    except (TypeError, ValueError) as exc:
+        raise LockError(f"{context}: invalid relative path {value!r}") from exc
 
 
-def sha256_file(path: Path) -> str:
-    h = hashlib.sha256()
-    with open(path, "rb") as fh:
-        for chunk in iter(lambda: fh.read(_CHUNK), b""):
-            h.update(chunk)
-    return h.hexdigest()
+def validate_revision(revision: str) -> str:
+    """Validate a Hub revision, reporting failures as input-lock errors."""
+    try:
+        return validate_hf_revision(revision)
+    except ValueError as exc:
+        raise LockError(str(exc)) from exc
+
+
+def _source_key(source: dict) -> tuple[str, str, str, str]:
+    return (source["backend"], source["repo_id"], source["repo_type"], source["prefix"])
+
+
+def _validate_lock(lock: dict) -> None:
+    if not isinstance(lock, dict):
+        raise LockError("input lock must be a JSON object")
+    version = lock.get("version")
+    if type(version) is not int or version not in (1, LOCK_VERSION):
+        raise LockError(f"unsupported input lock version: {version!r}")
+    artifacts = lock.get("artifacts")
+    if not isinstance(artifacts, dict):
+        raise LockError("input lock must contain an 'artifacts' object")
+    for aid, entry in artifacts.items():
+        if not isinstance(aid, str) or not aid:
+            raise LockError("artifact IDs must be nonempty strings")
+        if not isinstance(entry, dict) or not isinstance(entry.get("files"), dict):
+            raise LockError(f"{aid}: lock entry must contain a 'files' object")
+        for rel, meta in entry["files"].items():
+            _relative(rel, aid)
+            if not isinstance(meta, dict):
+                raise LockError(f"{aid}/{rel}: file record must be an object")
+            try:
+                FileRecord(rel, meta.get("size"), meta.get("sha256"))
+            except ValueError as exc:
+                raise LockError(f"{aid}/{rel}: {exc}") from exc
+        sources = entry.get("sources", [])
+        if not isinstance(sources, list):
+            raise LockError(f"{aid}: 'sources' must be a list")
+        seen = set()
+        for source in sources:
+            if not isinstance(source, dict) or source.get("backend") != "hf":
+                raise LockError(f"{aid}: unsupported source record (expected backend 'hf')")
+            repo_id = source.get("repo_id")
+            if not isinstance(repo_id, str) or not repo_id:
+                raise LockError(f"{aid}: source must name a Hugging Face repository")
+            _relative(repo_id, f"{aid} source repository")
+            if source.get("repo_type") not in ("dataset", "model"):
+                raise LockError(f"{aid}: source repo_type must be 'dataset' or 'model'")
+            prefix = source.get("prefix")
+            if not isinstance(prefix, str):
+                raise LockError(f"{aid}: source must contain a string prefix")
+            if prefix:
+                if not prefix.endswith("/"):
+                    raise LockError(f"{aid}: source prefix must be empty or end with '/'")
+                _relative(prefix[:-1], f"{aid} source prefix")
+            validate_revision(source.get("revision"))
+            key = _source_key(source)
+            if key in seen:
+                raise LockError(f"{aid}: duplicate source for {repo_id}/{prefix}")
+            seen.add(key)
+
+
+def _matches(relpath: str, pattern: str) -> bool:
+    """Match Path.glob semantics, including zero directories for ``**/``."""
+    parts, patterns = relpath.split("/"), pattern.split("/")
+
+    def match(i: int, j: int) -> bool:
+        if j == len(patterns):
+            return i == len(parts)
+        if patterns[j] == "**":
+            return match(i, j + 1) or (i < len(parts) and match(i + 1, j))
+        return (
+            i < len(parts)
+            and fnmatch.fnmatchcase(parts[i], patterns[j])
+            and match(i + 1, j + 1)
+        )
+
+    return match(0, 0)
 
 
 def _excluded(relpath: str, patterns: tuple[str, ...]) -> bool:
     parts = Path(relpath).parts
     for pat in patterns:
-        token = pat.strip("*/")  # "**/_cache/**" -> "_cache"
+        token = pat.strip("*/")
         if token and token in parts:
             return True
-        if fnmatch.fnmatch(relpath, pat):
+        if fnmatch.fnmatchcase(relpath, pat):
             return True
     return False
 
 
-def local_files(artifact: Artifact, data_root: Path) -> list[str]:
-    """Relative paths (posix) of an artifact's local files, sorted, excludes
-    applied. Empty for cache-only artifacts or a missing ``dest``."""
+def _validate_inventory(artifact: InputArtifact, files: dict) -> None:
+    if not files:
+        raise LockError(f"{artifact.id}: no locked files; build the data and run `ybench data lock`")
+    for pattern in artifact.include:
+        _relative(pattern, f"{artifact.id} include pattern")
+        if not any(_matches(rel, pattern) for rel in files):
+            raise LockError(f"{artifact.id}: required file or pattern {pattern!r} has no files")
+    for rel in files:
+        if _excluded(rel, artifact.exclude) or not any(
+            _matches(rel, pattern) for pattern in artifact.include
+        ):
+            raise LockError(f"{artifact.id}/{rel}: locked file is outside the declared include list")
+
+
+def local_files(artifact: InputArtifact, data_root: Path) -> list[str]:
+    """Find included local files, sorted; cache-only artifacts return no files."""
     if artifact.cache_only or not artifact.dest:
         return []
+    _relative(artifact.dest, f"{artifact.id} destination")
     base = data_root / artifact.dest
     if not base.exists():
         return []
     found: set[str] = set()
     for pattern in artifact.include:
+        _relative(pattern, f"{artifact.id} include pattern")
         for path in base.glob(pattern):
             if not path.is_file():
                 continue
             rel = path.relative_to(base).as_posix()
+            _relative(rel, artifact.id)
             if _excluded(rel, artifact.exclude):
                 continue
+            if not path.resolve().is_relative_to(base.resolve()):
+                raise LockError(f"{artifact.id}/{rel}: file resolves outside its artifact directory")
             found.add(rel)
     return sorted(found)
 
 
-# ──────────────────────────────────────────────────────────────
-# Build / read / write
-# ──────────────────────────────────────────────────────────────
-
-
-def build_lock(
-    artifacts: list[Artifact], data_root: Path
-) -> dict[str, dict]:
-    """Compute the lock for ``artifacts`` from their local files. Artifacts
-    with no local files are omitted."""
+def build_lock_entries(artifacts: list[InputArtifact], data_root: Path) -> dict[str, dict]:
+    """Build selected artifact entries to merge into an existing input lock."""
     out: dict[str, dict] = {}
     for art in artifacts:
-        files = {}
-        for rel in local_files(art, data_root):
-            p = data_root / art.dest / rel
-            files[rel] = {"sha256": sha256_file(p), "size": p.stat().st_size}
-        if files:
-            out[art.id] = {"files": files}
+        if art.cache_only:
+            continue
+        paths = local_files(art, data_root)
+        # Validate completeness before inspecting the directory, including when
+        # it is absent. The shared inventory then hashes the selected files.
+        _validate_inventory(art, dict.fromkeys(paths))
+        try:
+            records = inventory_files(data_root / art.dest, paths)
+        except (OSError, ValueError) as exc:
+            raise LockError(f"{art.id}: {exc}") from exc
+        files = {
+            record.path: {"size": record.size, "sha256": record.sha256}
+            for record in records
+        }
+        out[art.id] = {"files": files}
     return out
 
 
 def merge_lock(existing: dict, fresh: dict[str, dict]) -> dict:
-    """Overlay freshly computed artifact entries onto an existing lock,
-    preserving entries for artifacts that weren't re-locked this run."""
-    artifacts = dict(existing.get("artifacts", {}))
-    artifacts.update(fresh)
+    """Replace selected inventories; retain old source pins only for equal bytes."""
+    _validate_lock(existing)
+    _validate_lock({"version": LOCK_VERSION, "artifacts": fresh})
+    artifacts = copy.deepcopy(existing["artifacts"])
+    for aid, entry in fresh.items():
+        updated = copy.deepcopy(entry)
+        old = artifacts.get(aid, {})
+        if "sources" not in updated and old.get("files") == updated["files"]:
+            if "sources" in old:
+                updated["sources"] = old["sources"]
+        artifacts[aid] = updated
     return {"version": LOCK_VERSION, "artifacts": artifacts}
+
+
+def _object_without_duplicates(pairs: list[tuple[str, object]]) -> dict:
+    obj = {}
+    for key, value in pairs:
+        if key in obj:
+            raise LockError(f"duplicate JSON key in input lock: {key!r}")
+        obj[key] = value
+    return obj
 
 
 def read_lock(path: Path = LOCK_PATH) -> dict:
     if not path.exists():
         return {"version": LOCK_VERSION, "artifacts": {}}
-    return json.loads(path.read_text())
+    try:
+        lock = json.loads(path.read_text(), object_pairs_hook=_object_without_duplicates)
+    except json.JSONDecodeError as exc:
+        raise LockError(f"invalid input lock JSON in {path}: {exc.msg}") from exc
+    _validate_lock(lock)
+    return lock
 
 
 def write_lock(lock: dict, path: Path = LOCK_PATH) -> None:
-    path.write_text(json.dumps(lock, indent=2, sort_keys=True) + "\n")
+    _validate_lock(lock)
+    atomic_write_json(path, lock)
 
 
-@dataclass(frozen=True)
-class LockedFile:
-    relpath: str
-    sha256: str
-    size: int
-
-
-def locked_files(lock: dict, artifact_id: str) -> list[LockedFile]:
-    entry = lock.get("artifacts", {}).get(artifact_id)
+def locked_files(lock: dict, artifact_id: str) -> list[FileRecord]:
+    """Read shared file records with paths relative to this input artifact."""
+    _validate_lock(lock)
+    entry = lock["artifacts"].get(artifact_id)
     if not entry:
         return []
     return [
-        LockedFile(rel, meta["sha256"], meta["size"])
+        FileRecord(rel, meta["size"], meta["sha256"])
         for rel, meta in sorted(entry["files"].items())
     ]
 
 
+def source_for(
+    lock: dict, artifact_id: str, mirror: Mirror, require_revision: bool = False,
+) -> Mirror:
+    """Apply the pin for exactly this repository, type, and artifact prefix."""
+    _validate_lock(lock)
+    if mirror.backend != BackendKind.HF:
+        return mirror
+    if mirror.revision is not None:
+        validate_revision(mirror.revision)
+    wanted = ("hf", mirror.base, mirror.repo_type, mirror.prefix)
+    entry = lock["artifacts"].get(artifact_id, {})
+    for source in entry.get("sources", []):
+        if _source_key(source) == wanted:
+            revision = source["revision"]
+            if mirror.revision is not None and mirror.revision != revision:
+                raise LockError(f"{artifact_id}: configured revision differs from the input lock")
+            return replace(mirror, revision=revision)
+    if mirror.revision is not None:
+        return mirror
+    if require_revision:
+        raise LockError(
+            f"{artifact_id}: no pinned Hugging Face revision for "
+            f"{mirror.base}/{mirror.prefix}; pin or publish this artifact first"
+        )
+    return mirror
+
+
+def validate_artifact_lock(
+    artifact: InputArtifact, lock: dict, require_pinned: bool = False,
+) -> None:
+    """Validate declared coverage and, optionally, an immutable Hub source."""
+    _validate_lock(lock)
+    entry = lock["artifacts"].get(artifact.id)
+    if not artifact.cache_only:
+        _validate_inventory(artifact, entry["files"] if entry else {})
+    elif entry and entry["files"]:
+        raise LockError(f"{artifact.id}: cache-only model must not declare local artifact files")
+    declared_sources = {
+        ("hf", mirror.base, mirror.repo_type, mirror.prefix)
+        for mirror in artifact.mirrors if mirror.backend == BackendKind.HF
+    }
+    for source in (entry or {}).get("sources", []):
+        if _source_key(source) not in declared_sources:
+            raise LockError(f"{artifact.id}: locked source is not a declared mirror")
+    if require_pinned:
+        hf_mirrors = [m for m in artifact.mirrors if m.backend == BackendKind.HF]
+        if artifact.cache_only and not hf_mirrors:
+            raise LockError(f"{artifact.id}: cache-only model has no Hugging Face mirror")
+        if hf_mirrors and not any(source_for(lock, artifact.id, m).revision for m in hf_mirrors):
+            raise LockError(f"{artifact.id}: no pinned Hugging Face revision; pin or publish first")
+
+
+def prune_sources(lock: dict, artifacts: list[InputArtifact]) -> dict:
+    """Drop obsolete mirror pins during an explicit lock/pin/publish operation.
+
+    Ordinary downloads still reject declaration drift. An explicit maintenance
+    operation can replace a renamed repository or prefix without editing JSON.
+    The input lock and all unselected artifact entries remain unchanged.
+    """
+    _validate_lock(lock)
+    updated = copy.deepcopy(lock)
+    for art in artifacts:
+        entry = updated["artifacts"].get(art.id)
+        if entry is None or "sources" not in entry:
+            continue
+        declared = {
+            ("hf", mirror.base, mirror.repo_type, mirror.prefix)
+            for mirror in art.mirrors if mirror.backend == BackendKind.HF
+        }
+        remaining = [source for source in entry["sources"] if _source_key(source) in declared]
+        if remaining:
+            entry["sources"] = remaining
+        else:
+            entry.pop("sources")
+    return updated
+
+
+def with_hf_revision(
+    lock: dict, artifacts: list[InputArtifact], repo_id: str, repo_type: str, revision: str,
+) -> dict:
+    """Return a new lock recording a verified/published revision for a selection."""
+    validate_revision(revision)
+    updated = prune_sources(lock, artifacts)
+    updated["version"] = LOCK_VERSION
+    for art in artifacts:
+        matching = [
+            mirror for mirror in art.mirrors
+            if mirror.backend == BackendKind.HF
+            and mirror.base == repo_id and mirror.repo_type == repo_type
+        ]
+        if not matching:
+            raise LockError(f"{art.id}: no declared {repo_type} mirror for {repo_id}")
+        validate_artifact_lock(art, updated)
+        entry = updated["artifacts"].setdefault(art.id, {"files": {}})
+        sources = entry.setdefault("sources", [])
+        for mirror in matching:
+            record = {
+                "backend": "hf", "repo_id": repo_id, "repo_type": repo_type,
+                "revision": revision, "prefix": mirror.prefix,
+            }
+            sources[:] = [s for s in sources if _source_key(s) != _source_key(record)]
+            sources.append(record)
+        sources.sort(key=_source_key)
+    _validate_lock(updated)
+    return updated
+
+
 def artifact_ids_in_lock(lock: dict) -> set[str]:
-    return set(lock.get("artifacts", {}))
+    _validate_lock(lock)
+    return set(lock["artifacts"])

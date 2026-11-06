@@ -22,7 +22,7 @@ import urllib.request
 from pathlib import Path
 from typing import Protocol
 
-from yeastbench.data.manifest import BackendKind, Mirror
+from yeastbench.data.artifacts import BackendKind, Mirror
 
 
 class BackendError(RuntimeError):
@@ -107,6 +107,7 @@ class HfBackend:
                 repo_id=mirror.base,
                 filename=remote,
                 repo_type=mirror.repo_type,
+                revision=mirror.revision,
             )
         except RepositoryNotFoundError as e:
             raise BackendError(
@@ -116,7 +117,12 @@ class HfBackend:
             raise BackendError(
                 f"'{remote}' not found in HF repo '{mirror.base}'"
             ) from e
-        shutil.copyfile(cached, out_path)
+        except Exception as e:
+            raise BackendError(f"HF download failed for {mirror.base}/{remote}: {e}") from e
+        try:
+            shutil.copyfile(cached, out_path)
+        except OSError as e:
+            raise BackendError(f"cannot save HF download to {out_path}: {e}") from e
 
     def warm(self, mirror: Mirror) -> None:
         """Pull a whole HF repo into the local cache (runtime-loaded models)."""
@@ -128,33 +134,13 @@ class HfBackend:
                 "huggingface_hub not installed; run `uv sync --extra data`"
             ) from e
         try:
-            snapshot_download(repo_id=mirror.base, repo_type=mirror.repo_type)
+            snapshot_download(
+                repo_id=mirror.base, repo_type=mirror.repo_type, revision=mirror.revision,
+            )
         except RepositoryNotFoundError as e:
             raise BackendError(f"HF repo '{mirror.base}' not found") from e
-
-    def upload(
-        self, mirror: Mirror, items: list[tuple[Path, str]], message: str
-    ) -> None:
-        """Publish ``items`` (local file, remote path) in one commit, creating
-        the repo if needed. Maintainer-only."""
-        try:
-            from huggingface_hub import CommitOperationAdd, HfApi
-        except ImportError as e:
-            raise BackendError(
-                "huggingface_hub not installed; run `uv sync --extra data`"
-            ) from e
-        api = HfApi()
-        api.create_repo(mirror.base, repo_type=mirror.repo_type, exist_ok=True)
-        ops = [
-            CommitOperationAdd(path_in_repo=remote, path_or_fileobj=str(local))
-            for local, remote in items
-        ]
-        api.create_commit(
-            repo_id=mirror.base,
-            repo_type=mirror.repo_type,
-            operations=ops,
-            commit_message=message,
-        )
+        except Exception as e:
+            raise BackendError(f"HF cache download failed for {mirror.base}: {e}") from e
 
 
 # ──────────────────────────────────────────────────────────────

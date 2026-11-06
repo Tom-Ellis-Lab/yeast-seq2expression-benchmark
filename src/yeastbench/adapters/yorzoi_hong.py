@@ -127,10 +127,12 @@ class YorzoiHongPredictor(IGRInsertionExpressionPredictor):
         use_rc: bool = True,
         autocast: bool = True,
         track_annotation_path: str | Path | None = None,
+        hf_revision: str | None = None,
     ) -> "YorzoiHongPredictor":
         return cls(
             Yorzoi.from_pretrained(
                 hf_repo, device=device, use_rc=use_rc, autocast=autocast,
+                hf_revision=hf_revision,
             ),
             fasta_path=fasta_path,
             cassette_fasta=cassette_fasta,

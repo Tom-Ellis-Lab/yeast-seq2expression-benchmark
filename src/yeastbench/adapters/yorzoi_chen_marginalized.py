@@ -78,10 +78,12 @@ class YorzoiChenPredictor(LocalCodingVariantPredictor):
         batch_size: int = 8,
         use_rc: bool = True,
         autocast: bool = True,
+        hf_revision: str | None = None,
     ) -> "YorzoiChenPredictor":
         return cls(
             Yorzoi.from_pretrained(
                 hf_repo, device=device, use_rc=use_rc, autocast=autocast,
+                hf_revision=hf_revision,
             ),
             fasta_path=fasta_path,
             hosts_path=hosts_path,

@@ -104,9 +104,10 @@ results/default/
     …
 ```
 
-`run_metadata.json` captures everything needed to reproduce that directory's
-numbers — the config hash, repo git commit, resolved model/task configs,
-and timestamp. Raw scores + labels + pair metadata are persisted so
+`run_metadata.json` records the config hash, repo git commit, resolved model/task
+configs, and timestamp for that model/task pair. It does not yet record pinned
+input revisions or identify an isolated full benchmark run. Raw scores, labels,
+and pair metadata are persisted so
 post-hoc analyses (distance-stratification, signed-vs-absolute comparison,
 etc.) don't require re-running the model.
 
@@ -134,7 +135,7 @@ uv run ybench data verify                  # checksum local files against the lo
 ```
 
 `get` is idempotent (skips files already present and valid), picks the first
-reachable mirror (HF first, then GCS; override with `--from hf|gcs`), and writes
+mirror whose backend is installed (HF first, then GCS; override with `--from hf|gcs`), and writes
 atomically. Shorkie weights, Yorzoi, and CodonTransformer resolve from their
 public homes; the per-task processed data comes from the project mirror. Add
 `--json` to `list`/`status` for machine-readable output.
@@ -154,10 +155,13 @@ HuggingFace cache the first time you run those models (additional, model-sized).
 Run `ybench data status` for an exact present-vs-total byte count, or
 `ybench data get --dry-run` to see the size before fetching.
 
-> Maintainers: `ybench data lock` re-freezes the checksum lock from a local
-> copy, and `ybench data publish --to hf|gcs` uploads the redistributable
-> artifacts to a mirror (dry-run unless `--yes`). Publishing to GCS needs a
-> billing project (`--billing-project` / `YBENCH_GCS_BILLING_PROJECT`).
+For registration, revision pinning, publishing, and migration of existing locks,
+see [Managing benchmark inputs](data.md). `data lock --artifacts <ids>` records
+local bytes; `data pin --artifacts <ids> --revision <ref>` verifies and records
+an existing HF revision. `data publish --to hf --artifacts <ids>` previews a
+single commit per repository, including obsolete-file deletions within the
+selected prefixes. Add `--yes` to publish and save the returned revision.
+GCS publication remains a per-file copy and needs a billing project.
 
 ## Running without a local NVIDIA GPU (`ybench modal`)
 
