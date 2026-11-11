@@ -13,6 +13,7 @@ tasks_config:
 runs:
   - model: shorkie
     tasks: [gui_gfp_rna]
+    # Gui default readout: all 1,014 1000-RNA-Seq tracks (indices 4201..5214).
     model_config:
       params_path: data/models/shorkie/params.json
       checkpoint_paths:
@@ -28,6 +29,7 @@ runs:
       use_rc: true
   - model: yorzoi
     tasks: [gui_gfp_rna]
+    # Gui default readout: all 11 Illumina samples, matched to reporter strand.
     model_config:
       hf_repo: tom-ellis-lab/yorzoi
       hf_revision: cba61e046a75e0b302e946aaf27f88a73824a8a9

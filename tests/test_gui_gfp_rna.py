@@ -150,11 +150,17 @@ def test_undefined_metrics_are_json_null_and_log_uses_its_own_cohort():
 
 def test_roundtrip_preserves_scores_exclusions_and_provenance(gui_distribution, tmp_path):
     benchmark = build_benchmark(gui_distribution)
-    evaluated = benchmark.evaluate(KnownScorePredictor([100, np.nan, 1]))
+    adapter = KnownScorePredictor([100, np.nan, 1])
+    adapter.readout_metadata = {
+        "group": "example", "n_tracks": 2, "track_ids": [3, 7],
+        "aggregation": "arithmetic mean of linear CDS sums",
+    }
+    evaluated = benchmark.evaluate(adapter)
     destination = tmp_path / "scores"
     benchmark.save_results(evaluated, destination)
     restored = benchmark.load_results(destination)
     assert restored.summary == evaluated.summary
+    assert restored.summary["readout_metadata"] == adapter.readout_metadata
     assert restored.predictions.exclusion_reason.tolist() == evaluated.predictions.exclusion_reason.tolist()
     np.testing.assert_allclose(restored.predictions.prediction, evaluated.predictions.prediction, equal_nan=True)
     assert set(restored.summary["input_sha256"]) == {"labels", "constructs", "reference_fasta"}

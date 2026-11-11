@@ -132,7 +132,10 @@ def test_window_exclusions_preserve_original_row_positions(genome):
         build_gui_contexts([LOCUS], {}, genome, **WINDOW)
 
 
-def test_shorkie_uses_exact_cds_and_preserves_nan_alignment(reference_path, constructs_path):
+@pytest.mark.parametrize("from_checkpoints", [False, True])
+def test_shorkie_uses_exact_cds_and_preserves_nan_alignment(
+    reference_path, constructs_path, monkeypatch, from_checkpoints,
+):
     torch = pytest.importorskip("torch")
     from yeastbench.adapters.shorkie_gui import ShorkieGuiPredictor
 
@@ -141,10 +144,22 @@ def test_shorkie_uses_exact_cds_and_preserves_nan_alignment(reference_path, cons
 
         def forward_track_mean_perbase(self, inputs, track_indices):
             assert tuple(inputs.shape[1:]) == (4, 16384)
-            assert len(track_indices) == 384
-            return torch.full((len(inputs), 14336), 2.0)
+            assert track_indices.tolist() == list(range(4201, 5215))
+            # Large T0/other-track signals must not affect the Gui score.
+            track_coverage = torch.full((5215,), 50000.0)
+            track_coverage[4201:5215] = 2.0
+            selected_mean = track_coverage.index_select(0, track_indices).mean()
+            return selected_mean.expand(len(inputs), 14336)
 
-    adapter = ShorkieGuiPredictor(FakeShorkie(), reference_path, constructs_path, batch_size=1)
+    if from_checkpoints:
+        from yeastbench.models.shorkie import Shorkie
+
+        monkeypatch.setattr(Shorkie, "from_checkpoints", lambda *args, **kwargs: FakeShorkie())
+        adapter = ShorkieGuiPredictor.from_checkpoints(
+            "params.json", ["f0.h5"], reference_path, constructs_path, batch_size=1,
+        )
+    else:
+        adapter = ShorkieGuiPredictor(FakeShorkie(), reference_path, constructs_path, batch_size=1)
     locus = replace(LOCUS, deletion_start=30001, deletion_end=30010)
     scores = adapter.predict_expressions([replace(locus, locus_id="missing", chrom="II"), locus])
     assert np.isnan(scores[0])
@@ -152,11 +167,17 @@ def test_shorkie_uses_exact_cds_and_preserves_nan_alignment(reference_path, cons
     assert adapter.prediction_exclusions == {"missing": "chromosome_missing_from_reference"}
     assert set(adapter.prediction_metadata) == {locus.locus_id}
     assert adapter.prediction_metadata[locus.locus_id]["gfp_readout_bases"] == 12
+    assert adapter.readout_metadata["group"] == "1000-RNA-Seq"
+    assert adapter.readout_metadata["n_tracks"] == 1014
+    assert adapter.readout_metadata["track_ids"] == list(range(4201, 5215))
     assert adapter.predict_expressions([locus]).tolist() == [24.0]
     assert adapter.prediction_exclusions == {}
 
 
-def test_yorzoi_routes_each_locus_to_its_reporter_strand(reference_path, constructs_path):
+@pytest.mark.parametrize("nanopore_coverage", [1000.0, 100000.0])
+def test_yorzoi_uses_all_illumina_samples_on_reporter_strand(
+    reference_path, constructs_path, nanopore_coverage,
+):
     torch = pytest.importorskip("torch")
     from yeastbench.adapters.yorzoi_gui import YorzoiGuiPredictor
 
@@ -165,13 +186,34 @@ def test_yorzoi_routes_each_locus_to_its_reporter_strand(reference_path, constru
 
         def forward_tracks_perbase(self, inputs):
             assert tuple(inputs.shape[1:]) == (4992, 4)
-            coverage = torch.full((len(inputs), 162, 3000), 2.0)
-            coverage[:, 81:, :] = 7.0
+            coverage = torch.full((len(inputs), 162, 3000), nanopore_coverage)
+            coverage[:, :10, :] = 2.0
+            coverage[:, 10, :] = 13.0  # The non-human Illumina sample must count.
+            coverage[:, 81:91, :] = 7.0
+            coverage[:, 91, :] = 18.0
             return coverage
 
     adapter = YorzoiGuiPredictor(FakeYorzoi(), reference_path, constructs_path, batch_size=2)
     plus = replace(LOCUS, deletion_start=30001, deletion_end=30010)
     minus = replace(plus, locus_id="test-minus", cassette_strand="-")
     scores = adapter.predict_expressions([minus, plus])
-    np.testing.assert_array_equal(scores, [84.0, 24.0])
+    np.testing.assert_array_equal(scores, [96.0, 36.0])  # 12 bp × means of 8 and 3.
     assert adapter.prediction_exclusions == {}
+    assert adapter.readout_metadata["group"] == "Illumina"
+    assert adapter.readout_metadata["n_tracks"] == 11
+    assert adapter.readout_metadata["track_ids_by_strand"] == {
+        "+": list(range(11)), "-": list(range(81, 92)),
+    }
+
+
+def test_shorkie_custom_readout_metadata(reference_path, constructs_path):
+    pytest.importorskip("torch")
+    from yeastbench.adapters.shorkie_gui import ShorkieGuiPredictor
+
+    class FakeShorkie:
+        device = "cpu"
+
+    adapter = ShorkieGuiPredictor(FakeShorkie(), reference_path, constructs_path, track_subset=[1148, 1156])
+    assert adapter.readout_metadata["group"] == "custom"
+    assert adapter.readout_metadata["track_ids"] == [1148, 1156]
+    assert adapter.readout_metadata["n_tracks"] == 2

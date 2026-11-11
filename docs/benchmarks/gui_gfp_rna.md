@@ -71,12 +71,20 @@ centers the input window on the GFP CDS. It requires every CDS base to lie in
 the model's readable output crop. The shared cassette helper's older anchor
 strategies and the existing Hong/Wu tasks are unchanged.
 
-Shorkie uses its fixed T0 RNA track group, with the configured eight-fold
-ensemble and reverse-complement averaging. Yorzoi uses the matching reporter
-strand's RNA tracks and its existing inverse transformation and
+Shorkie uses all **1,014 tracks from the 1000-RNA-Seq group** (zero-based track
+IDs 4201–5214), with the configured eight-fold ensemble and reverse-complement
+averaging. Yorzoi uses all **11 Illumina samples**, selecting the matching
+reporter strand: plus-strand track IDs 0–10 or minus-strand IDs 81–91. This
+includes the ten human-construct samples and SRR21628668; Nanopore tracks are
+excluded. Yorzoi retains its existing inverse transformation and
 reverse-complement handling. Both sum linear per-base RNA predictions over the
-GFP CDS and average across the selected tracks. No track or readout selection
-is fitted on Gui labels. Scores are not calibrated TPM.
+complete GFP CDS and take the arithmetic mean across the selected tracks.
+Scores are not calibrated TPM.
+
+These groups replace the initial Shorkie T0 and Yorzoi all-RNA readouts. The
+choice was revised after examining per-track and group performance on Gui, so
+it was informed by this dataset rather than specified before evaluation.
+The sequence cohort, CDS readout and evaluation metrics are unchanged.
 
 Each prediction records the model input's sequence hash, window length, GFP
 position, number of readout bases, and amount of native upstream/downstream
@@ -102,8 +110,9 @@ be compared silently.
 
 Outputs include `predictions.tsv`, `summary.json`, separate linear/log scatter
 PNGs and SVGs, and a common-cohort model comparison. Each new benchmark figure
-has one panel; no PDF is written. The summary records input
-file hashes; the CLI also records the run configuration and code commit.
+has one panel; no PDF is written. The summary records input file hashes and
+the selected track IDs and aggregation; the CLI also records the run
+configuration and code commit.
 
 ## Reproduction
 

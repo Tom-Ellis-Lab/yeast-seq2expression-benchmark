@@ -19,8 +19,8 @@ from yeastbench.adapters._yorzoi_constants import (
     CROP_BP_EACH_SIDE,
     OUTPUT_BINS,
     SEQ_LEN,
-    YORZOI_MINUS_TRACK_IDS,
-    YORZOI_PLUS_TRACK_IDS,
+    YORZOI_ILLUMINA_MINUS_TRACK_IDS,
+    YORZOI_ILLUMINA_PLUS_TRACK_IDS,
 )
 from yeastbench.adapters.protocols import GuiReporterExpressionPredictor
 
@@ -55,6 +55,20 @@ class YorzoiGuiPredictor(GuiReporterExpressionPredictor):
     def prediction_metadata(self) -> Mapping[str, Mapping[str, int | str]]:
         """Per-locus window hashes, CDS coverage and visible native flanks."""
         return self._prediction_metadata
+
+    @property
+    def readout_metadata(self) -> Mapping[str, object]:
+        """All Illumina samples, routed to the reporter's transcription strand."""
+        return {
+            "group": "Illumina",
+            "n_tracks": len(YORZOI_ILLUMINA_PLUS_TRACK_IDS),
+            "track_ids_by_strand": {
+                "+": list(YORZOI_ILLUMINA_PLUS_TRACK_IDS),
+                "-": list(YORZOI_ILLUMINA_MINUS_TRACK_IDS),
+            },
+            "strand": "reporter_strand",
+            "aggregation": "arithmetic mean across tracks of linear RNA coverage summed over GFP CDS",
+        }
 
     @classmethod
     def from_pretrained(
@@ -106,7 +120,10 @@ class YorzoiGuiPredictor(GuiReporterExpressionPredictor):
                 base_indices = torch.as_tensor(
                     context.readout_base_positions, device=self.model.device, dtype=torch.long,
                 )
-                track_ids = YORZOI_PLUS_TRACK_IDS if locus.cassette_strand == "+" else YORZOI_MINUS_TRACK_IDS
+                track_ids = (
+                    YORZOI_ILLUMINA_PLUS_TRACK_IDS if locus.cassette_strand == "+"
+                    else YORZOI_ILLUMINA_MINUS_TRACK_IDS
+                )
                 track_indices = torch.as_tensor(track_ids, device=self.model.device, dtype=torch.long)
                 reporter = coverage[batch_index].index_select(0, track_indices).index_select(1, base_indices)
                 score = float(reporter.sum(dim=1).mean().item())

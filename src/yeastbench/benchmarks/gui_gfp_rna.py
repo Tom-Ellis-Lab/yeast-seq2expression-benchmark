@@ -245,6 +245,7 @@ class GuiGFPRNABenchmark(Benchmark[GuiReporterExpressionPredictor, GuiGFPResults
             "primary_metric": "spearman_rho",
             "label": "arithmetic mean GFP TPM per genotype",
             "readout": "linear RNA coverage summed over complete GFP CDS",
+            "readout_metadata": getattr(adapter, "readout_metadata", None),
             "without_imp4": compute_gui_metrics(
                 without_imp4.prediction.to_numpy(), without_imp4.gfp_tpm.to_numpy(),
                 bootstrap_samples=self.bootstrap_samples, bootstrap_seed=self.bootstrap_seed,
@@ -350,6 +351,10 @@ class GuiGFPRNABenchmark(Benchmark[GuiReporterExpressionPredictor, GuiGFPResults
             "locus_ids": shared_ids, "metrics": common_metrics,
             "original_n_scored": {name: len(frame) for name, frame in scored_by_model.items()},
             "input_sha256": reference_hashes,
+            "readout_metadata": {
+                name: saved.summary.get("readout_metadata")
+                for name, saved in saved_results.items()
+            },
         }, indent=2, allow_nan=False) + "\n")
         figure, axis = plt.subplots(figsize=(7, 5), layout="constrained")
         positions = np.arange(len(_METRIC_NAMES))

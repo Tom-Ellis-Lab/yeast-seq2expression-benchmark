@@ -19,7 +19,7 @@ from yeastbench.adapters._shorkie_constants import (
     CROP_BP_EACH_SIDE,
     OUTPUT_BINS,
     SEQ_LEN,
-    SHORKIE_T0_RNA_SEQ_TRACK_IDS,
+    SHORKIE_1000_RNA_SEQ_TRACK_IDS,
 )
 from yeastbench.adapters.protocols import GuiReporterExpressionPredictor
 
@@ -34,7 +34,7 @@ class ShorkieGuiPredictor(GuiReporterExpressionPredictor):
         fasta_path: str | Path,
         constructs_path: str | Path,
         batch_size: int = 16,
-        track_subset: Sequence[int] = SHORKIE_T0_RNA_SEQ_TRACK_IDS,
+        track_subset: Sequence[int] = SHORKIE_1000_RNA_SEQ_TRACK_IDS,
     ) -> None:
         import pysam
         import torch
@@ -61,6 +61,17 @@ class ShorkieGuiPredictor(GuiReporterExpressionPredictor):
         """Per-locus window hashes, CDS coverage and visible native flanks."""
         return self._prediction_metadata
 
+    @property
+    def readout_metadata(self) -> Mapping[str, object]:
+        """Resolved RNA track selection and aggregation, for saved results."""
+        return {
+            "group": "1000-RNA-Seq" if self.track_subset == tuple(SHORKIE_1000_RNA_SEQ_TRACK_IDS) else "custom",
+            "n_tracks": len(self.track_subset),
+            "track_ids": list(self.track_subset),
+            "strand": "unstranded",
+            "aggregation": "arithmetic mean across tracks of linear RNA coverage summed over GFP CDS",
+        }
+
     @classmethod
     def from_checkpoints(
         cls,
@@ -71,7 +82,7 @@ class ShorkieGuiPredictor(GuiReporterExpressionPredictor):
         device: str = "cuda",
         batch_size: int = 16,
         use_rc: bool = True,
-        track_subset: Sequence[int] = SHORKIE_T0_RNA_SEQ_TRACK_IDS,
+        track_subset: Sequence[int] = SHORKIE_1000_RNA_SEQ_TRACK_IDS,
     ) -> ShorkieGuiPredictor:
         from yeastbench.models.shorkie import Shorkie
 
@@ -101,7 +112,7 @@ class ShorkieGuiPredictor(GuiReporterExpressionPredictor):
             inputs = torch.from_numpy(sequences).to(self.model.device)
             with torch.no_grad():
                 # The wrapper unbins raw predictions and handles its ensemble
-                # and RC averaging. Shorkie's T0 RNA tracks are unstranded.
+                # and RC averaging. Shorkie's RNA tracks are unstranded.
                 coverage = self.model.forward_track_mean_perbase(inputs, self._track_indices)
             if tuple(coverage.shape) != (len(batch), OUTPUT_BINS * BIN_WIDTH):
                 raise ValueError("Unexpected Shorkie per-base output shape")
