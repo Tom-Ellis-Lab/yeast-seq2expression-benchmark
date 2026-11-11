@@ -80,6 +80,18 @@
         }
       }
     },
+    "gui": {
+      "files": {
+        "constructs.fasta": {
+          "sha256": "14675c42176aded9c921da70dcb10386ed91a7ce6e1786fc7139e70fc2595c64",
+          "size": 663998
+        },
+        "gui_gfp_rna_v1.tsv": {
+          "sha256": "8e498ef3a1a70f814c9bff53e7690b997117331242adbc287d1278f87a086d42",
+          "size": 91074
+        }
+      }
+    },
     "hong": {
       "files": {
         "expression_cassette.fasta": {
@@ -277,5 +289,5 @@
       }
     }
   },
-  "version": 1
+  "version": 2
 }

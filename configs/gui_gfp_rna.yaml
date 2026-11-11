@@ -1,0 +1,35 @@
+# Zero-shot GFP RNA abundance; sequence-verified loci only.
+# Build the compact distribution before running this configuration.
+out_dir: results/gui_gfp_rna
+device: cuda
+
+tasks_config:
+  gui_gfp_rna:
+    distribution_dir: data/tasks/gui
+    fasta_path: data/tasks/R64-5-1.fa
+    bootstrap_samples: 2000
+    bootstrap_seed: 57
+
+runs:
+  - model: shorkie
+    tasks: [gui_gfp_rna]
+    model_config:
+      params_path: data/models/shorkie/params.json
+      checkpoint_paths:
+        - data/models/shorkie/checkpoints/f0.h5
+        - data/models/shorkie/checkpoints/f1.h5
+        - data/models/shorkie/checkpoints/f2.h5
+        - data/models/shorkie/checkpoints/f3.h5
+        - data/models/shorkie/checkpoints/f4.h5
+        - data/models/shorkie/checkpoints/f5.h5
+        - data/models/shorkie/checkpoints/f6.h5
+        - data/models/shorkie/checkpoints/f7.h5
+      batch_size: 8
+      use_rc: true
+  - model: yorzoi
+    tasks: [gui_gfp_rna]
+    model_config:
+      hf_repo: tom-ellis-lab/yorzoi
+      hf_revision: cba61e046a75e0b302e946aaf27f88a73824a8a9
+      batch_size: 16
+      use_rc: true

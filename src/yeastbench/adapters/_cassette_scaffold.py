@@ -10,7 +10,7 @@ output bins overlapping the cassette's readout sub-feature
 modules (`_wu_scaffold.py`, `_hong_scaffold.py`) supply the
 cassette geometry, the locus dataclass, and pick the anchor.
 
-The two anchor strategies currently in use:
+The anchor strategies currently in use:
 
 - ``readout_at_downstream_edge`` — place the readout's downstream end
   (e.g. mCherry stop codon) at the downstream edge of the readable
@@ -23,6 +23,9 @@ The two anchor strategies currently in use:
   midpoint. Gives balanced up/downstream native flank. Used by Hong,
   where the cassette inserts between two intact native genes and
   signal can plausibly come from either side.
+- ``center_readout`` — put the reporter CDS midpoint at the window
+  midpoint. Used by Gui so marker length does not push GFP into a
+  model's unreadable output crop.
 """
 from __future__ import annotations
 
@@ -147,7 +150,7 @@ def build_insertion_context(
     crop_bp_each_side: int,
     bin_width: int,
     output_bins: int,
-    window_anchor: Literal["readout_at_downstream_edge", "center_cassette"],
+    window_anchor: Literal["readout_at_downstream_edge", "center_cassette", "center_readout"],
 ) -> InsertionContext | None:
     """Splice the cassette into the chromosome at the per-locus site,
     place the SEQ_LEN model input window per the requested anchor
@@ -206,6 +209,9 @@ def build_insertion_context(
     elif window_anchor == "center_cassette":
         cassette_center = (cassette_start_in_spliced + cassette_end_in_spliced) // 2
         window_start = cassette_center - seq_len // 2
+    elif window_anchor == "center_readout":
+        readout_center = (readout_start_in_spliced + readout_end_in_spliced) // 2
+        window_start = readout_center - seq_len // 2
     else:
         raise ValueError(f"unknown window_anchor: {window_anchor!r}")
     window_start = max(0, min(window_start, len(spliced) - seq_len))
