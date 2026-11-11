@@ -156,18 +156,18 @@ No fluorescence, neighboring-gene or fitness endpoint is evaluated here.
 
 ## Results
 
-Both models were run on 2026-11-11 using NVIDIA RTX A6000 GPUs (Shorkie on
-GPU 0, Yorzoi on GPU 1), code commit `d540f31`, and the configuration above.
+Both models were rerun on 2026-11-11, sequentially on NVIDIA RTX A6000 GPU 1,
+using code commit `b356a5f` and the configuration above.
 All 205 eligible genotypes produced finite positive predictions; all 717 GFP
 CDS bases contributed to every score. The 35 source exclusions are identical
 between models.
 
 | Model | n | Spearman ρ (95% CI) | Pearson r | log2 Pearson r |
 | --- | ---: | ---: | ---: | ---: |
-| Shorkie, eight folds + RC | 205 | −0.014 (−0.148, 0.122) | −0.023 | −0.018 |
-| Yorzoi + RC | 205 | 0.078 (−0.063, 0.213) | 0.038 | 0.057 |
+| Shorkie, 1000-RNA-Seq, eight folds + RC | 205 | 0.060 (−0.077, 0.182) | 0.002 | 0.034 |
+| Yorzoi, all Illumina + RC | 205 | 0.096 (−0.045, 0.233) | 0.076 | 0.094 |
 
-Removing IMP4 leaves Spearman ρ = −0.013 for Shorkie and 0.076 for Yorzoi
+Removing IMP4 leaves Spearman ρ = 0.066 for Shorkie and 0.091 for Yorzoi
 (n = 204). Neither model shows a clear rank association under this protocol;
 the confidence intervals for all three correlations include zero. This does
 not identify whether the limitation comes from the models, unobserved strain
@@ -182,8 +182,12 @@ therefore have different amounts of native genomic context.
 confidence intervals, input hashes and the IMP4 sensitivity analysis.
 [Per-genotype predictions](gui_gfp_rna_predictions.tsv) retain every exclusion
 and both model-window hashes. Full runtime outputs remain under
-`results/gui_gfp_rna/`. The broad local test suite passed with 531 tests,
+`results/gui_gfp_rna/`. The broad local test suite passed with 534 tests,
 9 skips and 5 deselections; both real GPU runs and input verification passed.
+The new scores also match arithmetic means of the previously saved per-track
+predictions to within 2 × 10⁻⁷ relative error. Historical T0/all-RNA runtime
+outputs are retained locally in `results/gui_gfp_rna_t0_all_rna_v1/`; the earlier
+track diagnostics and their `default_selected` flags refer to those readouts.
 
 ![Shorkie GFP RNA prediction](../../img/results/gui_gfp_rna/shorkie_scatter_log.png)
 
