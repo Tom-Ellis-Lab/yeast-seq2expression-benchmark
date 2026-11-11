@@ -149,7 +149,8 @@ def build_sequence_map(args: argparse.Namespace) -> None:
                     sequence_status="verified",
                     sequence_evidence=(
                         "Source-reconstructed as-designed, not strain-DNA verified: Chen2016 TableS1 "
-                        "PCR core from AJ002682.1 and Callegari2011 pGSKU AppendixD; "
+                        "PCR core from AJ002682.1 and Addgene pGSKU 72243 sequence 136113 "
+                        "(Callegari2011 AppendixD comparison); "
                         f"single SGTC design {design['design_id']}; canonical two-tag oligos with exact "
                         "two-stage-PCR overlap and R64 reference homology arms; designed barcodes retained "
                         "with reverse-primer regions reverse-complemented."
