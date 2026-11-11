@@ -1,0 +1,475 @@
+{
+  "task": "gui_gfp_rna",
+  "hardware": "NVIDIA RTX A6000; Shorkie cuda:0, Yorzoi cuda:1",
+  "models": {
+    "shorkie": {
+      "summary": {
+        "model": "shorkie",
+        "task": "gui_gfp_rna",
+        "task_version": "v1",
+        "n_scored": 205,
+        "n_log2": 205,
+        "spearman_rho": -0.014440528757086542,
+        "pearson_r": -0.022719967829566617,
+        "pearson_log2_r": -0.017930370241869224,
+        "confidence_intervals_95": {
+          "spearman_rho": [
+            -0.1480443488294052,
+            0.12240397719067028
+          ],
+          "pearson_r": [
+            -0.11037599755799134,
+            0.06714350396376752
+          ],
+          "pearson_log2_r": [
+            -0.1252376077128673,
+            0.0948983388880647
+          ]
+        },
+        "bootstrap_valid_draws": {
+          "spearman_rho": 2000,
+          "pearson_r": 2000,
+          "pearson_log2_r": 2000
+        },
+        "n_rows_total": 240,
+        "n_sequence_verified": 205,
+        "n_excluded": 35,
+        "exclusion_counts": {
+          "inconsistent_or_noncanonical_outer_upstream_primer": 22,
+          "multiple_or_missing_deletion_design_records": 10,
+          "unresolved_genomic_homology_arms": 3
+        },
+        "primary_metric": "spearman_rho",
+        "label": "arithmetic mean GFP TPM per genotype",
+        "readout": "linear RNA coverage summed over complete GFP CDS",
+        "without_imp4": {
+          "n_scored": 204,
+          "n_log2": 204,
+          "spearman_rho": -0.012769716801775379,
+          "pearson_r": -0.018533039090033995,
+          "pearson_log2_r": -0.013635762465152136,
+          "confidence_intervals_95": {
+            "spearman_rho": [
+              -0.14538622247694175,
+              0.11255822707751507
+            ],
+            "pearson_r": [
+              -0.13387316714556094,
+              0.0993223975199855
+            ],
+            "pearson_log2_r": [
+              -0.1343689594361906,
+              0.10181886591634587
+            ]
+          },
+          "bootstrap_valid_draws": {
+            "spearman_rho": 2000,
+            "pearson_r": 2000,
+            "pearson_log2_r": 2000
+          }
+        },
+        "bootstrap": {
+          "unit": "integration genotype",
+          "samples": 2000,
+          "seed": 57,
+          "method": "paired percentile",
+          "interpretation": "Conditional on measured labels; does not estimate RNA-seq measurement error"
+        },
+        "input_sha256": {
+          "labels": "0634f94840ad3ab2ac66084792e04d9732d024ba8d6229270c63fc8ba24e8268",
+          "constructs": "14675c42176aded9c921da70dcb10386ed91a7ce6e1786fc7139e70fc2595c64",
+          "reference_fasta": "970a521f0c354fff45b020db1dec0e1ce3c67b34e014ce7856c5a988c97a4d69"
+        }
+      },
+      "run_metadata": {
+        "model": "shorkie",
+        "task": "gui_gfp_rna",
+        "task_version": "v1",
+        "config_path": "/home/tds122/ybench-gfp-insertion-gui/configs/gui_gfp_rna.yaml",
+        "config_hash": "cebc07de9992",
+        "device": "cuda:0",
+        "model_config": {
+          "params_path": "data/models/shorkie/params.json",
+          "checkpoint_paths": [
+            "data/models/shorkie/checkpoints/f0.h5",
+            "data/models/shorkie/checkpoints/f1.h5",
+            "data/models/shorkie/checkpoints/f2.h5",
+            "data/models/shorkie/checkpoints/f3.h5",
+            "data/models/shorkie/checkpoints/f4.h5",
+            "data/models/shorkie/checkpoints/f5.h5",
+            "data/models/shorkie/checkpoints/f6.h5",
+            "data/models/shorkie/checkpoints/f7.h5"
+          ],
+          "batch_size": 8,
+          "use_rc": true
+        },
+        "task_config": {
+          "distribution_dir": "data/tasks/gui",
+          "fasta_path": "data/tasks/R64-5-1.fa",
+          "bootstrap_samples": 2000,
+          "bootstrap_seed": 57
+        },
+        "git_commit": "d540f3158a38b97ff08aae04962a1a78e974327e",
+        "timestamp_utc": "2026-11-11T13:33:25.405860+00:00",
+        "elapsed_eval_s": 7.012596607208252
+      }
+    },
+    "yorzoi": {
+      "summary": {
+        "model": "yorzoi",
+        "task": "gui_gfp_rna",
+        "task_version": "v1",
+        "n_scored": 205,
+        "n_log2": 205,
+        "spearman_rho": 0.07816578679778802,
+        "pearson_r": 0.03814628140268301,
+        "pearson_log2_r": 0.05708417019499989,
+        "confidence_intervals_95": {
+          "spearman_rho": [
+            -0.06258514095120628,
+            0.21272384661356197
+          ],
+          "pearson_r": [
+            -0.05514455092130962,
+            0.153378824878792
+          ],
+          "pearson_log2_r": [
+            -0.07298382942637834,
+            0.18729280373554855
+          ]
+        },
+        "bootstrap_valid_draws": {
+          "spearman_rho": 2000,
+          "pearson_r": 2000,
+          "pearson_log2_r": 2000
+        },
+        "n_rows_total": 240,
+        "n_sequence_verified": 205,
+        "n_excluded": 35,
+        "exclusion_counts": {
+          "inconsistent_or_noncanonical_outer_upstream_primer": 22,
+          "multiple_or_missing_deletion_design_records": 10,
+          "unresolved_genomic_homology_arms": 3
+        },
+        "primary_metric": "spearman_rho",
+        "label": "arithmetic mean GFP TPM per genotype",
+        "readout": "linear RNA coverage summed over complete GFP CDS",
+        "without_imp4": {
+          "n_scored": 204,
+          "n_log2": 204,
+          "spearman_rho": 0.07586206896551724,
+          "pearson_r": 0.0430687510424525,
+          "pearson_log2_r": 0.05350480454088833,
+          "confidence_intervals_95": {
+            "spearman_rho": [
+              -0.05710523743726351,
+              0.20434628044858602
+            ],
+            "pearson_r": [
+              -0.09186790950843395,
+              0.18333914692150305
+            ],
+            "pearson_log2_r": [
+              -0.08199218097925678,
+              0.19467126136674406
+            ]
+          },
+          "bootstrap_valid_draws": {
+            "spearman_rho": 2000,
+            "pearson_r": 2000,
+            "pearson_log2_r": 2000
+          }
+        },
+        "bootstrap": {
+          "unit": "integration genotype",
+          "samples": 2000,
+          "seed": 57,
+          "method": "paired percentile",
+          "interpretation": "Conditional on measured labels; does not estimate RNA-seq measurement error"
+        },
+        "input_sha256": {
+          "labels": "0634f94840ad3ab2ac66084792e04d9732d024ba8d6229270c63fc8ba24e8268",
+          "constructs": "14675c42176aded9c921da70dcb10386ed91a7ce6e1786fc7139e70fc2595c64",
+          "reference_fasta": "970a521f0c354fff45b020db1dec0e1ce3c67b34e014ce7856c5a988c97a4d69"
+        }
+      },
+      "run_metadata": {
+        "model": "yorzoi",
+        "task": "gui_gfp_rna",
+        "task_version": "v1",
+        "config_path": "/home/tds122/ybench-gfp-insertion-gui/configs/gui_gfp_rna.yaml",
+        "config_hash": "cebc07de9992",
+        "device": "cuda:1",
+        "model_config": {
+          "hf_repo": "tom-ellis-lab/yorzoi",
+          "hf_revision": "cba61e046a75e0b302e946aaf27f88a73824a8a9",
+          "batch_size": 16,
+          "use_rc": true
+        },
+        "task_config": {
+          "distribution_dir": "data/tasks/gui",
+          "fasta_path": "data/tasks/R64-5-1.fa",
+          "bootstrap_samples": 2000,
+          "bootstrap_seed": 57
+        },
+        "git_commit": "d540f3158a38b97ff08aae04962a1a78e974327e",
+        "timestamp_utc": "2026-11-11T13:33:20.133171+00:00",
+        "elapsed_eval_s": 1.8377482891082764
+      }
+    }
+  },
+  "common_cohort": {
+    "locus_ids": [
+      "YAL012W",
+      "YAL016W",
+      "YAL024C",
+      "YAL047C",
+      "YAL054C",
+      "YBR060C",
+      "YBR123C",
+      "YBR267W",
+      "YDL008W",
+      "YDL010W",
+      "YDL030W",
+      "YDL045C",
+      "YDL099W",
+      "YDL101C",
+      "YDL111C",
+      "YDL134C",
+      "YDL141W",
+      "YDL143W",
+      "YDL205C",
+      "YDL213C",
+      "YDL235C",
+      "YDR035W",
+      "YDR047W",
+      "YDR059C",
+      "YDR064W",
+      "YDR087C",
+      "YDR113C",
+      "YDR165W",
+      "YDR235W",
+      "YDR333C",
+      "YDR398W",
+      "YDR429C",
+      "YDR463W",
+      "YEL034W",
+      "YEL058W",
+      "YER026C",
+      "YER168C",
+      "YFL003C",
+      "YFL008W",
+      "YFL010C",
+      "YFL017C",
+      "YFL022C",
+      "YFL036W",
+      "YFL039C",
+      "YFL049W",
+      "YFL053W",
+      "YFR002W",
+      "YFR003C",
+      "YFR007W",
+      "YFR025C",
+      "YFR027W",
+      "YFR028C",
+      "YFR029W",
+      "YFR030W",
+      "YFR031C-A",
+      "YFR033C",
+      "YFR034C",
+      "YFR037C",
+      "YFR040W",
+      "YFR041C",
+      "YFR047C",
+      "YFR051C",
+      "YFR052W",
+      "YGL096W",
+      "YGL169W",
+      "YGL245W",
+      "YGR060W",
+      "YGR082W",
+      "YGR089W",
+      "YGR154C",
+      "YGR248W",
+      "YHL010C",
+      "YHR023W",
+      "YHR061C",
+      "YHR063C",
+      "YHR064C",
+      "YHR067W",
+      "YHR068W",
+      "YHR072W-A",
+      "YHR073W",
+      "YHR084W",
+      "YHR118C",
+      "YHR157W",
+      "YHR167W",
+      "YIL051C",
+      "YIL068C",
+      "YIL111W",
+      "YIL112W",
+      "YIR009W",
+      "YIR033W",
+      "YJL003W",
+      "YJL006C",
+      "YJL011C",
+      "YJL029C",
+      "YJL030W",
+      "YJL033W",
+      "YJL037W",
+      "YJL063C",
+      "YJL076W",
+      "YJL097W",
+      "YJL110C",
+      "YJL123C",
+      "YJL153C",
+      "YJL176C",
+      "YJR041C",
+      "YJR043C",
+      "YJR045C",
+      "YJR048W",
+      "YJR068W",
+      "YJR094C",
+      "YJR095W",
+      "YJR144W",
+      "YKL017C",
+      "YKL035W",
+      "YKL156W",
+      "YKL184W",
+      "YKL191W",
+      "YKR038C",
+      "YKR068C",
+      "YKR079C",
+      "YLL002W",
+      "YLL003W",
+      "YLL050C",
+      "YLR005W",
+      "YLR006C",
+      "YLR100W",
+      "YLR166C",
+      "YLR197W",
+      "YLR238W",
+      "YLR249W",
+      "YLR272C",
+      "YLR273C",
+      "YLR275W",
+      "YLR306W",
+      "YLR376C",
+      "YLR378C",
+      "YLR409C",
+      "YLR424W",
+      "YLR438C-A",
+      "YML101C",
+      "YML125C",
+      "YMR074C",
+      "YMR109W",
+      "YMR128W",
+      "YMR268C",
+      "YNL012W",
+      "YNL039W",
+      "YNL062C",
+      "YNL075W",
+      "YNL087W",
+      "YNL088W",
+      "YNL097C",
+      "YNL259C",
+      "YNL260C",
+      "YNL261W",
+      "YNL313C",
+      "YNR036C",
+      "YOL096C",
+      "YOL102C",
+      "YOL124C",
+      "YOL125W",
+      "YOL130W",
+      "YOL135C",
+      "YOL142W",
+      "YOR057W",
+      "YOR099W",
+      "YOR198C",
+      "YOR205C",
+      "YOR206W",
+      "YOR210W",
+      "YOR224C",
+      "YOR256C",
+      "YOR258W",
+      "YOR260W",
+      "YOR319W",
+      "YOR353C",
+      "YPL023C",
+      "YPL028W",
+      "YPL126W",
+      "YPL208W",
+      "YPL212C",
+      "YPL242C",
+      "YPL252C",
+      "YPR007C",
+      "YPR107C",
+      "YPR108W",
+      "YPR110C",
+      "YPR111W",
+      "YPR118W",
+      "YPR140W",
+      "YPR151C",
+      "YPR166C",
+      "YPR171W",
+      "YPR173C",
+      "YPR174C",
+      "YPR175W",
+      "YPR178W",
+      "YPR180W",
+      "YPR182W",
+      "YPR183W",
+      "YPR185W",
+      "YPR186C",
+      "YPR187W",
+      "YPR190C",
+      "YPR191W"
+    ],
+    "metrics": {
+      "shorkie": {
+        "n_scored": 205,
+        "n_log2": 205,
+        "spearman_rho": -0.014440528757086542,
+        "pearson_r": -0.02271996782956664,
+        "pearson_log2_r": -0.017930370241869234,
+        "confidence_intervals_95": {
+          "spearman_rho": null,
+          "pearson_r": null,
+          "pearson_log2_r": null
+        },
+        "bootstrap_valid_draws": {
+          "spearman_rho": 0,
+          "pearson_r": 0,
+          "pearson_log2_r": 0
+        }
+      },
+      "yorzoi": {
+        "n_scored": 205,
+        "n_log2": 205,
+        "spearman_rho": 0.07816578679778802,
+        "pearson_r": 0.03814628140268301,
+        "pearson_log2_r": 0.057084170194999874,
+        "confidence_intervals_95": {
+          "spearman_rho": null,
+          "pearson_r": null,
+          "pearson_log2_r": null
+        },
+        "bootstrap_valid_draws": {
+          "spearman_rho": 0,
+          "pearson_r": 0,
+          "pearson_log2_r": 0
+        }
+      }
+    },
+    "original_n_scored": {
+      "shorkie": 205,
+      "yorzoi": 205
+    },
+    "input_sha256": {
+      "labels": "0634f94840ad3ab2ac66084792e04d9732d024ba8d6229270c63fc8ba24e8268",
+      "constructs": "14675c42176aded9c921da70dcb10386ed91a7ce6e1786fc7139e70fc2595c64",
+      "reference_fasta": "970a521f0c354fff45b020db1dec0e1ce3c67b34e014ce7856c5a988c97a4d69"
+    }
+  }
+}

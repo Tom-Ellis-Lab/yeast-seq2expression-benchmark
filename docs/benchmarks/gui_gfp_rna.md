@@ -96,7 +96,9 @@ context. The different model receptive fields remain visible in these records.
 
 Constant predictions have undefined correlations, serialized as JSON `null`.
 Missing predictions retain explicit reasons. Cross-model comparison uses the
-intersection of scored locus IDs and verifies that their labels agree.
+intersection of scored locus IDs and requires identical input-file hashes and
+matching labels, so stale results from different sequence reconstructions cannot
+be compared silently.
 
 Outputs include `predictions.tsv`, `summary.json`, separate linear/log scatter
 PNGs and SVGs, and a common-cohort model comparison. Each new benchmark figure
@@ -145,4 +147,38 @@ No fluorescence, neighboring-gene or fitness endpoint is evaluated here.
 
 ## Results
 
-Results from the Shorkie and Yorzoi runs will be recorded here after evaluation.
+Both models were run on 2026-11-11 using NVIDIA RTX A6000 GPUs (Shorkie on
+GPU 0, Yorzoi on GPU 1), code commit `d540f31`, and the configuration above.
+All 205 eligible genotypes produced finite positive predictions; all 717 GFP
+CDS bases contributed to every score. The 35 source exclusions are identical
+between models.
+
+| Model | n | Spearman ρ (95% CI) | Pearson r | log2 Pearson r |
+| --- | ---: | ---: | ---: | ---: |
+| Shorkie, eight folds + RC | 205 | −0.014 (−0.148, 0.122) | −0.023 | −0.018 |
+| Yorzoi + RC | 205 | 0.078 (−0.063, 0.213) | 0.038 | 0.057 |
+
+Removing IMP4 leaves Spearman ρ = −0.013 for Shorkie and 0.076 for Yorzoi
+(n = 204). Neither model shows a clear rank association under this protocol;
+the confidence intervals for all three correlations include zero. This does
+not identify whether the limitation comes from the models, unobserved strain
+variation, trans effects, or measurement variability.
+
+The centered inputs expose about 7.13 kb upstream and 6.04 kb downstream of
+native sequence to Shorkie, versus 1.43 kb and 0.34 kb to Yorzoi. These distances
+are relative to GFP transcription and exclude the synthetic payload. The models
+therefore have different amounts of native genomic context.
+
+[Complete metrics and run metadata](gui_gfp_rna_results.json) include all
+confidence intervals, input hashes and the IMP4 sensitivity analysis.
+[Per-genotype predictions](gui_gfp_rna_predictions.tsv) retain every exclusion
+and both model-window hashes. Full runtime outputs remain under
+`results/gui_gfp_rna/`. The broad local test suite passed with 531 tests,
+9 skips and 5 deselections; both real GPU runs and input verification passed.
+
+![Shorkie GFP RNA prediction](../../img/results/gui_gfp_rna/shorkie_scatter_log.png)
+
+![Yorzoi GFP RNA prediction](../../img/results/gui_gfp_rna/yorzoi_scatter_log.png)
+
+Linear-scale versions and the shared-cohort comparison are in
+[`img/results/gui_gfp_rna/`](../../img/results/gui_gfp_rna/).
