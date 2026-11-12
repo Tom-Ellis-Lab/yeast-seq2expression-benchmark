@@ -3268,6 +3268,10 @@ dev = [
 dream-rnn = [
     { name = "torch" },
 ]
+exoshorkie = [
+    { name = "h5py" },
+    { name = "torch" },
+]
 modal = [
     { name = "modal" },
 ]
@@ -3288,6 +3292,7 @@ dev = [
 requires-dist = [
     { name = "biopython", marker = "extra == 'codon-transformer'" },
     { name = "cai-pypi", marker = "extra == 'codon-transformer'" },
+    { name = "h5py", marker = "extra == 'exoshorkie'" },
     { name = "h5py", marker = "extra == 'shorkie'" },
     { name = "huggingface-hub", marker = "extra == 'data'", specifier = ">=0.25" },
     { name = "ipykernel", marker = "extra == 'dev'", specifier = ">=7.2.0" },
@@ -3308,6 +3313,7 @@ requires-dist = [
     { name = "seaborn", specifier = ">=0.13.2" },
     { name = "torch", marker = "extra == 'codon-transformer'", specifier = ">=2.11.0" },
     { name = "torch", marker = "extra == 'dream-rnn'", specifier = ">=2.11.0" },
+    { name = "torch", marker = "extra == 'exoshorkie'", specifier = ">=2.11.0" },
     { name = "torch", marker = "extra == 'shorkie'", specifier = ">=2.11.0" },
     { name = "tqdm", specifier = ">=4.67.3" },
     { name = "transformers", marker = "extra == 'codon-transformer'", specifier = "<5" },
@@ -3315,7 +3321,7 @@ requires-dist = [
     { name = "yeast-seq2epxression-benchmark", extras = ["shorkie", "yorzoi", "dream-rnn", "data"], marker = "extra == 'all'" },
     { name = "yorzoi", marker = "extra == 'yorzoi'", specifier = "==0.2.1" },
 ]
-provides-extras = ["shorkie", "yorzoi", "dream-rnn", "data", "all", "dev", "modal", "codon-transformer"]
+provides-extras = ["exoshorkie", "shorkie", "yorzoi", "dream-rnn", "data", "all", "dev", "modal", "codon-transformer"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "nvitop", specifier = ">=1.7.2" }]

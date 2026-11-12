@@ -84,6 +84,54 @@
         }
       }
     },
+    "exoshorkie_chr7": {
+      "files": {
+        "student_chr7_distilled.h5": {
+          "sha256": "f3cda1bea821a41c9cb1bfdbc122bda8abaea025d9090c5efbed7cc099b481ef",
+          "size": 49458536
+        }
+      }
+    },
+    "exoshorkie_dchr": {
+      "files": {
+        "student_dChr_distilled.h5": {
+          "sha256": "5b16871a030fdce1997279476123dd1e804774eba5e470f304f41a314c0d5273",
+          "size": 49458536
+        }
+      }
+    },
+    "exoshorkie_hprt1": {
+      "files": {
+        "student_HPRT1_distilled.h5": {
+          "sha256": "c3128cc7be842ebb253471eac6f40de78ee1432fa0a7b4ce5826e0228fbce241",
+          "size": 49458536
+        }
+      }
+    },
+    "exoshorkie_hprt1r": {
+      "files": {
+        "student_HPRT1R_distilled.h5": {
+          "sha256": "5a1df106215f6c8919de94410d21c980ff8bf1b0df16e4c3e16e2b0bf0376dfe",
+          "size": 49458536
+        }
+      }
+    },
+    "exoshorkie_mmmyco": {
+      "files": {
+        "student_Mmmyco_distilled.h5": {
+          "sha256": "30799c6f227c34f7d52f68a9128fc293680fb52b87466721730e31f2001e3a06",
+          "size": 49458536
+        }
+      }
+    },
+    "exoshorkie_mpneumo": {
+      "files": {
+        "student_Mpneumo_distilled.h5": {
+          "sha256": "b6801a63e1e3d821bb3ad504ecda1d20bcadeed3465744ef89dda0fc61ff90e8",
+          "size": 49458536
+        }
+      }
+    },
     "hong": {
       "files": {
         "expression_cassette.fasta": {

@@ -1,26 +1,14 @@
-"""Shorkie variant-effect scorer for the Caudal eQTL benchmark.
+"""Shorkie eQTL readout using shared allele/window preparation."""
 
-Implements the ``logSED_agg`` scoring procedure documented in
-``docs/benchmarks/caudal_eqtl.md``: window-placement constraint solve, strict
-ref-allele check, ref/alt one-hot, 8-fold ensemble, panel-track slice,
-cross-track mean → per-base unbin → exon-base sum → log2 fold change.
-(Raw-count scale; Shorkie's softplus head needs no inverse transform, but
-per-base summing avoids the CDS-boundary rounding of 16 bp bins.)
-"""
 from __future__ import annotations
 
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Sequence
 
 import numpy as np
 
 from yeastbench.adapters._genome import (
-    ARABIC_TO_ROMAN,
-    gene_exon_base_positions,
-    one_hot_encode_channels_first,
     parse_gene_annotations,
-    place_window,
 )
 from yeastbench.adapters._shorkie_constants import (
     BIN_WIDTH,
@@ -29,22 +17,17 @@ from yeastbench.adapters._shorkie_constants import (
     SEQ_LEN,
     SHORKIE_1011_RNA_SEQ_TRACK_IDS,
 )
+from yeastbench.adapters._variant_scorer import VariantScorerBase
 from yeastbench.adapters.protocols import Variant, VariantEffectScorer
 from yeastbench.models.shorkie import Shorkie
 
 
-@dataclass(frozen=True)
-class _ScoringJob:
-    """Per-variant pre-computed metadata for batched scoring."""
-    chrom_roman: str
-    window_start: int  # 0-based
-    var_idx_in_window: int  # 0-based
-    ref: str
-    alt: str
-    base_idx: np.ndarray  # exon base positions in the cropped output window
+class ShorkieVariantScorer(VariantScorerBase, VariantEffectScorer):
+    seq_len = SEQ_LEN
+    crop_bp_each_side = CROP_BP_EACH_SIDE
+    bin_width = BIN_WIDTH
+    output_bins = OUTPUT_BINS
 
-
-class ShorkieVariantScorer(VariantEffectScorer):
     def __init__(
         self,
         model: Shorkie,
@@ -75,79 +58,16 @@ class ShorkieVariantScorer(VariantEffectScorer):
     ) -> "ShorkieVariantScorer":
         return cls(
             Shorkie.from_checkpoints(
-                params_path, checkpoint_paths, device=device, use_rc=use_rc,
+                params_path,
+                checkpoint_paths,
+                device=device,
+                use_rc=use_rc,
             ),
             fasta_path=fasta_path,
             gtf_path=gtf_path,
             track_subset=list(track_subset),
             batch_size=batch_size,
         )
-
-    def _prepare_jobs(self, variants: Sequence[Variant]) -> list[_ScoringJob]:
-        """Resolve windows, verify ref base when the variant is inside the
-        window, and pre-compute the exon-bin index per variant.
-
-        When the variant is too far from the gene's center to fit alongside
-        it inside one ``SEQ_LEN`` input window, the window falls back to
-        gene-centered (matches the canonical Shorkie scoring script) and
-        the variant ends up outside the input. In that case we keep the
-        ref-pass prediction but skip the alt mutation, mirroring the
-        upstream behavior — the resulting variant effect score is ≈ 0,
-        which is the correct behavior for a variant the architecture
-        cannot in principle see.
-        """
-        jobs: list[_ScoringJob] = []
-        for v in variants:
-            gene = self.genes[v.gene_id]
-            chrom_roman = ARABIC_TO_ROMAN[v.chrom]
-            if chrom_roman != gene.chrom_roman:
-                raise ValueError(
-                    f"variant chrom {v.chrom} ({chrom_roman}) does not match "
-                    f"gene {v.gene_id} chrom {gene.chrom_roman}"
-                )
-            chrom_len = self.fasta.get_reference_length(chrom_roman)
-            start0 = place_window(
-                v.pos, gene.gene_center, chrom_len, SEQ_LEN, CROP_BP_EACH_SIDE
-            )
-            var_idx = v.pos - 1 - start0
-            if 0 <= var_idx < SEQ_LEN:
-                seq = self.fasta.fetch(
-                    chrom_roman, start0, start0 + SEQ_LEN
-                ).upper()
-                ref_in_fasta = seq[var_idx]
-                if ref_in_fasta != v.ref.upper():
-                    raise ValueError(
-                        f"REF mismatch at {v.chrom}:{v.pos}: "
-                        f"FASTA={ref_in_fasta}, claimed={v.ref}"
-                    )
-            jobs.append(
-                _ScoringJob(
-                    chrom_roman=chrom_roman,
-                    window_start=start0,
-                    var_idx_in_window=var_idx,
-                    ref=v.ref.upper(),
-                    alt=v.alt.upper(),
-                    base_idx=gene_exon_base_positions(
-                        gene, start0, CROP_BP_EACH_SIDE, OUTPUT_BINS * BIN_WIDTH
-                    ),
-                )
-            )
-        return jobs
-
-    def _build_one_hot_pair(self, job: _ScoringJob) -> tuple[np.ndarray, np.ndarray]:
-        seq = self.fasta.fetch(
-            job.chrom_roman, job.window_start, job.window_start + SEQ_LEN
-        ).upper()
-        ref_oh = one_hot_encode_channels_first(seq)
-        if 0 <= job.var_idx_in_window < SEQ_LEN:
-            i = job.var_idx_in_window
-            alt_seq = seq[:i] + job.alt + seq[i + len(job.ref):]
-            if len(alt_seq) != SEQ_LEN:
-                alt_seq = (alt_seq + "N" * SEQ_LEN)[:SEQ_LEN]
-            alt_oh = one_hot_encode_channels_first(alt_seq)
-        else:
-            alt_oh = ref_oh  # variant outside window → no mutation, score ≈ 0
-        return ref_oh, alt_oh
 
     def score_variants(self, variants: Sequence[Variant]) -> np.ndarray:
         import torch as _torch

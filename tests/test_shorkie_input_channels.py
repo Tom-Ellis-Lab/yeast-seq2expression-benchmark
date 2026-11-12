@@ -55,7 +55,7 @@ def test_forward_uses_checkpoint_input_format(channels):
     configured = _with_conv_dna_in_channels(config, channels)
     model = ShorkieModule(configured).eval()
     assert config == original
-    assert model.conv_dna.conv.in_channels == channels
+    assert model.backbone.conv_dna.conv.in_channels == channels
     assert model._expects_species_encoding == (channels == 170)
     x = torch.zeros(1, 4, 16384)
     x[:, 2, :] = 1
@@ -68,7 +68,7 @@ def test_forward_uses_checkpoint_input_format(channels):
         captured.append(args[0])
         raise StopAfterInput
 
-    handle = model.conv_dna.register_forward_pre_hook(capture)
+    handle = model.backbone.conv_dna.register_forward_pre_hook(capture)
     try:
         with pytest.raises(StopAfterInput):
             model(x)
@@ -86,7 +86,7 @@ def test_forward_uses_checkpoint_input_format(channels):
 
 def test_default_config_still_builds_species_model():
     config = json.loads((FIXTURES / "params.json").read_text())["model"]
-    assert ShorkieModule(config).conv_dna.conv.in_channels == 170
+    assert ShorkieModule(config).backbone.conv_dna.conv.in_channels == 170
 
 
 def test_targets_prefer_adjacent_then_fall_back(tmp_path):

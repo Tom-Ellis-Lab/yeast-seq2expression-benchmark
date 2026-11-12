@@ -124,4 +124,21 @@ Implementation and all eleven full benchmark runs completed.
   `PYTHONPATH=src .venv/bin/python scripts/docs/report_shorkie_random_init.py`.
   Pending tasks stay explicit; missing pretrained raw results remain blank.
 
-All eleven completed-task summaries and evaluation timings are recorded in `docs/results.md` and `docs/results/shorkie_random_init.json`. Raw predictions, plots, and run metadata remain under `results/default/`.
+All eleven completed-task summaries and evaluation timings are recorded in
+`docs/results.md`. Raw predictions, plots, run metadata, and the generated audit
+JSON remain under `results/default/`. The report generator defaults to
+`shorkie_random_init_report.json` inside the configured output directory; use
+`--artifact` to override that location.
+
+The saved November 6–7 benchmark runs predate the ExoShorkie integration into
+`main`. Their original run metadata and local audit snapshot are retained.
+Regenerated audit reports record the current reporting code separately in
+`report_source_sha256`; those hashes do not identify the code that produced the
+original predictions.
+
+Compatibility was checked after merging ExoShorkie from `main` at `fb5048e`.
+Random-init loading now uses the shared backbone and Keras weight loader, with
+input validation following the checkpoint's configured width. Pretrained and
+random-init fold-0 CPU outputs are bit-identical to `4217650`; the ExoShorkie dChr
+student's CPU output is bit-identical to the implementation on `main`.
+The combined CPU suite passes: 532 passed, 9 skipped, 8 deselected.

@@ -71,8 +71,10 @@ METRICS = {
 }
 
 
-def report(config: Path, document: Path, artifact: Path) -> int:
+def report(config: Path, document: Path, artifact: Path | None = None) -> int:
     cfg = load_config(config)
+    if artifact is None:
+        artifact = cfg.out_dir / "shorkie_random_init_report.json"
     records = {}
     for task in METRICS:
         records[task] = {}
@@ -172,7 +174,7 @@ def report(config: Path, document: Path, artifact: Path) -> int:
         "",
         "Pretrained columns use available saved runs; missing baselines are left blank.",
         "The earlier tables retain their historical results. Full summaries, sample counts,",
-        "run metadata, and source checksums are in [the machine-readable report](results/shorkie_random_init.json).",
+        "and run metadata remain with the local benchmark outputs.",
         "",
         "| Task | Metric(s) | Pretrained Shorkie | Random-init Shorkie | Eval time |",
         "| --- | --- | --- | --- | --- |",
@@ -219,11 +221,18 @@ def report(config: Path, document: Path, artifact: Path) -> int:
                 "input_lock": json.loads(
                     Path("src/yeastbench/data/manifest.lock.json").read_text()
                 ),
-                "source_sha256": {
+                "report_source_sha256": {
                     name: hashlib.sha256(Path(name).read_bytes()).hexdigest()
                     for name in (
                         "src/yeastbench/models/shorkie/nn.py",
+                        "src/yeastbench/models/shared/shorkie/backbone.py",
+                        "src/yeastbench/models/shared/shorkie/encoding.py",
+                        "src/yeastbench/models/shared/shorkie/keras_weights.py",
                         "src/yeastbench/models/shorkie/wrapper.py",
+                        "src/yeastbench/adapters/_chen_predictor.py",
+                        "src/yeastbench/adapters/_variant_scorer.py",
+                        "src/yeastbench/adapters/shorkie_chen_marginalized.py",
+                        "src/yeastbench/adapters/shorkie_eqtl.py",
                         "src/yeastbench/adapters/shorkie_hong.py",
                         "src/yeastbench/registry.py",
                         "configs/default.yaml",
@@ -245,7 +254,8 @@ if __name__ == "__main__":
     parser.add_argument("--config", type=Path, default=Path("configs/default.yaml"))
     parser.add_argument("--document", type=Path, default=Path("docs/results.md"))
     parser.add_argument(
-        "--artifact", type=Path, default=Path("docs/results/shorkie_random_init.json")
+        "--artifact", type=Path,
+        help="Audit JSON destination (default: configured out_dir/shorkie_random_init_report.json).",
     )
     args = parser.parse_args()
     report(args.config, args.document, args.artifact)

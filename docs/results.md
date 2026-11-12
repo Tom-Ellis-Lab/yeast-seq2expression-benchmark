@@ -250,7 +250,7 @@ float32. Chen uses four variants per batch, expanded over all host contexts.
 
 Pretrained columns use available saved runs; missing baselines are left blank.
 The earlier tables retain their historical results. Full summaries, sample counts,
-run metadata, and source checksums are in [the machine-readable report](results/shorkie_random_init.json).
+and run metadata remain with the local benchmark outputs.
 
 | Task | Metric(s) | Pretrained Shorkie | Random-init Shorkie | Eval time |
 | --- | --- | --- | --- | --- |

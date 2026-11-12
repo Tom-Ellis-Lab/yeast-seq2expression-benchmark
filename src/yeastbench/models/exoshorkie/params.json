@@ -1,0 +1,71 @@
+{
+  "source": "https://github.com/OrensteinLab/ExoShorkie/blob/v1.0.1/Shorkie_params.json",
+  "baskerville_commit": "88e89f48e7df73c0856ce93ae35e8878794d19e9",
+  "description": "Upstream Shorkie model parameters with num_features=170, as set by ISM_student.load_model. ExoShorkieModule replaces the original head with a linear distill_head.",
+  "model": {
+    "seq_length": 16384,
+    "augment_rc": false,
+    "augment_shift": 0,
+    "activation": "gelu",
+    "norm_type": "batch",
+    "bn_momentum": 0.9,
+    "kernel_initializer": "lecun_normal",
+    "l2_scale": 1e-06,
+    "trunk": [
+      {
+        "name": "conv_dna",
+        "filters": 96,
+        "kernel_size": 11,
+        "norm_type": null,
+        "activation": "linear"
+      },
+      {
+        "name": "res_tower",
+        "filters_init": 96,
+        "filters_end": 384,
+        "divisible_by": 32,
+        "kernel_size": 5,
+        "num_convs": 2,
+        "dropout": 0.05,
+        "pool_size": 2,
+        "repeat": 7
+      },
+      {
+        "name": "transformer_tower",
+        "key_size": 64,
+        "heads": 4,
+        "num_position_features": 32,
+        "dropout": 0.2,
+        "mha_l2_scale": 1e-08,
+        "l2_scale": 1e-08,
+        "kernel_initializer": "he_normal",
+        "repeat": 8
+      },
+      {
+        "name": "unet_conv",
+        "kernel_size": 3,
+        "upsample_conv": true
+      },
+      {
+        "name": "unet_conv",
+        "kernel_size": 3,
+        "upsample_conv": true
+      },
+      {
+        "name": "unet_conv",
+        "kernel_size": 3,
+        "upsample_conv": true
+      },
+      {
+        "name": "Cropping1D",
+        "cropping": 64
+      }
+    ],
+    "head": {
+      "name": "final",
+      "units": 5215,
+      "activation": "softplus"
+    },
+    "num_features": 170
+  }
+}

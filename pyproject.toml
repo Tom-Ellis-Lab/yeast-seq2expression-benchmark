@@ -23,6 +23,10 @@ dependencies = [
 ybench = "yeastbench.cli:app"
 
 [project.optional-dependencies]
+exoshorkie = [
+    "h5py",
+    "torch>=2.11.0",
+]
 shorkie = [
     "h5py",
     "torch>=2.11.0",

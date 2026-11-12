@@ -12,6 +12,7 @@ its required inputs declared.
 from __future__ import annotations
 
 from yeastbench.data.artifacts import BackendKind, InputArtifact, InputKind, License, Mirror
+from yeastbench.models.exoshorkie.checkpoints import CHECKPOINTS, STUDENT_MODELS
 
 
 # ──────────────────────────────────────────────────────────────
@@ -247,6 +248,20 @@ ARTIFACTS: tuple[InputArtifact, ...] = (
             ),
         ),
     ),
+    # One immutable, checksum-locked download per distilled student.
+    *(InputArtifact(
+        id=name,
+        kind=InputKind.MODEL_WEIGHTS,
+        dest="data/models/exoshorkie",
+        needed_by=(name, "exoshorkie_ensemble"),
+        include=(CHECKPOINTS[variant].filename,),
+        license=License.PUBLIC,
+        redistributable=False,
+        mirrors=(Mirror(
+            BackendKind.HTTP,
+            base=CHECKPOINTS[variant].url.rsplit("/", 1)[0] + "/",
+        ),),
+    ) for name, variant in STUDENT_MODELS.items()),
     # Yorzoi + CodonTransformer: HF-hub models the adapters load via
     # from_pretrained at runtime. `get` warms the HF cache; nothing lands
     # under data/. The lock records their repository revision without a local
