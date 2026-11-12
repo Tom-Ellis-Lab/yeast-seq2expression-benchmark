@@ -1,0 +1,2075 @@
+{
+  "task": "brooks_scramble",
+  "task_version": "v2",
+  "config": "configs/brooks_native_v2.yaml",
+  "shared_cohort": {
+    "n_total": 698,
+    "n_scored": 327,
+    "n_scored_per_rep": [
+      205,
+      80,
+      291
+    ],
+    "n_ceiling_per_rep": [
+      198,
+      80,
+      169
+    ],
+    "sample_ids": [
+      "JS274:YIR013C:0",
+      "JS274:YIR014W:0",
+      "JS274:YIR015W:0",
+      "JS274:YIR016W:0",
+      "JS274:YIR018C-A:0",
+      "JS274:YIR019C:0",
+      "JS274:YIR020C-B:0",
+      "JS274:YIR020C:0",
+      "JS274:YIR020W-A:0",
+      "JS571:YIR004W:0",
+      "JS571:YIR005W:0",
+      "JS571:YIR006C:0",
+      "JS571:YIR007W:0",
+      "JS571:YIR008C:0",
+      "JS571:YIR009W:0",
+      "JS571:YIR010W:0",
+      "JS571:YIR011C:0",
+      "JS571:YIR012W:0",
+      "JS571:YIR013C:0",
+      "JS571:YIR014W:0",
+      "JS571:YIR015W:0",
+      "JS571:YIR016W:0",
+      "JS571:YIR018C-A:0",
+      "JS571:YIR025W:0",
+      "JS571:YIR026C:0",
+      "JS571:YIR027C:0",
+      "JS571:YIR028W:0",
+      "JS571:YIR029W:0",
+      "JS571:YIR030C:0",
+      "JS571:YIR033W:0",
+      "JS571:YIR038C:0",
+      "JS571:YIR039C:0",
+      "JS599:YIR005W:0",
+      "JS599:YIR013C:0",
+      "JS599:YIR014W:0",
+      "JS599:YIR015W:0",
+      "JS599:YIR016W:0",
+      "JS599:YIR024C:0",
+      "JS599:YIR025W:0",
+      "JS599:YIR029W:0",
+      "JS599:YIR030C:0",
+      "JS599:YIR036C:0",
+      "JS599:YIR036W-A:0",
+      "JS599:YIR037W:0",
+      "JS601:YIR014W:0",
+      "JS601:YIR015W:0",
+      "JS601:YIR016W:0",
+      "JS601:YIR018C-A:0",
+      "JS601:YIR033W:0",
+      "JS601:YIR039C:0",
+      "JS602:YIL001W:0",
+      "JS602:YIR001C:0",
+      "JS602:YIR003W:0",
+      "JS602:YIR004W:0",
+      "JS602:YIR005W:0",
+      "JS602:YIR006C:0",
+      "JS602:YIR007W:0",
+      "JS602:YIR008C:0",
+      "JS602:YIR009W:0",
+      "JS602:YIR010W:0",
+      "JS602:YIR011C:0",
+      "JS602:YIR012W:0",
+      "JS602:YIR015W:0",
+      "JS602:YIR016W:0",
+      "JS602:YIR020C-B:0",
+      "JS602:YIR021W-A:0",
+      "JS602:YIR021W:0",
+      "JS602:YIR022W:0",
+      "JS602:YIR023C-A:0",
+      "JS602:YIR023W:0",
+      "JS602:YIR026C:0",
+      "JS602:YIR027C:0",
+      "JS602:YIR028W:0",
+      "JS602:YIR029W:0",
+      "JS602:YIR030C:0",
+      "JS602:YIR030W-A:0",
+      "JS602:YIR031C:0",
+      "JS602:YIR032C:0",
+      "JS602:YIR033W:0",
+      "JS602:YIR034C:0",
+      "JS602:YIR035C:0",
+      "JS602:YIR036C:0",
+      "JS602:YIR036W-A:0",
+      "JS602:YIR037W:0",
+      "JS602:YIR038C:0",
+      "JS602:YIR040C:0",
+      "JS602:YIR041W:0",
+      "JS602:YIR042C:0",
+      "JS603:YIR004W:0",
+      "JS603:YIR005W:0",
+      "JS603:YIR034C:0",
+      "JS603:YIR035C:0",
+      "JS603:YIR039C:0",
+      "JS603:YIR040C:0",
+      "JS603:YIR041W:0",
+      "JS604:YIR001C:0",
+      "JS604:YIR006C:0",
+      "JS604:YIR007W:0",
+      "JS604:YIR013C:0",
+      "JS604:YIR014W:0",
+      "JS604:YIR027C:0",
+      "JS604:YIR028W:0",
+      "JS604:YIR029W:0",
+      "JS604:YIR030C:0",
+      "JS604:YIR030W-A:0",
+      "JS604:YIR031C:0",
+      "JS604:YIR032C:0",
+      "JS604:YIR033W:0",
+      "JS604:YIR034C:0",
+      "JS604:YIR035C:0",
+      "JS605:YIR008C:0",
+      "JS605:YIR009W:0",
+      "JS605:YIR014W:0",
+      "JS605:YIR015W:0",
+      "JS605:YIR016W:0",
+      "JS605:YIR018C-A:0",
+      "JS606:YIR011C:0",
+      "JS606:YIR012W:0",
+      "JS606:YIR015W:0",
+      "JS606:YIR016W:0",
+      "JS606:YIR018C-A:0",
+      "JS606:YIR020C-B:0",
+      "JS606:YIR023C-A:0",
+      "JS606:YIR023W:0",
+      "JS606:YIR024C:0",
+      "JS606:YIR025W:0",
+      "JS606:YIR033W:0",
+      "JS606:YIR034C:0",
+      "JS606:YIR035C:0",
+      "JS606:YIR039C:0",
+      "JS606:YIR040C:0",
+      "JS606:YIR041W:0",
+      "JS606:YIR042C:0",
+      "JS607:YIR006C:0",
+      "JS607:YIR015W:0",
+      "JS607:YIR016W:0",
+      "JS607:YIR032C:0",
+      "JS607:YIR033W:0",
+      "JS608:YIR014W:0",
+      "JS608:YIR015W:0",
+      "JS608:YIR016W:0",
+      "JS608:YIR018C-A:0",
+      "JS608:YIR029W:0",
+      "JS608:YIR030C:0",
+      "JS608:YIR031C:0",
+      "JS608:YIR032C:0",
+      "JS608:YIR033W:0",
+      "JS608:YIR038C:0",
+      "JS608:YIR039C:0",
+      "JS609:YIR003W:0",
+      "JS609:YIR006C:0",
+      "JS609:YIR015W:0",
+      "JS609:YIR016W:0",
+      "JS609:YIR018C-A:0",
+      "JS609:YIR023C-A:0",
+      "JS609:YIR023W:0",
+      "JS609:YIR026C:0",
+      "JS609:YIR027C:0",
+      "JS609:YIR028W:0",
+      "JS609:YIR030C:0",
+      "JS609:YIR030W-A:0",
+      "JS609:YIR031C:0",
+      "JS609:YIR032C:0",
+      "JS609:YIR033W:0",
+      "JS609:YIR034C:0",
+      "JS609:YIR035C:0",
+      "JS609:YIR039C:0",
+      "JS610:YIR014W:0",
+      "JS610:YIR015W:0",
+      "JS610:YIR016W:0",
+      "JS610:YIR018C-A:0",
+      "JS610:YIR029W:0",
+      "JS610:YIR030C:0",
+      "JS610:YIR030W-A:0",
+      "JS610:YIR031C:0",
+      "JS610:YIR032C:0",
+      "JS610:YIR035C:0",
+      "JS610:YIR036C:0",
+      "JS610:YIR036W-A:0",
+      "JS610:YIR037W:0",
+      "JS610:YIR038C:0",
+      "JS611:YIR014W:0",
+      "JS611:YIR015W:0",
+      "JS611:YIR016W:0",
+      "JS611:YIR018C-A:0",
+      "JS611:YIR019C:0",
+      "JS611:YIR020C-B:0",
+      "JS611:YIR020C:0",
+      "JS611:YIR020W-A:0",
+      "JS611:YIR021W-A:0",
+      "JS611:YIR021W:0",
+      "JS611:YIR022W:0",
+      "JS611:YIR023C-A:0",
+      "JS611:YIR023W:0",
+      "JS611:YIR024C:0",
+      "JS611:YIR025W:0",
+      "JS611:YIR026C:0",
+      "JS611:YIR027C:0",
+      "JS611:YIR028W:0",
+      "JS611:YIR029W:0",
+      "JS611:YIR030C:0",
+      "JS611:YIR030W-A:0",
+      "JS611:YIR031C:0",
+      "JS611:YIR032C:0",
+      "JS611:YIR033W:0",
+      "JS611:YIR034C:0",
+      "JS611:YIR035C:0",
+      "JS611:YIR036C:0",
+      "JS611:YIR036W-A:0",
+      "JS611:YIR037W:0",
+      "JS611:YIR038C:0",
+      "JS612:YIR003W:0",
+      "JS612:YIR004W:0",
+      "JS612:YIR005W:0",
+      "JS612:YIR006C:0",
+      "JS612:YIR011C:0",
+      "JS612:YIR012W:0",
+      "JS612:YIR015W:0",
+      "JS612:YIR016W:0",
+      "JS612:YIR018C-A:0",
+      "JS612:YIR035C:0",
+      "JS612:YIR036C:0",
+      "JS612:YIR036W-A:0",
+      "JS612:YIR037W:0",
+      "JS612:YIR038C:0",
+      "JS613:YIR007W:0",
+      "JS613:YIR008C:0",
+      "JS613:YIR009W:0",
+      "JS613:YIR010W:0",
+      "JS613:YIR011C:0",
+      "JS613:YIR012W:0",
+      "JS613:YIR015W:0",
+      "JS613:YIR016W:0",
+      "JS613:YIR018C-A:0",
+      "JS613:YIR019C:0",
+      "JS613:YIR020C-B:0",
+      "JS613:YIR020C:0",
+      "JS613:YIR020W-A:0",
+      "JS613:YIR023C-A:0",
+      "JS613:YIR023W:0",
+      "JS613:YIR024C:0",
+      "JS613:YIR025W:0",
+      "JS613:YIR026C:0",
+      "JS613:YIR038C:0",
+      "JS614:YIR014W:0",
+      "JS614:YIR015W:0",
+      "JS614:YIR016W:0",
+      "JS614:YIR018C-A:0",
+      "JS615:YIR015W:0",
+      "JS615:YIR016W:0",
+      "JS615:YIR020C-B:0",
+      "JS615:YIR020C:0",
+      "JS615:YIR020W-A:0",
+      "JS615:YIR021W-A:0",
+      "JS615:YIR021W:0",
+      "JS615:YIR022W:0",
+      "JS615:YIR023C-A:0",
+      "JS615:YIR023W:0",
+      "JS615:YIR024C:0",
+      "JS615:YIR025W:0",
+      "JS615:YIR026C:0",
+      "JS615:YIR027C:0",
+      "JS615:YIR028W:0",
+      "JS615:YIR029W:0",
+      "JS615:YIR030C:0",
+      "JS615:YIR030W-A:0",
+      "JS615:YIR031C:0",
+      "JS615:YIR032C:0",
+      "JS615:YIR033W:0",
+      "JS622:YIR013C:0",
+      "JS622:YIR014W:0",
+      "JS622:YIR015W:0",
+      "JS622:YIR016W:0",
+      "JS622:YIR020C-B:0",
+      "JS622:YIR029W:0",
+      "JS622:YIR030C:0",
+      "JS622:YIR031C:0",
+      "JS622:YIR032C:0",
+      "JS622:YIR033W:0",
+      "JS622:YIR034C:0",
+      "JS622:YIR035C:0",
+      "JS622:YIR036C:0",
+      "JS622:YIR036W-A:0",
+      "JS622:YIR037W:0",
+      "JS622:YIR038C:0",
+      "JS622:YIR039C:0",
+      "JS622:YIR040C:0",
+      "JS622:YIR041W:0",
+      "JS622:YIR042C:0",
+      "JS623:YIR004W:0",
+      "JS623:YIR005W:0",
+      "JS623:YIR006C:0",
+      "JS623:YIR007W:0",
+      "JS623:YIR008C:0",
+      "JS623:YIR009W:0",
+      "JS623:YIR010W:0",
+      "JS623:YIR014W:0",
+      "JS623:YIR015W:0",
+      "JS623:YIR016W:0",
+      "JS623:YIR018C-A:0",
+      "JS623:YIR029W:0",
+      "JS623:YIR030C:0",
+      "JS623:YIR030W-A:0",
+      "JS623:YIR031C:0",
+      "JS623:YIR032C:0",
+      "JS624:YIR014W:0",
+      "JS624:YIR015W:0",
+      "JS624:YIR016W:0",
+      "JS624:YIR018C-A:0",
+      "JS624:YIR023C-A:0",
+      "JS624:YIR023W:0",
+      "JS624:YIR024C:0",
+      "JS624:YIR025W:0",
+      "JS624:YIR026C:0",
+      "JS624:YIR027C:0",
+      "JS624:YIR029W:0",
+      "JS624:YIR030C:0",
+      "JS624:YIR031C:0",
+      "JS624:YIR032C:0",
+      "JS624:YIR033W:0",
+      "JS624:YIR038C:0",
+      "JS625:YIR014W:0",
+      "JS625:YIR015W:0",
+      "JS625:YIR016W:0",
+      "JS625:YIR018C-A:0",
+      "JS626:YIL001W:0",
+      "JS626:YIR001C:0",
+      "JS626:YIR002C:0",
+      "JS626:YIR014W:0",
+      "JS626:YIR015W:0",
+      "JS626:YIR016W:0",
+      "JS626:YIR020C:0",
+      "JS626:YIR020W-A:0",
+      "JS626:YIR029W:0",
+      "JS626:YIR030C:0",
+      "JS626:YIR030W-A:0",
+      "JS626:YIR031C:0",
+      "JS626:YIR032C:0",
+      "JS626:YIR033W:0",
+      "JS626:YIR034C:0",
+      "JS626:YIR035C:0",
+      "JS626:YIR036C:0",
+      "JS626:YIR036W-A:0",
+      "JS626:YIR037W:0",
+      "JS626:YIR038C:0",
+      "JS626:YIR039C:0",
+      "JS626:YIR040C:0",
+      "JS626:YIR041W:0",
+      "JS626:YIR042C:0",
+      "JS627:YIR014W:0",
+      "JS627:YIR015W:0",
+      "JS627:YIR016W:0",
+      "JS627:YIR018C-A:0",
+      "JS627:YIR023C-A:0",
+      "JS627:YIR023W:0",
+      "JS627:YIR024C:0",
+      "JS627:YIR025W:0",
+      "JS628:YIR015W:0",
+      "JS628:YIR016W:0",
+      "JS628:YIR020C:0",
+      "JS628:YIR020W-A:0",
+      "JS629:YIR014W:0",
+      "JS629:YIR015W:0",
+      "JS629:YIR016W:0",
+      "JS629:YIR020C-B:0",
+      "JS629:YIR025W:0",
+      "JS629:YIR026C:0",
+      "JS629:YIR030C:0",
+      "JS629:YIR030W-A:0",
+      "JS629:YIR031C:0",
+      "JS705:YIR030C:0",
+      "JS705:YIR030W-A:0",
+      "JS705:YIR031C:0",
+      "JS705:YIR032C:0",
+      "JS705:YIR033W:0",
+      "JS705:YIR038C:0",
+      "JS705:YIR039C:0",
+      "JS706:YIR001C:0",
+      "JS706:YIR002C:0",
+      "JS706:YIR003W:0",
+      "JS706:YIR006C:0",
+      "JS706:YIR014W:0",
+      "JS706:YIR015W:0",
+      "JS706:YIR016W:0",
+      "JS706:YIR023C-A:0",
+      "JS706:YIR030C:0",
+      "JS706:YIR038C:0",
+      "JS706:YIR039C:0",
+      "JS706:YIR042C:0",
+      "JS708:YIR016W:0",
+      "JS708:YIR017C:0",
+      "JS708:YIR017W-A:0",
+      "JS708:YIR018C-A:0",
+      "JS708:YIR018W:0",
+      "JS708:YIR030W-A:0",
+      "JS708:YIR031C:0",
+      "JS708:YIR038C:0",
+      "JS709:YIR004W:0",
+      "JS709:YIR006C:0",
+      "JS709:YIR018C-A:0",
+      "JS709:YIR020C:0",
+      "JS709:YIR020W-A:0",
+      "JS709:YIR026C:0",
+      "JS709:YIR027C:0",
+      "JS709:YIR029W:0",
+      "JS709:YIR030C:0",
+      "JS709:YIR031C:0",
+      "JS709:YIR032C:0",
+      "JS709:YIR033W:0",
+      "JS709:YIR042C:0",
+      "JS711:YIR007W:0",
+      "JS711:YIR008C:0",
+      "JS711:YIR009W:0",
+      "JS711:YIR010W:0",
+      "JS711:YIR011C:0",
+      "JS711:YIR012W:0",
+      "JS711:YIR015W:0",
+      "JS711:YIR016W:0",
+      "JS712:YIR011C:0",
+      "JS712:YIR012W:0",
+      "JS712:YIR015W:0",
+      "JS712:YIR016W:0",
+      "JS712:YIR017C:0",
+      "JS712:YIR017W-A:0",
+      "JS712:YIR023C-A:0",
+      "JS712:YIR023W:0",
+      "JS712:YIR024C:0",
+      "JS712:YIR025W:0",
+      "JS712:YIR026C:0",
+      "JS712:YIR027C:0",
+      "JS712:YIR028W:0",
+      "JS712:YIR030C:0",
+      "JS712:YIR031C:0",
+      "JS712:YIR032C:0",
+      "JS712:YIR033W:0",
+      "JS712:YIR038C:0",
+      "JS713:YIR004W:0",
+      "JS713:YIR005W:0",
+      "JS713:YIR006C:0",
+      "JS713:YIR007W:0",
+      "JS713:YIR008C:0",
+      "JS713:YIR009W:0",
+      "JS713:YIR010W:0",
+      "JS713:YIR011C:0",
+      "JS713:YIR012W:0",
+      "JS713:YIR015W:0",
+      "JS713:YIR016W:0",
+      "JS713:YIR017C:0",
+      "JS713:YIR017W-A:0",
+      "JS713:YIR018C-A:0",
+      "JS713:YIR018W:0",
+      "JS713:YIR019C:0",
+      "JS713:YIR020C-B:0",
+      "JS713:YIR020C:0",
+      "JS713:YIR020W-A:0",
+      "JS713:YIR021W-A:0",
+      "JS713:YIR021W:0",
+      "JS713:YIR022W:0",
+      "JS713:YIR023C-A:0",
+      "JS713:YIR023W:0",
+      "JS713:YIR024C:0",
+      "JS713:YIR025W:0",
+      "JS713:YIR026C:0",
+      "JS713:YIR042C:0",
+      "JS714:YIR030W-A:0",
+      "JS714:YIR031C:0",
+      "JS714:YIR038C:0",
+      "JS715:YIR004W:0",
+      "JS715:YIR005W:0",
+      "JS715:YIR006C:0",
+      "JS715:YIR007W:0",
+      "JS715:YIR011C:0",
+      "JS715:YIR012W:0",
+      "JS715:YIR015W:0",
+      "JS715:YIR016W:0",
+      "JS715:YIR017C:0",
+      "JS715:YIR017W-A:0",
+      "JS715:YIR018C-A:0",
+      "JS715:YIR018W:0",
+      "JS715:YIR029W:0",
+      "JS715:YIR030C:0",
+      "JS715:YIR030W-A:0",
+      "JS715:YIR031C:0",
+      "JS715:YIR032C:0",
+      "JS715:YIR033W:0",
+      "JS715:YIR038C:0",
+      "JS716:YIR029W:0",
+      "JS716:YIR030C:0",
+      "JS716:YIR040C:0",
+      "JS716:YIR041W:0",
+      "JS716:YIR042C:0",
+      "JS717:YIR033W:0",
+      "JS717:YIR038C:0",
+      "JS718:YIR033W:0",
+      "JS718:YIR042C:0",
+      "JS719:YIR011C:0",
+      "JS719:YIR012W:0",
+      "JS719:YIR015W:0",
+      "JS719:YIR016W:0",
+      "JS719:YIR017C:0",
+      "JS719:YIR017W-A:0",
+      "JS719:YIR018C-A:0",
+      "JS719:YIR018W:0",
+      "JS719:YIR020C-B:0",
+      "JS719:YIR020C:0",
+      "JS719:YIR020W-A:0",
+      "JS719:YIR033W:0",
+      "JS719:YIR038C:0",
+      "JS719:YIR040C:0",
+      "JS719:YIR041W:0",
+      "JS721:YIR008C:0",
+      "JS721:YIR009W:0",
+      "JS721:YIR010W:0",
+      "JS721:YIR011C:0",
+      "JS721:YIR012W:0",
+      "JS721:YIR015W:0",
+      "JS721:YIR016W:0",
+      "JS721:YIR018C-A:0",
+      "JS721:YIR020C-B:0",
+      "JS721:YIR023C-A:0",
+      "JS721:YIR023W:0",
+      "JS721:YIR024C:0",
+      "JS721:YIR025W:0",
+      "JS721:YIR026C:0",
+      "JS721:YIR027C:0",
+      "JS721:YIR029W:0",
+      "JS721:YIR030C:0",
+      "JS721:YIR038C:0",
+      "JS722:YIR004W:0",
+      "JS722:YIR005W:0",
+      "JS722:YIR006C:0",
+      "JS722:YIR007W:0",
+      "JS722:YIR008C:0",
+      "JS722:YIR009W:0",
+      "JS722:YIR010W:0",
+      "JS722:YIR011C:0",
+      "JS722:YIR012W:0",
+      "JS722:YIR013C:0",
+      "JS722:YIR014W:0",
+      "JS722:YIR015W:0",
+      "JS722:YIR016W:0",
+      "JS722:YIR017C:0",
+      "JS722:YIR017W-A:0",
+      "JS722:YIR018C-A:0",
+      "JS722:YIR018W:0",
+      "JS722:YIR019C:0",
+      "JS722:YIR020C-B:0",
+      "JS722:YIR020C:0",
+      "JS722:YIR020W-A:0",
+      "JS722:YIR021W-A:0",
+      "JS722:YIR021W:0",
+      "JS722:YIR022W:0",
+      "JS722:YIR023C-A:0",
+      "JS722:YIR023W:0",
+      "JS722:YIR024C:0",
+      "JS722:YIR025W:0",
+      "JS722:YIR026C:0",
+      "JS722:YIR027C:0",
+      "JS722:YIR028W:0",
+      "JS722:YIR029W:0",
+      "JS722:YIR030C:0",
+      "JS722:YIR031C:0",
+      "JS722:YIR032C:0",
+      "JS722:YIR033W:0",
+      "JS723:YIR029W:0",
+      "JS723:YIR030C:0",
+      "JS723:YIR030W-A:0",
+      "JS723:YIR042C:0",
+      "JS724:YIR008C:0",
+      "JS724:YIR009W:0",
+      "JS724:YIR016W:0",
+      "JS724:YIR017C:0",
+      "JS724:YIR017W-A:0",
+      "JS724:YIR018C-A:0",
+      "JS724:YIR018W:0",
+      "JS724:YIR030C:0",
+      "JS724:YIR038C:0",
+      "JS725:YIR030W-A:0",
+      "JS725:YIR031C:0",
+      "JS725:YIR040C:0",
+      "JS725:YIR041W:0",
+      "JS725:YIR042C:0",
+      "JS726:YIR011C:0",
+      "JS726:YIR012W:0",
+      "JS726:YIR013C:0",
+      "JS726:YIR014W:0",
+      "JS726:YIR015W:0",
+      "JS726:YIR016W:0",
+      "JS726:YIR017C:0",
+      "JS726:YIR017W-A:0",
+      "JS726:YIR018C-A:0",
+      "JS726:YIR018W:0",
+      "JS726:YIR023C-A:0",
+      "JS726:YIR023W:0",
+      "JS726:YIR024C:0",
+      "JS726:YIR025W:0",
+      "JS726:YIR029W:0",
+      "JS726:YIR030C:0",
+      "JS726:YIR030W-A:0",
+      "JS726:YIR031C:0",
+      "JS726:YIR032C:0",
+      "JS726:YIR033W:0",
+      "JS726:YIR038C:0",
+      "JS727:YIR011C:0",
+      "JS727:YIR012W:0",
+      "JS727:YIR013C:0",
+      "JS727:YIR014W:0",
+      "JS727:YIR015W:0",
+      "JS727:YIR016W:0",
+      "JS727:YIR017C:0",
+      "JS727:YIR017W-A:0",
+      "JS727:YIR018C-A:0",
+      "JS727:YIR018W:0",
+      "JS727:YIR029W:0",
+      "JS727:YIR030C:0",
+      "JS727:YIR030W-A:0",
+      "JS727:YIR031C:0",
+      "JS727:YIR032C:0",
+      "JS727:YIR033W:0",
+      "JS727:YIR038C:0",
+      "JS728:YIR004W:0",
+      "JS728:YIR005W:0",
+      "JS728:YIR006C:0",
+      "JS728:YIR007W:0",
+      "JS728:YIR008C:0",
+      "JS728:YIR009W:0",
+      "JS728:YIR010W:0",
+      "JS728:YIR011C:0",
+      "JS728:YIR012W:0",
+      "JS728:YIR013C:0",
+      "JS728:YIR014W:0",
+      "JS728:YIR015W:0",
+      "JS728:YIR016W:0",
+      "JS728:YIR017C:0",
+      "JS728:YIR017W-A:0",
+      "JS728:YIR018C-A:0",
+      "JS728:YIR018W:0",
+      "JS728:YIR019C:0",
+      "JS728:YIR020C-B:0",
+      "JS728:YIR020C:0",
+      "JS728:YIR020W-A:0",
+      "JS728:YIR021W-A:0",
+      "JS728:YIR021W:0",
+      "JS728:YIR022W:0",
+      "JS728:YIR023C-A:0",
+      "JS728:YIR023W:0",
+      "JS728:YIR024C:0",
+      "JS728:YIR025W:0",
+      "JS728:YIR026C:0",
+      "JS728:YIR027C:0",
+      "JS728:YIR028W:0",
+      "JS728:YIR029W:0",
+      "JS728:YIR040C:0",
+      "JS728:YIR041W:0",
+      "JS728:YIR042C:0",
+      "JS729:YIR001C:0",
+      "JS729:YIR004W:0",
+      "JS729:YIR005W:0",
+      "JS729:YIR006C:0",
+      "JS729:YIR007W:0",
+      "JS729:YIR008C:0",
+      "JS729:YIR009W:0",
+      "JS729:YIR015W:0",
+      "JS729:YIR016W:0",
+      "JS730:YIR029W:0",
+      "JS730:YIR030C:0",
+      "JS730:YIR038C:0",
+      "JS730:YIR042C:0",
+      "JS731:YIR010W:0",
+      "JS731:YIR011C:0",
+      "JS731:YIR012W:0",
+      "JS731:YIR015W:0",
+      "JS731:YIR016W:0",
+      "JS731:YIR030C:0",
+      "JS732:YIR013C:0",
+      "JS732:YIR014W:0",
+      "JS732:YIR015W:0",
+      "JS732:YIR016W:0",
+      "JS732:YIR029W:0",
+      "JS732:YIR030C:0",
+      "JS733:YIR004W:0",
+      "JS733:YIR005W:0",
+      "JS733:YIR006C:0",
+      "JS733:YIR007W:0",
+      "JS733:YIR008C:0",
+      "JS733:YIR009W:0",
+      "JS733:YIR010W:0",
+      "JS733:YIR011C:0",
+      "JS733:YIR012W:0",
+      "JS733:YIR013C:0",
+      "JS733:YIR014W:0",
+      "JS733:YIR015W:0",
+      "JS733:YIR016W:0",
+      "JS733:YIR017C:0",
+      "JS733:YIR017W-A:0",
+      "JS733:YIR029W:0",
+      "JS733:YIR030C:0",
+      "JS733:YIR038C:0"
+    ]
+  },
+  "replicates": [
+    "JS94_r0",
+    "JS94_r1",
+    "JS94_r2"
+  ],
+  "models": {
+    "shorkie": {
+      "run_metadata": {
+        "model": "shorkie",
+        "task": "brooks_scramble",
+        "task_version": "v2",
+        "config_path": "/home/tds122/yeast-seq2epxression-benchmark/configs/brooks_native_v2.yaml",
+        "config_hash": "6fafb21a822f",
+        "device": "cuda:0",
+        "model_config": {
+          "params_path": "data/models/shorkie/params.json",
+          "checkpoint_paths": [
+            "data/models/shorkie/checkpoints/f0.h5",
+            "data/models/shorkie/checkpoints/f1.h5",
+            "data/models/shorkie/checkpoints/f2.h5",
+            "data/models/shorkie/checkpoints/f3.h5",
+            "data/models/shorkie/checkpoints/f4.h5",
+            "data/models/shorkie/checkpoints/f5.h5",
+            "data/models/shorkie/checkpoints/f6.h5",
+            "data/models/shorkie/checkpoints/f7.h5"
+          ],
+          "batch_size": 4,
+          "use_rc": true
+        },
+        "task_config": {
+          "data_path": "data/tasks/brooks_scramble"
+        },
+        "git_commit": "21cc5288f11ffd0324a767c356fbb1faacca2062",
+        "timestamp_utc": "2026-11-12T10:41:53.500295+00:00",
+        "elapsed_eval_s": 157.89953541755676,
+        "code_sha256": "0b03c56eca6cd3c850e9a65d660e4709514346bfdab3029c8706e0f359581ac7"
+      },
+      "saved_summary": {
+        "model": "shorkie",
+        "task": "brooks_scramble",
+        "task_version": "v2",
+        "n_total": 1055,
+        "n_scored": 528,
+        "n_calibration": 288,
+        "n_weak_baseline": 420,
+        "n_low_support": 418,
+        "lfc_n_scored_per_rep": [
+          295,
+          85,
+          488
+        ],
+        "lfc_pearson_r_per_rep": [
+          -0.0822151993520794,
+          -0.09458152442178243,
+          0.22126313038323295
+        ],
+        "lfc_spearman_rho_per_rep": [
+          0.007442563145892396,
+          -0.15351762633349159,
+          0.15309848019842007
+        ],
+        "lfc_dir_balanced_acc_per_rep": [
+          0.5511492552037092,
+          0.6470588235294118,
+          0.37198852988326675
+        ],
+        "lfc_n_ceiling_per_rep": [
+          288,
+          85,
+          255
+        ],
+        "lfc_ceiling_r_per_rep": [
+          0.6646885154788017,
+          0.9548189732495349,
+          0.4815991235458844
+        ],
+        "lfc_ceiling_rho_per_rep": [
+          0.5775030241651898,
+          0.9592925542309948,
+          0.33869340551181104
+        ],
+        "lfc_ceiling_dir_acc_per_rep": [
+          0.6918148736610117,
+          0.9647058823529412,
+          0.42493353273512796
+        ],
+        "lfc_within_range_rate": 0.34375,
+        "lfc_mean_abs_z": 1.6738711023475112,
+        "shape_pearson_mean": 0.42418973091421636,
+        "shape_js_mean": 0.3533677715351776,
+        "lfc_n_scored_JS94_r0": 295,
+        "lfc_n_scored_JS94_r1": 85,
+        "lfc_n_scored_JS94_r2": 488,
+        "lfc_pearson_r_JS94_r0": -0.0822151993520794,
+        "lfc_pearson_r_JS94_r1": -0.09458152442178243,
+        "lfc_pearson_r_JS94_r2": 0.22126313038323295,
+        "lfc_spearman_rho_JS94_r0": 0.007442563145892396,
+        "lfc_spearman_rho_JS94_r1": -0.15351762633349159,
+        "lfc_spearman_rho_JS94_r2": 0.15309848019842007,
+        "lfc_dir_balanced_acc_JS94_r0": 0.5511492552037092,
+        "lfc_dir_balanced_acc_JS94_r1": 0.6470588235294118,
+        "lfc_dir_balanced_acc_JS94_r2": 0.37198852988326675,
+        "lfc_n_ceiling_JS94_r0": 288,
+        "lfc_n_ceiling_JS94_r1": 85,
+        "lfc_n_ceiling_JS94_r2": 255,
+        "lfc_ceiling_r_JS94_r0": 0.6646885154788017,
+        "lfc_ceiling_r_JS94_r1": 0.9548189732495349,
+        "lfc_ceiling_r_JS94_r2": 0.4815991235458844,
+        "lfc_ceiling_rho_JS94_r0": 0.5775030241651898,
+        "lfc_ceiling_rho_JS94_r1": 0.9592925542309948,
+        "lfc_ceiling_rho_JS94_r2": 0.33869340551181104,
+        "lfc_ceiling_dir_acc_JS94_r0": 0.6918148736610117,
+        "lfc_ceiling_dir_acc_JS94_r1": 0.9647058823529412,
+        "lfc_ceiling_dir_acc_JS94_r2": 0.42493353273512796
+      },
+      "raw_files": {
+        "results/brooks_native_v2/shorkie__brooks_scramble/samples.json": {
+          "size": 35801,
+          "sha256": "acfbe1772eccf831e3d1b300f5212441c838d4d3b1d4ecf8892a3b5d56b767e3"
+        },
+        "results/brooks_native_v2/shorkie__brooks_scramble/true_lfc_runs.npy": {
+          "size": 25448,
+          "sha256": "55ed3ef0f28bc85034439ecd36a82c70a2a7f3ab940c90b6a3a5026986a6071d"
+        },
+        "results/brooks_native_v2/shorkie__brooks_scramble/pred_lfc_runs.npy": {
+          "size": 25448,
+          "sha256": "aa85f8867caafce20ed22f8f80c99041893a1b7d9b720e86b473addd78f7a41a"
+        },
+        "results/brooks_native_v2/shorkie__brooks_scramble/n_reps_supported.npy": {
+          "size": 8568,
+          "sha256": "718a2c6a8885827da71b51118931305e52536e41d23d0c24b24e24f7253644e2"
+        },
+        "results/brooks_native_v2/shorkie__brooks_scramble/summary.json": {
+          "size": 2225,
+          "sha256": "5ea540c16aece830add7d5a5ee0fe749a92e348f73bd23bf76e7b7c5e424723a"
+        },
+        "results/brooks_native_v2/shorkie__brooks_scramble/run_metadata.json": {
+          "size": 1063,
+          "sha256": "7d4d224c0ba508fe8993a3e7bb0b9a32c81a71580b3394c6fc444f59091dd6d1"
+        }
+      },
+      "shared_cohort_metrics": {
+        "n_total": 698,
+        "n_low_support": 300,
+        "n_scored": 327,
+        "n_calibration": 198,
+        "n_weak_baseline": 277,
+        "n_scored_per_rep": [
+          205,
+          80,
+          291
+        ],
+        "pearson_r_per_rep": [
+          -0.12330150634998337,
+          -0.10407143161251607,
+          0.2011765264556035
+        ],
+        "spearman_rho_per_rep": [
+          -0.0827511035097034,
+          -0.17131201319845454,
+          0.1527209110003723
+        ],
+        "dir_balanced_acc_per_rep": [
+          0.512753433616743,
+          0.625,
+          0.5476281015305637
+        ],
+        "n_ceiling_per_rep": [
+          198,
+          80,
+          169
+        ],
+        "ceiling_pearson_r_per_rep": [
+          0.7892819588832256,
+          0.9535484210766535,
+          0.670981432172475
+        ],
+        "ceiling_spearman_rho_per_rep": [
+          0.7786873144371295,
+          0.9545475855602439,
+          0.5890582268410324
+        ],
+        "ceiling_dir_balanced_acc_per_rep": [
+          0.7613636363636364,
+          0.9625,
+          0.6935277382645804
+        ],
+        "within_range_rate": 0.2777777777777778,
+        "mean_abs_z": 1.9514480383602386
+      },
+      "full_cohort_metrics": {
+        "n_total": 1055,
+        "n_low_support": 418,
+        "n_scored": 528,
+        "n_calibration": 288,
+        "n_weak_baseline": 420,
+        "n_scored_per_rep": [
+          295,
+          85,
+          488
+        ],
+        "pearson_r_per_rep": [
+          -0.0822151993520794,
+          -0.09458152442178243,
+          0.22126313038323295
+        ],
+        "spearman_rho_per_rep": [
+          0.007442563145892396,
+          -0.15351762633349159,
+          0.15309848019842007
+        ],
+        "dir_balanced_acc_per_rep": [
+          0.5511492552037092,
+          0.6470588235294118,
+          0.37198852988326675
+        ],
+        "n_ceiling_per_rep": [
+          288,
+          85,
+          255
+        ],
+        "ceiling_pearson_r_per_rep": [
+          0.6646885154788017,
+          0.9548189732495349,
+          0.4815991235458844
+        ],
+        "ceiling_spearman_rho_per_rep": [
+          0.5775030241651898,
+          0.9592925542309948,
+          0.33869340551181104
+        ],
+        "ceiling_dir_balanced_acc_per_rep": [
+          0.6918148736610117,
+          0.9647058823529412,
+          0.42493353273512796
+        ],
+        "within_range_rate": 0.34375,
+        "mean_abs_z": 1.6738711023475112
+      }
+    },
+    "yorzoi": {
+      "run_metadata": {
+        "model": "yorzoi",
+        "task": "brooks_scramble",
+        "task_version": "v2",
+        "config_path": "/home/tds122/yeast-seq2epxression-benchmark/configs/brooks_native_v2.yaml",
+        "config_hash": "6fafb21a822f",
+        "device": "cuda:0",
+        "model_config": {
+          "hf_repo": "tom-ellis-lab/yorzoi",
+          "hf_revision": "cba61e046a75e0b302e946aaf27f88a73824a8a9",
+          "batch_size": 16,
+          "use_rc": true,
+          "autocast": true,
+          "track_mode": "matched"
+        },
+        "task_config": {
+          "data_path": "data/tasks/brooks_scramble"
+        },
+        "git_commit": "21cc5288f11ffd0324a767c356fbb1faacca2062",
+        "timestamp_utc": "2026-11-12T10:44:45.921264+00:00",
+        "elapsed_eval_s": 9.96568250656128,
+        "code_sha256": "0b03c56eca6cd3c850e9a65d660e4709514346bfdab3029c8706e0f359581ac7"
+      },
+      "saved_summary": {
+        "model": "yorzoi",
+        "task": "brooks_scramble",
+        "task_version": "v2",
+        "n_total": 698,
+        "n_scored": 327,
+        "n_calibration": 198,
+        "n_weak_baseline": 277,
+        "n_low_support": 300,
+        "lfc_n_scored_per_rep": [
+          205,
+          80,
+          291
+        ],
+        "lfc_pearson_r_per_rep": [
+          0.39129908278078146,
+          0.19780291925316892,
+          0.3836126259273274
+        ],
+        "lfc_spearman_rho_per_rep": [
+          0.4613990611636556,
+          0.23645100796999532,
+          0.3374562330471539
+        ],
+        "lfc_dir_balanced_acc_per_rep": [
+          0.593198168737737,
+          0.7375,
+          0.6023148588268847
+        ],
+        "lfc_n_ceiling_per_rep": [
+          198,
+          80,
+          169
+        ],
+        "lfc_ceiling_r_per_rep": [
+          0.7892819588832256,
+          0.9535484210766535,
+          0.670981432172475
+        ],
+        "lfc_ceiling_rho_per_rep": [
+          0.7786873144371295,
+          0.9545475855602439,
+          0.5890582268410324
+        ],
+        "lfc_ceiling_dir_acc_per_rep": [
+          0.7613636363636364,
+          0.9625,
+          0.6935277382645804
+        ],
+        "lfc_within_range_rate": 0.2727272727272727,
+        "lfc_mean_abs_z": 1.772447571683276,
+        "shape_pearson_mean": 0.8345963840688333,
+        "shape_js_mean": 0.06743137198950372,
+        "lfc_n_scored_JS94_r0": 205,
+        "lfc_n_scored_JS94_r1": 80,
+        "lfc_n_scored_JS94_r2": 291,
+        "lfc_pearson_r_JS94_r0": 0.39129908278078146,
+        "lfc_pearson_r_JS94_r1": 0.19780291925316892,
+        "lfc_pearson_r_JS94_r2": 0.3836126259273274,
+        "lfc_spearman_rho_JS94_r0": 0.4613990611636556,
+        "lfc_spearman_rho_JS94_r1": 0.23645100796999532,
+        "lfc_spearman_rho_JS94_r2": 0.3374562330471539,
+        "lfc_dir_balanced_acc_JS94_r0": 0.593198168737737,
+        "lfc_dir_balanced_acc_JS94_r1": 0.7375,
+        "lfc_dir_balanced_acc_JS94_r2": 0.6023148588268847,
+        "lfc_n_ceiling_JS94_r0": 198,
+        "lfc_n_ceiling_JS94_r1": 80,
+        "lfc_n_ceiling_JS94_r2": 169,
+        "lfc_ceiling_r_JS94_r0": 0.7892819588832256,
+        "lfc_ceiling_r_JS94_r1": 0.9535484210766535,
+        "lfc_ceiling_r_JS94_r2": 0.670981432172475,
+        "lfc_ceiling_rho_JS94_r0": 0.7786873144371295,
+        "lfc_ceiling_rho_JS94_r1": 0.9545475855602439,
+        "lfc_ceiling_rho_JS94_r2": 0.5890582268410324,
+        "lfc_ceiling_dir_acc_JS94_r0": 0.7613636363636364,
+        "lfc_ceiling_dir_acc_JS94_r1": 0.9625,
+        "lfc_ceiling_dir_acc_JS94_r2": 0.6935277382645804
+      },
+      "raw_files": {
+        "results/brooks_native_v2/yorzoi__brooks_scramble/samples.json": {
+          "size": 23693,
+          "sha256": "5a38b0e9ccd91564eb38c9118ccf7b9cdab622bc1b1d4f1309d33db4747cbf3e"
+        },
+        "results/brooks_native_v2/yorzoi__brooks_scramble/true_lfc_runs.npy": {
+          "size": 16880,
+          "sha256": "fd14d244088077386198d10eae9a9d6d078a55d2cf135a3d360c3106d7b125f2"
+        },
+        "results/brooks_native_v2/yorzoi__brooks_scramble/pred_lfc_runs.npy": {
+          "size": 16880,
+          "sha256": "1aac21e526d28d0b0ae66bab239418b2aa995bd8e2fe8d848a6fa8e9942cb979"
+        },
+        "results/brooks_native_v2/yorzoi__brooks_scramble/n_reps_supported.npy": {
+          "size": 5712,
+          "sha256": "8ef3785ea9ace0c9d261ca5e690e6f024fce00e42aa17749dc8fce2a17001361"
+        },
+        "results/brooks_native_v2/yorzoi__brooks_scramble/summary.json": {
+          "size": 2163,
+          "sha256": "018cbc3d31bab472d65c8d0d2f4a148cb9f058d0d1e853cd95d8da70b0cbb305"
+        },
+        "results/brooks_native_v2/yorzoi__brooks_scramble/run_metadata.json": {
+          "size": 752,
+          "sha256": "a051a90e8f618fdd394b31c4b102db7873f285007be58a6f259d0cf0cb8e12e0"
+        }
+      },
+      "shared_cohort_metrics": {
+        "n_total": 698,
+        "n_low_support": 300,
+        "n_scored": 327,
+        "n_calibration": 198,
+        "n_weak_baseline": 277,
+        "n_scored_per_rep": [
+          205,
+          80,
+          291
+        ],
+        "pearson_r_per_rep": [
+          0.39129908278078146,
+          0.19780291925316892,
+          0.3836126259273273
+        ],
+        "spearman_rho_per_rep": [
+          0.4613990611636556,
+          0.23645100796999532,
+          0.3374562330471539
+        ],
+        "dir_balanced_acc_per_rep": [
+          0.593198168737737,
+          0.7375,
+          0.6023148588268847
+        ],
+        "n_ceiling_per_rep": [
+          198,
+          80,
+          169
+        ],
+        "ceiling_pearson_r_per_rep": [
+          0.7892819588832256,
+          0.9535484210766535,
+          0.670981432172475
+        ],
+        "ceiling_spearman_rho_per_rep": [
+          0.7786873144371295,
+          0.9545475855602439,
+          0.5890582268410324
+        ],
+        "ceiling_dir_balanced_acc_per_rep": [
+          0.7613636363636364,
+          0.9625,
+          0.6935277382645804
+        ],
+        "within_range_rate": 0.2727272727272727,
+        "mean_abs_z": 1.772447571683276
+      },
+      "full_cohort_metrics": {
+        "n_total": 698,
+        "n_low_support": 300,
+        "n_scored": 327,
+        "n_calibration": 198,
+        "n_weak_baseline": 277,
+        "n_scored_per_rep": [
+          205,
+          80,
+          291
+        ],
+        "pearson_r_per_rep": [
+          0.39129908278078146,
+          0.19780291925316892,
+          0.3836126259273274
+        ],
+        "spearman_rho_per_rep": [
+          0.4613990611636556,
+          0.23645100796999532,
+          0.3374562330471539
+        ],
+        "dir_balanced_acc_per_rep": [
+          0.593198168737737,
+          0.7375,
+          0.6023148588268847
+        ],
+        "n_ceiling_per_rep": [
+          198,
+          80,
+          169
+        ],
+        "ceiling_pearson_r_per_rep": [
+          0.7892819588832256,
+          0.9535484210766535,
+          0.670981432172475
+        ],
+        "ceiling_spearman_rho_per_rep": [
+          0.7786873144371295,
+          0.9545475855602439,
+          0.5890582268410324
+        ],
+        "ceiling_dir_balanced_acc_per_rep": [
+          0.7613636363636364,
+          0.9625,
+          0.6935277382645804
+        ],
+        "within_range_rate": 0.2727272727272727,
+        "mean_abs_z": 1.772447571683276
+      }
+    },
+    "exoshorkie_ensemble": {
+      "run_metadata": {
+        "model": "exoshorkie_ensemble",
+        "task": "brooks_scramble",
+        "task_version": "v2",
+        "config_path": "/home/tds122/yeast-seq2epxression-benchmark/configs/brooks_native_v2.yaml",
+        "config_hash": "6fafb21a822f",
+        "device": "cuda:0",
+        "model_config": {
+          "checkpoint_dir": "data/models/exoshorkie",
+          "batch_size": 64,
+          "autocast": false
+        },
+        "prediction_metadata": {
+          "model_type": "distilled_student_ensemble",
+          "ensemble_members": [
+            "HPRT1",
+            "HPRT1R",
+            "dChr",
+            "chr7",
+            "Mpneumo",
+            "Mmmyco"
+          ],
+          "excluded_students": [],
+          "ensemble_weights": {
+            "HPRT1": 0.16666666666666666,
+            "HPRT1R": 0.16666666666666666,
+            "dChr": 0.16666666666666666,
+            "chr7": 0.16666666666666666,
+            "Mpneumo": 0.16666666666666666,
+            "Mmmyco": 0.16666666666666666
+          },
+          "ensemble_reduction": "arithmetic_mean_of_decoded_clamped_bin_coverage",
+          "coverage_units": "CPM",
+          "normalization": "authors_whole_dataset_notebook_statistics_per_student",
+          "student_normalization": {
+            "HPRT1": {
+              "mu": 4.4673,
+              "sigma": 1.8032
+            },
+            "HPRT1R": {
+              "mu": 4.5184,
+              "sigma": 1.7808
+            },
+            "dChr": {
+              "mu": 4.1016,
+              "sigma": 1.9481
+            },
+            "chr7": {
+              "mu": 2.09,
+              "sigma": 1.528
+            },
+            "Mpneumo": {
+              "mu": 3.5228,
+              "sigma": 1.7232
+            },
+            "Mmmyco": {
+              "mu": 1.2864,
+              "sigma": 1.5034
+            }
+          },
+          "negative_coverage": "clamp_zero_per_student_before_ensemble_mean",
+          "species_index": 114,
+          "training_overlap_contigs": [],
+          "coverage_bins_processed": 22686720,
+          "negative_bins_clipped": 66256,
+          "negative_bin_fraction": 0.00292047506206274,
+          "per_student_coverage_statistics": {
+            "HPRT1": {
+              "coverage_bins_processed": 3781120,
+              "negative_bins_clipped": 39,
+              "negative_bin_fraction": 1.0314404197698037e-05
+            },
+            "HPRT1R": {
+              "coverage_bins_processed": 3781120,
+              "negative_bins_clipped": 222,
+              "negative_bin_fraction": 5.8712762356127285e-05
+            },
+            "dChr": {
+              "coverage_bins_processed": 3781120,
+              "negative_bins_clipped": 47704,
+              "negative_bin_fraction": 0.012616367637102234
+            },
+            "chr7": {
+              "coverage_bins_processed": 3781120,
+              "negative_bins_clipped": 325,
+              "negative_bin_fraction": 8.59533683141503e-05
+            },
+            "Mpneumo": {
+              "coverage_bins_processed": 3781120,
+              "negative_bins_clipped": 17965,
+              "negative_bin_fraction": 0.004751237728503724
+            },
+            "Mmmyco": {
+              "coverage_bins_processed": 3781120,
+              "negative_bins_clipped": 1,
+              "negative_bin_fraction": 2.6447190250507786e-07
+            }
+          }
+        },
+        "task_config": {
+          "data_path": "data/tasks/brooks_scramble"
+        },
+        "git_commit": "21cc5288f11ffd0324a767c356fbb1faacca2062",
+        "timestamp_utc": "2026-11-12T10:46:31.396588+00:00",
+        "elapsed_eval_s": 102.33074903488159,
+        "code_sha256": "0b03c56eca6cd3c850e9a65d660e4709514346bfdab3029c8706e0f359581ac7"
+      },
+      "saved_summary": {
+        "model": "exoshorkie_ensemble",
+        "task": "brooks_scramble",
+        "task_version": "v2",
+        "n_total": 1055,
+        "n_scored": 528,
+        "n_calibration": 288,
+        "n_weak_baseline": 420,
+        "n_low_support": 418,
+        "lfc_n_scored_per_rep": [
+          295,
+          85,
+          488
+        ],
+        "lfc_pearson_r_per_rep": [
+          -0.053680859930649825,
+          -0.10725584540668538,
+          0.23044083673128923
+        ],
+        "lfc_spearman_rho_per_rep": [
+          -0.01665436329882786,
+          0.0200937254737496,
+          0.1631811485056235
+        ],
+        "lfc_dir_balanced_acc_per_rep": [
+          0.5157344381967051,
+          0.43529411764705883,
+          0.3818724739777371
+        ],
+        "lfc_n_ceiling_per_rep": [
+          288,
+          85,
+          255
+        ],
+        "lfc_ceiling_r_per_rep": [
+          0.6646885154788017,
+          0.9548189732495349,
+          0.4815991235458844
+        ],
+        "lfc_ceiling_rho_per_rep": [
+          0.5775030241651898,
+          0.9592925542309948,
+          0.33869340551181104
+        ],
+        "lfc_ceiling_dir_acc_per_rep": [
+          0.6918148736610117,
+          0.9647058823529412,
+          0.42493353273512796
+        ],
+        "lfc_within_range_rate": 0.3125,
+        "lfc_mean_abs_z": 1.7012255286107871,
+        "shape_pearson_mean": 0.5277454118789593,
+        "shape_js_mean": 0.25238826714336904,
+        "lfc_n_scored_JS94_r0": 295,
+        "lfc_n_scored_JS94_r1": 85,
+        "lfc_n_scored_JS94_r2": 488,
+        "lfc_pearson_r_JS94_r0": -0.053680859930649825,
+        "lfc_pearson_r_JS94_r1": -0.10725584540668538,
+        "lfc_pearson_r_JS94_r2": 0.23044083673128923,
+        "lfc_spearman_rho_JS94_r0": -0.01665436329882786,
+        "lfc_spearman_rho_JS94_r1": 0.0200937254737496,
+        "lfc_spearman_rho_JS94_r2": 0.1631811485056235,
+        "lfc_dir_balanced_acc_JS94_r0": 0.5157344381967051,
+        "lfc_dir_balanced_acc_JS94_r1": 0.43529411764705883,
+        "lfc_dir_balanced_acc_JS94_r2": 0.3818724739777371,
+        "lfc_n_ceiling_JS94_r0": 288,
+        "lfc_n_ceiling_JS94_r1": 85,
+        "lfc_n_ceiling_JS94_r2": 255,
+        "lfc_ceiling_r_JS94_r0": 0.6646885154788017,
+        "lfc_ceiling_r_JS94_r1": 0.9548189732495349,
+        "lfc_ceiling_r_JS94_r2": 0.4815991235458844,
+        "lfc_ceiling_rho_JS94_r0": 0.5775030241651898,
+        "lfc_ceiling_rho_JS94_r1": 0.9592925542309948,
+        "lfc_ceiling_rho_JS94_r2": 0.33869340551181104,
+        "lfc_ceiling_dir_acc_JS94_r0": 0.6918148736610117,
+        "lfc_ceiling_dir_acc_JS94_r1": 0.9647058823529412,
+        "lfc_ceiling_dir_acc_JS94_r2": 0.42493353273512796,
+        "prediction_metadata": {
+          "model_type": "distilled_student_ensemble",
+          "ensemble_members": [
+            "HPRT1",
+            "HPRT1R",
+            "dChr",
+            "chr7",
+            "Mpneumo",
+            "Mmmyco"
+          ],
+          "excluded_students": [],
+          "ensemble_weights": {
+            "HPRT1": 0.16666666666666666,
+            "HPRT1R": 0.16666666666666666,
+            "dChr": 0.16666666666666666,
+            "chr7": 0.16666666666666666,
+            "Mpneumo": 0.16666666666666666,
+            "Mmmyco": 0.16666666666666666
+          },
+          "ensemble_reduction": "arithmetic_mean_of_decoded_clamped_bin_coverage",
+          "coverage_units": "CPM",
+          "normalization": "authors_whole_dataset_notebook_statistics_per_student",
+          "student_normalization": {
+            "HPRT1": {
+              "mu": 4.4673,
+              "sigma": 1.8032
+            },
+            "HPRT1R": {
+              "mu": 4.5184,
+              "sigma": 1.7808
+            },
+            "dChr": {
+              "mu": 4.1016,
+              "sigma": 1.9481
+            },
+            "chr7": {
+              "mu": 2.09,
+              "sigma": 1.528
+            },
+            "Mpneumo": {
+              "mu": 3.5228,
+              "sigma": 1.7232
+            },
+            "Mmmyco": {
+              "mu": 1.2864,
+              "sigma": 1.5034
+            }
+          },
+          "negative_coverage": "clamp_zero_per_student_before_ensemble_mean",
+          "species_index": 114,
+          "training_overlap_contigs": [],
+          "coverage_bins_processed": 22686720,
+          "negative_bins_clipped": 66256,
+          "negative_bin_fraction": 0.00292047506206274,
+          "per_student_coverage_statistics": {
+            "HPRT1": {
+              "coverage_bins_processed": 3781120,
+              "negative_bins_clipped": 39,
+              "negative_bin_fraction": 1.0314404197698037e-05
+            },
+            "HPRT1R": {
+              "coverage_bins_processed": 3781120,
+              "negative_bins_clipped": 222,
+              "negative_bin_fraction": 5.8712762356127285e-05
+            },
+            "dChr": {
+              "coverage_bins_processed": 3781120,
+              "negative_bins_clipped": 47704,
+              "negative_bin_fraction": 0.012616367637102234
+            },
+            "chr7": {
+              "coverage_bins_processed": 3781120,
+              "negative_bins_clipped": 325,
+              "negative_bin_fraction": 8.59533683141503e-05
+            },
+            "Mpneumo": {
+              "coverage_bins_processed": 3781120,
+              "negative_bins_clipped": 17965,
+              "negative_bin_fraction": 0.004751237728503724
+            },
+            "Mmmyco": {
+              "coverage_bins_processed": 3781120,
+              "negative_bins_clipped": 1,
+              "negative_bin_fraction": 2.6447190250507786e-07
+            }
+          }
+        }
+      },
+      "raw_files": {
+        "results/brooks_native_v2/exoshorkie_ensemble__brooks_scramble/samples.json": {
+          "size": 35801,
+          "sha256": "acfbe1772eccf831e3d1b300f5212441c838d4d3b1d4ecf8892a3b5d56b767e3"
+        },
+        "results/brooks_native_v2/exoshorkie_ensemble__brooks_scramble/true_lfc_runs.npy": {
+          "size": 25448,
+          "sha256": "55ed3ef0f28bc85034439ecd36a82c70a2a7f3ab940c90b6a3a5026986a6071d"
+        },
+        "results/brooks_native_v2/exoshorkie_ensemble__brooks_scramble/pred_lfc_runs.npy": {
+          "size": 25448,
+          "sha256": "ef174b3675d622477d703246bf970c28499e8642c21127a809dcd280159c826e"
+        },
+        "results/brooks_native_v2/exoshorkie_ensemble__brooks_scramble/n_reps_supported.npy": {
+          "size": 8568,
+          "sha256": "718a2c6a8885827da71b51118931305e52536e41d23d0c24b24e24f7253644e2"
+        },
+        "results/brooks_native_v2/exoshorkie_ensemble__brooks_scramble/summary.json": {
+          "size": 4657,
+          "sha256": "b856e3e1e1ae79c47f93eb6bc52b53d4ed7f3375a64126e748df6677bf228e5e"
+        },
+        "results/brooks_native_v2/exoshorkie_ensemble__brooks_scramble/run_metadata.json": {
+          "size": 3088,
+          "sha256": "6aa3b10b1255369fdcb9fe977e5544aed8ba1f45d43a9fb1d0716e47f0d26709"
+        }
+      },
+      "shared_cohort_metrics": {
+        "n_total": 698,
+        "n_low_support": 300,
+        "n_scored": 327,
+        "n_calibration": 198,
+        "n_weak_baseline": 277,
+        "n_scored_per_rep": [
+          205,
+          80,
+          291
+        ],
+        "pearson_r_per_rep": [
+          -0.05786122794325979,
+          -0.11261844817076094,
+          0.22798954498032195
+        ],
+        "spearman_rho_per_rep": [
+          0.0042318092629084455,
+          0.03726824676369582,
+          0.1694915749523936
+        ],
+        "dir_balanced_acc_per_rep": [
+          0.511826902114672,
+          0.45,
+          0.5529993345375035
+        ],
+        "n_ceiling_per_rep": [
+          198,
+          80,
+          169
+        ],
+        "ceiling_pearson_r_per_rep": [
+          0.7892819588832256,
+          0.9535484210766535,
+          0.670981432172475
+        ],
+        "ceiling_spearman_rho_per_rep": [
+          0.7786873144371295,
+          0.9545475855602439,
+          0.5890582268410324
+        ],
+        "ceiling_dir_balanced_acc_per_rep": [
+          0.7613636363636364,
+          0.9625,
+          0.6935277382645804
+        ],
+        "within_range_rate": 0.24242424242424243,
+        "mean_abs_z": 1.986102466935596
+      },
+      "full_cohort_metrics": {
+        "n_total": 1055,
+        "n_low_support": 418,
+        "n_scored": 528,
+        "n_calibration": 288,
+        "n_weak_baseline": 420,
+        "n_scored_per_rep": [
+          295,
+          85,
+          488
+        ],
+        "pearson_r_per_rep": [
+          -0.053680859930649825,
+          -0.10725584540668538,
+          0.23044083673128923
+        ],
+        "spearman_rho_per_rep": [
+          -0.01665436329882786,
+          0.0200937254737496,
+          0.1631811485056235
+        ],
+        "dir_balanced_acc_per_rep": [
+          0.5157344381967051,
+          0.43529411764705883,
+          0.3818724739777371
+        ],
+        "n_ceiling_per_rep": [
+          288,
+          85,
+          255
+        ],
+        "ceiling_pearson_r_per_rep": [
+          0.6646885154788017,
+          0.9548189732495349,
+          0.4815991235458844
+        ],
+        "ceiling_spearman_rho_per_rep": [
+          0.5775030241651898,
+          0.9592925542309948,
+          0.33869340551181104
+        ],
+        "ceiling_dir_balanced_acc_per_rep": [
+          0.6918148736610117,
+          0.9647058823529412,
+          0.42493353273512796
+        ],
+        "within_range_rate": 0.3125,
+        "mean_abs_z": 1.7012255286107871
+      }
+    },
+    "shorkie_random_init": {
+      "run_metadata": {
+        "model": "shorkie_random_init",
+        "task": "brooks_scramble",
+        "task_version": "v2",
+        "config_path": "/home/tds122/yeast-seq2epxression-benchmark/configs/brooks_native_v2.yaml",
+        "config_hash": "6fafb21a822f",
+        "device": "cuda:0",
+        "model_config": {
+          "params_path": "data/models/shorkie_random_init/params.json",
+          "checkpoint_paths": [
+            "data/models/shorkie_random_init/checkpoints/f0.h5",
+            "data/models/shorkie_random_init/checkpoints/f1.h5",
+            "data/models/shorkie_random_init/checkpoints/f2.h5",
+            "data/models/shorkie_random_init/checkpoints/f3.h5",
+            "data/models/shorkie_random_init/checkpoints/f4.h5",
+            "data/models/shorkie_random_init/checkpoints/f5.h5",
+            "data/models/shorkie_random_init/checkpoints/f6.h5",
+            "data/models/shorkie_random_init/checkpoints/f7.h5"
+          ],
+          "batch_size": 4,
+          "use_rc": true
+        },
+        "task_config": {
+          "data_path": "data/tasks/brooks_scramble"
+        },
+        "git_commit": "21cc5288f11ffd0324a767c356fbb1faacca2062",
+        "timestamp_utc": "2026-11-12T10:44:32.439299+00:00",
+        "elapsed_eval_s": 155.82454633712769,
+        "code_sha256": "0b03c56eca6cd3c850e9a65d660e4709514346bfdab3029c8706e0f359581ac7"
+      },
+      "saved_summary": {
+        "model": "shorkie_random_init",
+        "task": "brooks_scramble",
+        "task_version": "v2",
+        "n_total": 1055,
+        "n_scored": 528,
+        "n_calibration": 288,
+        "n_weak_baseline": 420,
+        "n_low_support": 418,
+        "lfc_n_scored_per_rep": [
+          295,
+          85,
+          488
+        ],
+        "lfc_pearson_r_per_rep": [
+          0.02825289765869028,
+          -0.08397693971812663,
+          0.3913578079664687
+        ],
+        "lfc_spearman_rho_per_rep": [
+          0.10132580881854056,
+          0.04562135725265716,
+          0.20049064224155785
+        ],
+        "lfc_dir_balanced_acc_per_rep": [
+          0.5736164545723588,
+          0.49411764705882355,
+          0.37303845198582036
+        ],
+        "lfc_n_ceiling_per_rep": [
+          288,
+          85,
+          255
+        ],
+        "lfc_ceiling_r_per_rep": [
+          0.6646885154788017,
+          0.9548189732495349,
+          0.4815991235458844
+        ],
+        "lfc_ceiling_rho_per_rep": [
+          0.5775030241651898,
+          0.9592925542309948,
+          0.33869340551181104
+        ],
+        "lfc_ceiling_dir_acc_per_rep": [
+          0.6918148736610117,
+          0.9647058823529412,
+          0.42493353273512796
+        ],
+        "lfc_within_range_rate": 0.3263888888888889,
+        "lfc_mean_abs_z": 1.6756829738820198,
+        "shape_pearson_mean": 0.36199893752479506,
+        "shape_js_mean": 0.3888438502122674,
+        "lfc_n_scored_JS94_r0": 295,
+        "lfc_n_scored_JS94_r1": 85,
+        "lfc_n_scored_JS94_r2": 488,
+        "lfc_pearson_r_JS94_r0": 0.02825289765869028,
+        "lfc_pearson_r_JS94_r1": -0.08397693971812663,
+        "lfc_pearson_r_JS94_r2": 0.3913578079664687,
+        "lfc_spearman_rho_JS94_r0": 0.10132580881854056,
+        "lfc_spearman_rho_JS94_r1": 0.04562135725265716,
+        "lfc_spearman_rho_JS94_r2": 0.20049064224155785,
+        "lfc_dir_balanced_acc_JS94_r0": 0.5736164545723588,
+        "lfc_dir_balanced_acc_JS94_r1": 0.49411764705882355,
+        "lfc_dir_balanced_acc_JS94_r2": 0.37303845198582036,
+        "lfc_n_ceiling_JS94_r0": 288,
+        "lfc_n_ceiling_JS94_r1": 85,
+        "lfc_n_ceiling_JS94_r2": 255,
+        "lfc_ceiling_r_JS94_r0": 0.6646885154788017,
+        "lfc_ceiling_r_JS94_r1": 0.9548189732495349,
+        "lfc_ceiling_r_JS94_r2": 0.4815991235458844,
+        "lfc_ceiling_rho_JS94_r0": 0.5775030241651898,
+        "lfc_ceiling_rho_JS94_r1": 0.9592925542309948,
+        "lfc_ceiling_rho_JS94_r2": 0.33869340551181104,
+        "lfc_ceiling_dir_acc_JS94_r0": 0.6918148736610117,
+        "lfc_ceiling_dir_acc_JS94_r1": 0.9647058823529412,
+        "lfc_ceiling_dir_acc_JS94_r2": 0.42493353273512796
+      },
+      "raw_files": {
+        "results/brooks_native_v2/shorkie_random_init__brooks_scramble/samples.json": {
+          "size": 35801,
+          "sha256": "acfbe1772eccf831e3d1b300f5212441c838d4d3b1d4ecf8892a3b5d56b767e3"
+        },
+        "results/brooks_native_v2/shorkie_random_init__brooks_scramble/true_lfc_runs.npy": {
+          "size": 25448,
+          "sha256": "55ed3ef0f28bc85034439ecd36a82c70a2a7f3ab940c90b6a3a5026986a6071d"
+        },
+        "results/brooks_native_v2/shorkie_random_init__brooks_scramble/pred_lfc_runs.npy": {
+          "size": 25448,
+          "sha256": "5fa176efe544abc59227b244e1f8c3fde108ca464d8cc323cb228c8079ac1aeb"
+        },
+        "results/brooks_native_v2/shorkie_random_init__brooks_scramble/n_reps_supported.npy": {
+          "size": 8568,
+          "sha256": "718a2c6a8885827da71b51118931305e52536e41d23d0c24b24e24f7253644e2"
+        },
+        "results/brooks_native_v2/shorkie_random_init__brooks_scramble/summary.json": {
+          "size": 2244,
+          "sha256": "e730714ff9cb92b164bb116e4afd7b0afa060367a9c73e58dac9f33aa8b76b8b"
+        },
+        "results/brooks_native_v2/shorkie_random_init__brooks_scramble/run_metadata.json": {
+          "size": 1183,
+          "sha256": "80dd561ed71c2a3f06055bdeac92287463d55e53f2754a5efdb8f9c2450f1df5"
+        }
+      },
+      "shared_cohort_metrics": {
+        "n_total": 698,
+        "n_low_support": 300,
+        "n_scored": 327,
+        "n_calibration": 198,
+        "n_weak_baseline": 277,
+        "n_scored_per_rep": [
+          205,
+          80,
+          291
+        ],
+        "pearson_r_per_rep": [
+          0.025935151189217225,
+          -0.08745716412749531,
+          0.42005518477463394
+        ],
+        "spearman_rho_per_rep": [
+          0.08519854089225495,
+          0.06348145839113334,
+          0.24603801977800344
+        ],
+        "dir_balanced_acc_per_rep": [
+          0.5337911488990625,
+          0.5125,
+          0.55882213138131
+        ],
+        "n_ceiling_per_rep": [
+          198,
+          80,
+          169
+        ],
+        "ceiling_pearson_r_per_rep": [
+          0.7892819588832256,
+          0.9535484210766535,
+          0.670981432172475
+        ],
+        "ceiling_spearman_rho_per_rep": [
+          0.7786873144371295,
+          0.9545475855602439,
+          0.5890582268410324
+        ],
+        "ceiling_dir_balanced_acc_per_rep": [
+          0.7613636363636364,
+          0.9625,
+          0.6935277382645804
+        ],
+        "within_range_rate": 0.2676767676767677,
+        "mean_abs_z": 1.9457439099455092
+      },
+      "full_cohort_metrics": {
+        "n_total": 1055,
+        "n_low_support": 418,
+        "n_scored": 528,
+        "n_calibration": 288,
+        "n_weak_baseline": 420,
+        "n_scored_per_rep": [
+          295,
+          85,
+          488
+        ],
+        "pearson_r_per_rep": [
+          0.02825289765869028,
+          -0.08397693971812663,
+          0.3913578079664687
+        ],
+        "spearman_rho_per_rep": [
+          0.10132580881854056,
+          0.04562135725265716,
+          0.20049064224155785
+        ],
+        "dir_balanced_acc_per_rep": [
+          0.5736164545723588,
+          0.49411764705882355,
+          0.37303845198582036
+        ],
+        "n_ceiling_per_rep": [
+          288,
+          85,
+          255
+        ],
+        "ceiling_pearson_r_per_rep": [
+          0.6646885154788017,
+          0.9548189732495349,
+          0.4815991235458844
+        ],
+        "ceiling_spearman_rho_per_rep": [
+          0.5775030241651898,
+          0.9592925542309948,
+          0.33869340551181104
+        ],
+        "ceiling_dir_balanced_acc_per_rep": [
+          0.6918148736610117,
+          0.9647058823529412,
+          0.42493353273512796
+        ],
+        "within_range_rate": 0.3263888888888889,
+        "mean_abs_z": 1.6756829738820198
+      }
+    }
+  },
+  "legacy_validation": {
+    "checked": true,
+    "summary": {
+      "results/brooks/compare__shared/summary.json": {
+        "size": 22349,
+        "sha256": "30d8e37ce5be4398b0fcaac5b59cbf759157668ea447592156096823ecafc939"
+      }
+    },
+    "labels_and_support_checked": true,
+    "raw_files": {
+      "results/brooks/yorzoi__brooks_scramble/n_reps_supported.npy": {
+        "size": 5712,
+        "sha256": "8ef3785ea9ace0c9d261ca5e690e6f024fce00e42aa17749dc8fce2a17001361"
+      },
+      "results/brooks/yorzoi__brooks_scramble/pred_lfc.npy": {
+        "size": 5712,
+        "sha256": "9dc93795fd1ef01ca9032e0b84d896b332b70b59df74156dadc0be10b35400f3"
+      },
+      "results/brooks/yorzoi__brooks_scramble/pred_lfc_runs.npy": {
+        "size": 16880,
+        "sha256": "d0ac8d60e47210d2c5507f323baa29f332a2aa2c76332e8fc344dcf285e3a411"
+      },
+      "results/brooks/yorzoi__brooks_scramble/true_lfc.npy": {
+        "size": 424,
+        "sha256": "2d98a8dce1d7c205301ff673a1dbc6d0927a16f3f92c315152376e2e1784115d"
+      },
+      "results/brooks/yorzoi__brooks_scramble/true_lfc_runs.npy": {
+        "size": 16880,
+        "sha256": "fd14d244088077386198d10eae9a9d6d078a55d2cf135a3d360c3106d7b125f2"
+      },
+      "results/brooks/yorzoi__brooks_scramble/samples.json": {
+        "size": 23693,
+        "sha256": "5a38b0e9ccd91564eb38c9118ccf7b9cdab622bc1b1d4f1309d33db4747cbf3e"
+      }
+    },
+    "unchanged_shorkie_geometry": {
+      "checked": true,
+      "samples": 703,
+      "finite_pairs": 718,
+      "absolute_tolerance": 1e-05,
+      "maximum_absolute_difference": 9.137063447683946e-06,
+      "raw_files": {
+        "results/brooks/shorkie__brooks_scramble_shorkie/samples.json": {
+          "size": 35801,
+          "sha256": "acfbe1772eccf831e3d1b300f5212441c838d4d3b1d4ecf8892a3b5d56b767e3"
+        },
+        "results/brooks/shorkie__brooks_scramble_shorkie/true_lfc_runs.npy": {
+          "size": 25448,
+          "sha256": "55ed3ef0f28bc85034439ecd36a82c70a2a7f3ab940c90b6a3a5026986a6071d"
+        },
+        "results/brooks/shorkie__brooks_scramble_shorkie/pred_lfc_runs.npy": {
+          "size": 25448,
+          "sha256": "05c5c2e46542d55aaf39bc322c505d82832284d7e75a304eadf73cd712026547"
+        },
+        "results/brooks/shorkie__brooks_scramble_shorkie/n_reps_supported.npy": {
+          "size": 8568,
+          "sha256": "718a2c6a8885827da71b51118931305e52536e41d23d0c24b24e24f7253644e2"
+        },
+        "results/brooks/shorkie__brooks_scramble_shorkie/summary.json": {
+          "size": 1187,
+          "sha256": "83277e74104820caf454dda666121379cf72c3c14a6b0946dd922750293ab5b1"
+        },
+        "results/brooks/shorkie__brooks_scramble_shorkie/run_metadata.json": {
+          "size": 990,
+          "sha256": "0c847ce1d7d655b1639dd2a516596c1b944ea4c180d1e6636c5203b702c3933e"
+        }
+      }
+    }
+  },
+  "validation": {
+    "independent_scipy_metrics": true,
+    "csv_exact_float_roundtrip": true,
+    "identical_labels_and_support_across_models": true
+  },
+  "predictions_csv": {
+    "path": "docs/benchmarks/brooks_native_v2_predictions.csv",
+    "rows": 576,
+    "size": 72687,
+    "sha256": "8cd2393bb28d38d9ddbc775bdb7da16e37ba7ee56c39fa51b5cbf7b6f6dcabe9"
+  },
+  "inputs": {
+    "data/tasks/brooks_scramble/brooks_constructs.fasta": {
+      "size": 57880800,
+      "sha256": "9cb576a77aef314fdadb21e5bc47ca3cf547ecf38aa933b01b9aafd24ac19c45"
+    },
+    "data/tasks/brooks_scramble/brooks_cov.npz": {
+      "size": 2858905,
+      "sha256": "a9cab4d4a43032f382044f86b69963a13f1d2235095719601ba77de99fb71b38"
+    },
+    "data/tasks/brooks_scramble/brooks_index.tsv": {
+      "size": 405645,
+      "sha256": "ecd336c505e871298e73653e96b5442f927612a4e2bf95628eaaacd600763fa9"
+    },
+    "data/models/shorkie/checkpoints/f0.h5": {
+      "size": 57571980,
+      "sha256": "a34e97ba4fa382e061f519d4d4c737c6ca4ed97744045b5f19e307f6c01d4872"
+    },
+    "data/models/shorkie/checkpoints/f1.h5": {
+      "size": 57571980,
+      "sha256": "53d9d335849ac2f035ec68ed7b67d550db4b9bc5fbf12e69876acc6e21a160bc"
+    },
+    "data/models/shorkie/checkpoints/f2.h5": {
+      "size": 57571980,
+      "sha256": "220d513c78da80f3a25a6c82ce9835d2cd6cefca3e71ee58ea80e32ffd599565"
+    },
+    "data/models/shorkie/checkpoints/f3.h5": {
+      "size": 57571980,
+      "sha256": "6f6cf1f13b51fc8a0a5cf3324c36ad74fff62c563165568123826d6267de1dec"
+    },
+    "data/models/shorkie/checkpoints/f4.h5": {
+      "size": 57571980,
+      "sha256": "c01204ef41cc9bc8dcd5dbf33b87fbc875bf37b407c431d4c3b928a17e3a8eb0"
+    },
+    "data/models/shorkie/checkpoints/f5.h5": {
+      "size": 57571980,
+      "sha256": "eec3f295b171b0100916ec2e77c1e85859a5904bf4a84ebbc069d2e634c06638"
+    },
+    "data/models/shorkie/checkpoints/f6.h5": {
+      "size": 57571980,
+      "sha256": "e136eff6592d0654c158132a5a9cfd179737f9f3fcc13737ce16bb8c2beef68f"
+    },
+    "data/models/shorkie/checkpoints/f7.h5": {
+      "size": 57571980,
+      "sha256": "5a85d1e82dd9a483d498605886509e76102bb1747f08c2463d5f50db32c864d8"
+    },
+    "data/models/shorkie/params.json": {
+      "size": 2751,
+      "sha256": "eae4261a4775f246110f6cc210d75e10908e256950b83f977d2d7a2031adfe3f"
+    },
+    "data/models/shorkie/targets.txt": {
+      "size": 781531,
+      "sha256": "2c1592eba8928b063f753daddfb3b4ead16609e06713dbad6bc74bc142af9ad7"
+    },
+    "data/models/shorkie_random_init/checkpoints/f0.h5": {
+      "size": 56870796,
+      "sha256": "9004e2a42967cfc455c1df9c134e9e3ae6a0582341ffba55a9f2d3ae4a6ca27d"
+    },
+    "data/models/shorkie_random_init/checkpoints/f1.h5": {
+      "size": 56870796,
+      "sha256": "affb437752b6f8f6f982acad7398347aa32a8aaf52bc89dfa5c4cf8f8f76a23c"
+    },
+    "data/models/shorkie_random_init/checkpoints/f2.h5": {
+      "size": 56870796,
+      "sha256": "6715fe6784153fd02210f93af9351aaef107f90e93c056f2f075d5f2062e8fd0"
+    },
+    "data/models/shorkie_random_init/checkpoints/f3.h5": {
+      "size": 56870796,
+      "sha256": "b42731f2fb754e48e41eebeedb1b73f1d9653826ee3ed2f61e1eadff81945da8"
+    },
+    "data/models/shorkie_random_init/checkpoints/f4.h5": {
+      "size": 56870796,
+      "sha256": "36e993b94e8eea4edd0bd0d08be8bce402d2b04246e2177dee5e35094b993da0"
+    },
+    "data/models/shorkie_random_init/checkpoints/f5.h5": {
+      "size": 56870796,
+      "sha256": "7c693b80b9badc77a45417ad10cd1390fab2320ab60f74b54266e03d320d2f01"
+    },
+    "data/models/shorkie_random_init/checkpoints/f6.h5": {
+      "size": 56870796,
+      "sha256": "ef948fbf1a2e5a0d5cc0eed3fe6d4305c55e49667020caff67b0bc50b4220763"
+    },
+    "data/models/shorkie_random_init/checkpoints/f7.h5": {
+      "size": 56870796,
+      "sha256": "084337cf40c3a154861e15e2fd3029d77b6ae1e7f096f3ca15378cc7cf2eb3e6"
+    },
+    "data/models/shorkie_random_init/params.json": {
+      "size": 2748,
+      "sha256": "a6ba56bb3b3c89301f40bc5140838a216c850688c71b05d74acc4d257e9435d9"
+    },
+    "data/models/shorkie_random_init/targets.txt": {
+      "size": 781531,
+      "sha256": "2c1592eba8928b063f753daddfb3b4ead16609e06713dbad6bc74bc142af9ad7"
+    },
+    "data/models/exoshorkie/student_HPRT1_distilled.h5": {
+      "size": 49458536,
+      "sha256": "c3128cc7be842ebb253471eac6f40de78ee1432fa0a7b4ce5826e0228fbce241"
+    },
+    "data/models/exoshorkie/student_HPRT1R_distilled.h5": {
+      "size": 49458536,
+      "sha256": "5a1df106215f6c8919de94410d21c980ff8bf1b0df16e4c3e16e2b0bf0376dfe"
+    },
+    "data/models/exoshorkie/student_dChr_distilled.h5": {
+      "size": 49458536,
+      "sha256": "5b16871a030fdce1997279476123dd1e804774eba5e470f304f41a314c0d5273"
+    },
+    "data/models/exoshorkie/student_chr7_distilled.h5": {
+      "size": 49458536,
+      "sha256": "f3cda1bea821a41c9cb1bfdbc122bda8abaea025d9090c5efbed7cc099b481ef"
+    },
+    "data/models/exoshorkie/student_Mpneumo_distilled.h5": {
+      "size": 49458536,
+      "sha256": "b6801a63e1e3d821bb3ad504ecda1d20bcadeed3465744ef89dda0fc61ff90e8"
+    },
+    "data/models/exoshorkie/student_Mmmyco_distilled.h5": {
+      "size": 49458536,
+      "sha256": "30799c6f227c34f7d52f68a9128fc293680fb52b87466721730e31f2001e3a06"
+    },
+    "hf://tom-ellis-lab/yorzoi@cba61e046a75e0b302e946aaf27f88a73824a8a9/config.json": {
+      "size": 914,
+      "sha256": "a8d74059d368aa9168c4a5e9520f6785e0c4f36633197f433d358731aaa47474"
+    },
+    "hf://tom-ellis-lab/yorzoi@cba61e046a75e0b302e946aaf27f88a73824a8a9/model.safetensors": {
+      "size": 77139312,
+      "sha256": "baab1145b7f6c8697dd31b1e2536e58fb99734c22450cc22128f80c7e756c150"
+    }
+  },
+  "source_files": {
+    "configs/brooks_native_v2.yaml": {
+      "size": 1953,
+      "sha256": "6fafb21a822f7e3e9881de1f40b9ee9257904b66b4ef4591c88631bbb747481f"
+    },
+    "scripts/docs/report_brooks_native_v2.py": {
+      "size": 13127,
+      "sha256": "e60a4793abb271feed4ca5dfa94a88b806f1b2d44a16730e19190b121cfa96e1"
+    },
+    "src/yeastbench/benchmarks/brooks.py": {
+      "size": 55381,
+      "sha256": "761ea3bd7a44ba38221b5d85ded05235f56339ede2909d391d5328b46cff58ba"
+    },
+    "src/yeastbench/benchmarks/_brooks_reference.py": {
+      "size": 2454,
+      "sha256": "52897d2993f20eb0d842b8726451e735276ea29e494b8c1e483f3acdfe38b72e"
+    },
+    "src/yeastbench/registry.py": {
+      "size": 25526,
+      "sha256": "dc4b43eaff7b5a5b31d8be588e25240f771593e35f9f22875cab873cc4aa40aa"
+    },
+    "src/yeastbench/benchmarks/brooks_native_genes.json": {
+      "size": 3938,
+      "sha256": "207d064cb937ccf1579f4103c482768d15158e087b7cb446ec1572555a59123b"
+    },
+    "src/yeastbench/models/exoshorkie/params.json": {
+      "size": 1776,
+      "sha256": "067f77a39ad33890508917d3bbb3bfe6370a3ce2b8111812015afad6f5d3d3f4"
+    },
+    "src/yeastbench/data/manifest.lock.json": {
+      "size": 13120,
+      "sha256": "f6dd1d4e82b84513a18a7e893ce618e97573c1ff0c96e1ad3113a354d681012e"
+    }
+  },
+  "python_source_sha256": "0b03c56eca6cd3c850e9a65d660e4709514346bfdab3029c8706e0f359581ac7",
+  "packages": {
+    "numpy": "2.4.4",
+    "pandas": "3.0.2",
+    "scipy": "1.17.1",
+    "scikit-learn": "1.8.0",
+    "torch": "2.11.0",
+    "yorzoi": "0.2.1",
+    "h5py": "3.16.0",
+    "huggingface_hub": "0.36.2"
+  },
+  "notes": [
+    "Replicate metrics are never averaged.",
+    "Historical Yorzoi runs did not record a Hub revision; both cached weight-bearing snapshots share the pinned model/config blobs.",
+    "Shape diagnostics in saved summaries are model-window dependent and are not headline comparisons."
+  ]
+}

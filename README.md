@@ -46,9 +46,10 @@ Please find a more comprehensive overview in [docs/benchmarks/](docs/benchmarks)
 ## Results
 
 Winner on each benchmark's primary metric (full per-metric tables in
-[docs/results.md](docs/results.md)). Kita, Brooks and Meneu carry Modal runs from
+[docs/results.md](docs/results.md)). Kita and Meneu carry Modal runs from
 2026-07-31; Lee YTK carries a Modal run from 2026-08-25. The other benchmarks'
-numbers are from earlier local runs.
+numbers are from earlier local runs. Brooks was rerun on 2026-11-12 with
+corrected parental CDS coordinates and strand selection (task version `v2`).
 
 | Benchmark | Winner | Headline (winner vs. runner-up) |
 | --- | --- | --- |
@@ -60,7 +61,7 @@ numbers are from earlier local runs.
 | [Wu RFP insertions](docs/benchmarks/wu_rfpins.md) | **Neither** | both ≈ 0 — position effect not captured |
 | [Hong IGR insertions](docs/benchmarks/hong_igr.md) | **Neither** | both ≈ 0 |
 | [Gui GFP RNA](docs/benchmarks/gui_gfp_rna.md) | **No clear association** | four models, Spearman ρ −0.110 to 0.115; all 95% intervals include zero |
-| [Brooks SCRaMBLE](docs/benchmarks/brooks_scramble.md) | **Yorzoi** | LFC dir-acc 0.62–0.65 vs 0.51–0.61, leading in all 3 JS94 runs (shape metric deferred to v2) |
+| [Brooks SCRaMBLE](docs/benchmarks/brooks_scramble.md) | **Yorzoi** | LFC direction accuracy 0.59 / 0.74 / 0.60; highest in all three JS94 runs among four models (v2) |
 | [Cuperus 5′-UTR](docs/benchmarks/cuperus_mpra_5utr.md) | **Shorkie** | random Spearman ρ 0.25 vs 0.12 |
 | [Lee YTK promoters](docs/benchmarks/ytk_promoter.md) | **Shorkie** | range recovery 0.165 vs 0.109; consensus ρ 0.653 vs 0.570 |
 | [Meneu foreign DNA](docs/benchmarks/meneu_foreign_dna.md) | **Yorzoi** | shape r 0.38 vs 0.26 (_M. mycoides_) |

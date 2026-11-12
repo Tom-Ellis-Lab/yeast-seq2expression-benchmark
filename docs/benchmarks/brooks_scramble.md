@@ -6,15 +6,15 @@
 
 | | |
 | --- | --- |
-| **Task** | Predict how a SCRaMBLE structural rearrangement changes a rearranged gene's expression, from sequence. The v1 metric is the scalar log-fold-change of CDS coverage (rearranged vs unscrambled control). A coverage-*profile* shape metric is **deferred to v2** — see [Open questions](#open-questions--future-work). |
+| **Task** | Predict how a SCRaMBLE structural rearrangement changes a rearranged gene's expression, from sequence. The primary metric is the scalar log-fold-change of CDS coverage (rearranged vs unscrambled control). Comparing coverage-profile shape across models remains future work — see [Open questions](#open-questions--future-work). |
 | **Source** | Brooks *et al.* 2022, *Transcriptional neighborhoods regulate transcript isoform lengths and expression levels*, Science 375(6584). DOI: [10.1126/science.abg0162](https://doi.org/10.1126/science.abg0162). |
 | **Reference assembly** | Per-strain SCRaMBLE assemblies: native `chrI–chrXVI` (byte-identical across strains) plus one synthetic synIXR contig `JS<strain>_1`. Parental control: JS94 (expression) / JS96 (sequence). |
 | **Assay** | Long-read Oxford Nanopore **direct RNA-seq** of multiple strains, each carrying a rearranged synthetic chr IX right arm (synIXR, ~91 kb, 43 loxPsym segments; loxPsym sits 3 bp after the stop codon of every nonessential CDS). Cre induces deletions / duplications / inversions / translocations. A rearranged CDS **keeps its native promoter but is decoupled from its native 3′UTR/downstream**, so the cis-predictable effect is principally the *new downstream context*. |
 | **Control** | **JS94** = parental −SCRaMBLE strain (synIXR, no induced recombination). Same genetic background; the only valid "before" for the rearrangement effect (not BY4741, which has native chr IX). |
 | **Eval set** | One **(gene × strain × copy)** sample — see [Eval-set definition](#eval-set-definition). ~58 SCRaMBLE strains available (not the Yorzoi-paper 5); sample set defined by an objective locked rule, not hand-picked. |
 | **Primary metric** | LFC: **direction balanced accuracy** of sign(LFC), then Spearman ρ, then Pearson r, all on (pred, true) LFC across samples, read against the JS94 reproducibility ceiling. |
-| **Secondary metric (deferred to v2)** | Coverage-profile shape (Yorzoi only): per-window Pearson + Jensen–Shannon divergence. Deferred to v2 — the shape readout window differs across models, so cross-model shape numbers aren't comparable yet (see [Open questions](#open-questions--future-work)). Not part of the v1 headline. |
-| **Adapter protocol** | `CoverageTrackPredictor.predict_coverage_batch` (`src/yeastbench/adapters/protocols.py`) — per-base coverage per construct; the benchmark derives the CDS-sum LFC from it (v1); the shape profile is a v2 metric. |
+| **Coverage-profile diagnostics** | Per-window Pearson + Jensen–Shannon divergence. The shape readout window differs across models, so cross-model shape numbers aren't comparable yet (see [Open questions](#open-questions--future-work)). These diagnostics are not headline metrics. |
+| **Adapter protocol** | `CoverageTrackPredictor.predict_coverage_batch` (`src/yeastbench/adapters/protocols.py`) — per-base coverage per construct; the benchmark derives the CDS-sum LFC and coverage-profile diagnostics from it. |
 
 ## Contents
 
@@ -44,46 +44,57 @@ expression change. That ceiling is intrinsic and is reported explicitly
 
 ## Results
 
-*2026-07-31 Modal run (v1, unified `brooks_scramble` task, 3-file artifact), recomputed per replicate 2026-09-02 from the saved per-replicate arrays — no model re-run. The cohort is the shared-cohort intersection (n = 327 scored) — the apples-to-apples comparison.*
+Fresh inference on 2026-11-12 with task version `v2` and
+[`configs/brooks_native_v2.yaml`](../../configs/brooks_native_v2.yaml).
+These results supersede the `v1` scores, which used the wrong parental CDS
+interval and, for inverted genes, the wrong parental strand. Model weights,
+labels and cohort rules are unchanged.
 
-Metrics are reported **per JS94 parental run** and are never averaged across
-the three. Each run scores a different set of genes: a gene needs
-`MIN_READS_PER_RUN` reads *in that run*, and because the cutoff falls per gene,
-the shallow run's cohort is the strongly expressed genes. The three cohorts
-therefore differ in size and in composition, and each carries its own
-leave-one-out ceiling — so the three columns are not comparable to one another
-either. Read each model against the ceiling in its own row, never across rows.
+The four models share 698 retained constructs and 327 scored samples. Each
+parental run supports a different subset (205 / 80 / 291 samples), so compare
+models within a run; differences between runs also reflect cohort composition.
 
 | LFC, shared cohort | JS94_r0 (n = 205) | JS94_r1 (n = 80) | JS94_r2 (n = 291) |
 | --- | ---: | ---: | ---: |
-| **direction balanced accuracy** | | | |
-| Shorkie | 0.514 | 0.613 | 0.534 |
-| Yorzoi | **0.624** | **0.650** | **0.630** |
+| **LFC direction balanced accuracy** | | | |
+| Shorkie | 0.513 | 0.625 | 0.548 |
+| Yorzoi | **0.593** | **0.738** | **0.602** |
+| ExoShorkie | 0.512 | 0.450 | 0.553 |
+| Shorkie random-init | 0.534 | 0.512 | 0.559 |
 | *reproducibility ceiling* | *0.761* | *0.963* | *0.694* |
-| **Pearson r** | | | |
-| Shorkie | −0.087 | 0.004 | 0.023 |
-| Yorzoi | **0.297** | **0.212** | **0.153** |
-| *reproducibility ceiling* | *0.789* | *0.954* | *0.671* |
-| **Spearman ρ** | | | |
-| Shorkie | −0.065 | −0.157 | 0.109 |
-| Yorzoi | **0.439** | **0.275** | **0.224** |
+| **LFC Spearman ρ** | | | |
+| Shorkie | -0.083 | -0.171 | 0.153 |
+| Yorzoi | **0.461** | **0.236** | **0.337** |
+| ExoShorkie | 0.004 | 0.037 | 0.169 |
+| Shorkie random-init | 0.085 | 0.063 | 0.246 |
 | *reproducibility ceiling* | *0.779* | *0.955* | *0.589* |
+| **LFC Pearson r** | | | |
+| Shorkie | -0.123 | -0.104 | 0.201 |
+| Yorzoi | **0.391** | **0.198** | 0.384 |
+| ExoShorkie | -0.058 | -0.113 | 0.228 |
+| Shorkie random-init | 0.026 | -0.087 | **0.420** |
+| *reproducibility ceiling* | *0.789* | *0.954* | *0.671* |
 
-The ceiling is computed on its own cohort (n = 198 / 80 / 169), which is not the
-scoring cohort: it needs the *other* replicates to be finite, where the model
-metric needs a finite prediction.
+The ceiling uses its own overlapping-measurement cohort (198 / 80 / 169),
+which differs from the model scoring cohort. Run 2 contains only measured
+LFC decreases; under the existing balanced-accuracy definition its direction
+score is the recall for that observed class.
 
-![Shared-cohort LFC per JS94 replicate, Shorkie vs Yorzoi, each against its own leave-one-out reproducibility ceiling.](../../img/results/brooks_scramble/shared_lfc.svg)
-![Per-SCRaMBLE-strain LFC agreement on the shared cohort.](../../img/results/brooks_scramble/shared_per_sample.svg)
+Yorzoi leads on direction accuracy and Spearman correlation in all three runs.
+Random-init Shorkie has the largest Run 3 Pearson correlation (0.420 versus
+Yorzoi's 0.384), but has near-zero or negative Pearson correlation in Runs 1
+and 2. All model correlations remain below the corresponding reproducibility
+ceilings. ExoShorkie uses all six students with equal weights; both Shorkie
+variants use eight folds and reverse-complement averaging.
 
-- Yorzoi leads Shorkie on every metric in every one of the three parental runs.
-- Yorzoi recovers a real but modest slice of the cis-predictable LFC, and the
-  slice shrinks as the reference run gets deeper and its cohort widens (r 0.297
-  on r0's 205 genes, 0.153 on r2's 291). Against ceilings of 0.789 / 0.954 /
-  0.671 it is well short throughout.
-- Shorkie sits at ~0 on LFC — a readout limit, not a wrong call. The rearrangement keeps each gene's promoter and CDS intact and only changes its downstream context; Shorkie's score is RNA-seq coverage summed over the (unchanged) CDS, so its predicted rearranged and parental coverage come out nearly equal and the predicted log-fold-change is ~0 (see [Model contract](#model-contract)). Its magnitude is better-calibrated than Yorzoi's (mean |z| 2.0 vs 11.2), but that's calibration, not ranking.
+![Shared-cohort LFC metrics for all four models, with per-run ceilings.](../../img/results/brooks_scramble/shared_lfc.svg)
+![Per-sample agreement on the shared cohort.](../../img/results/brooks_scramble/shared_per_sample.svg)
 
-Why the numbers look the way they do: [`model_failures.md`](model_failures.md). Artifacts: `results/brooks/compare/per_task/brooks_scramble/summary.json` (shared cohort) and `results/brooks/{shorkie,yorzoi}__*/summary.json`.
+The [audited results and provenance](brooks_native_v2_results.json) include
+input hashes and the inference commit; the [per-sample predictions](brooks_native_v2_predictions.csv)
+contain all 576 scored sample/run pairs. Runtime outputs are under
+`results/brooks_native_v2/`. Regenerate the audit after inference with
+`python scripts/docs/report_brooks_native_v2.py`.
 
 ## Data
 
@@ -129,7 +140,7 @@ per-strain data and how it is normalized into per-copy log-fold-changes.
   **total-native-reads size factor** (reads on `chrI–chrXVI` minus
   synIXR, plus `chrIXL`; `chrMT` and the synthetic contig excluded) per
   strain/run, relative to the JS94-deep-run mean. Simple and robust, no
-  per-gene modelling. (DESeq median-of-ratios is a documented v2
+  per-gene modelling. (DESeq median-of-ratios is a possible future
   refinement.)
 - **ERCC92** is in the genome FASTAs but **0 ERCC reads survive in the
   processed BEDs** → spike-in normalisation is unavailable; the
@@ -237,23 +248,52 @@ class CoverageTrackPredictor(Protocol):
 ```
 
 The benchmark builds the gene-centred alt and native window strings and
-the in-window CDS interval, calls `predict_coverage_batch` for each, then
-forms the CDS-sum LFC (the v1 metric; the full-window shape is a deferred v2
-metric).
+their separate in-window CDS intervals, calls `predict_coverage_batch` for
+each, then forms the CDS-sum LFC. Full-window shape scores remain diagnostics;
+comparing them across models requires a common scored region.
 
-**Shorkie scores via a proxy track and sits at ~0 on LFC.** Shorkie has no
-track matching the Nanopore direct-RNA assay, so it runs LFC on a **T0
-RNA-seq proxy track** (mean of the 384 unstranded T0 RNA-seq coverage
-tracks). This ran and scored — n = 528 on the full set, 327 on the shared
-cohort — but its predicted log-fold-change is ~0: the readout is
-CDS-summed coverage, driven by the gene's promoter and CDS, which the
-rearrangement leaves intact, so Shorkie's predicted rearranged and
-parental coverage come out nearly equal. (`varies_by_strain = False` in the
-adapter is only a compute shortcut — Shorkie has no strain-specific tracks,
-so the parental prediction is computed once and reused across the JS94
-replicates — it is **not** the cause of the ~0 score.)
+**Shorkie uses a T0 RNA-seq proxy readout.** Shorkie has no track matching the
+Nanopore direct-RNA assay, so both pretrained and random-init Shorkie use the
+mean of 384 unstranded T0 RNA-seq coverage tracks. Coverage is summed over each
+sequence's CDS interval. `varies_by_strain = False` is a compute shortcut:
+these models have no strain-specific tracks, so each parental prediction is
+computed once and reused across the supported JS94 replicates. The measured
+parental denominator and eligible samples still differ between runs.
 
 ## Evaluation & metrics
+
+### Scoring revision v2: separate parental geometry
+
+Task version `v2` corrects how the parental prediction is read. The alternate
+and parental sequences each retain their own CDS interval within their own
+window. After subtracting the model's output crop, each interval is clipped
+independently to the available output, and its coverage is summed separately.
+If either interval has no readable bases, the predicted LFC is unavailable.
+This matters when a gene lies near a contig end: clamping can place the same
+gene at different offsets in the two windows.
+
+Strand-aware adapters also receive each sequence's own gene strand. An inverted
+alternate gene does not change the parental gene's strand. Shorkie's
+unstranded readout uses the same tracks for either strand; Yorzoi and
+ExoShorkie select the strand for the sequence being evaluated.
+
+New input distributions include `native_strand` in `brooks_index.tsv`.
+The original locked three-file distribution remains usable: when that column
+is absent, the benchmark resolves the parental strand from the packaged
+[`brooks_native_genes.json`](../../src/yeastbench/benchmarks/brooks_native_genes.json).
+This records the source JS94 GFF URL and SHA-256, the parental assembly identity,
+and each gene's annotated interval and strand. Legacy lookup requires an exact
+match of gene ID, native coordinates, source genome, contig and contig length;
+unknown or changed references require an explicit `native_strand`. It never
+infers strand from the alternate gene or its name, and requires no runtime GFF
+download.
+
+The older `v1` scorer reused the alternate interval and strand for the parental
+prediction. Its LFC results therefore require fresh inference with `v2`; saved
+LFC arrays alone do not retain the native coverage needed to repair them.
+The correction preserves labels, read-support thresholds, cohort membership
+rules and per-run reporting. This version change does not promote the
+model-dependent shape diagnostics to comparable headline metrics.
 
 ### LFC — scalar effect size (Yorzoi primary; Shorkie via T0 RNA-seq proxy track)
 
@@ -281,28 +321,26 @@ replicates — it is **not** the cause of the ~0 score.)
    band** overlaid, per-run r/ρ/acc annotated; plus a per-rearrangement-class
    breakdown.
 
-### Shape — coverage profile (Yorzoi-only) — deferred to v2
+### Shape — coverage-profile diagnostics and future comparison
 
-> **Deferred to v2.** The shape metric is not part of the v1 headline; it is
-> specified here for v2. The blocker: Pearson and JS are scored over each model's
+> **Cross-model comparison remains future work.** Shape scores are diagnostics,
+> not headline metrics. Pearson and JS are scored over each model's
 > full output region (Yorzoi 3,000 bp vs Shorkie 14,336 bp), and JS divergence
 > depends on support size, so cross-model shape numbers aren't comparable until a
 > common scored window (≤ 3 kb, CDS-centred) is fixed.
 
-Over the **full gene-centred window** (not CDS-only — the CDS profile is
-usually flat; the signal is at TSS/TES/junction), at Yorzoi bin
-resolution, strand-matched, on the **alt** construct (native as a sanity
-baseline):
+The proposed comparison would use a common region and resolution on the
+**alt** construct, with a native sanity baseline, and include:
 
 - **Pearson correlation** of predicted vs true binned coverage vectors
   (sensitive to peak co-location).
-- **Jensen–Shannon divergence** as the **headline shape metric** —
+- **Jensen–Shannon divergence** as a candidate shape metric —
   symmetric, bounded `[0, log2]`, finite without smoothing (each side
   compared to the mixture `M=½(P+Q)`, so the hard zeros in sparse
   Nanopore coverage cannot blow it up), and therefore comparable and
   averageable across samples of different depth. Computed on
   sum-1-normalised coverage vectors.
-- **KL divergence** `D_KL(true‖pred)` (ε-smoothed) reported only as a
+- **KL divergence** `D_KL(true‖pred)` (ε-smoothed), if added, reported only as a
   *secondary* directional view ("model misses real signal"); not the
   headline because it is asymmetric, unbounded, undefined on zeros, and
   not comparable across samples. (`JSD = ½D_KL(P‖M)+½D_KL(Q‖M)`,
@@ -310,9 +348,8 @@ baseline):
   that); Pearson and JS are complementary — peak co-location vs
   mass-placement.
 
-Report shape metrics against the **JS94×3 control–control** Pearson/JS
-ceiling. Example loci plotted (true vs predicted profile, alt and native
-overlaid), as in the Yorzoi Wu dump notebook.
+A future shape comparison should include the **JS94×3 control–control**
+Pearson/JS ceiling and example loci with true and predicted profiles overlaid.
 
 ### Reference ceiling & baseline
 
@@ -364,32 +401,27 @@ one registry entry — see [`extending.md`](../extending.md).
    "present in JS94 + alt window ≠ native within ±2496 bp". Check
    whether the rule is too strict (e.g. junction just outside the
    gene-centred window) before scaling.
-1b. **Scale to `--strains all`** — v1 built on 4 strains (37 samples);
-   the objective rule over the full ~58-strain panel is the real n.
-   Heavier download/compute; run before locking the headline.
-1c. **Median-of-ratios size factor** — total-native-reads is the v1
+1c. **Median-of-ratios size factor** — total-native-reads is the current
    normaliser (simple/portable); MoR over native genes is a documented
-   v2 refinement if a global trans shift is observed.
-2. **Shorkie LFC on the T0 proxy track** — implemented and ran (n = 528
-   full / 327 shared). It scores ~0 because its CDS-coverage readout is
-   set by the unchanged promoter+CDS, not the rearranged downstream
-   context; the open question is whether a path that actually reads the
-   changed context (or a strain-aware track) is worth building.
+   possible refinement if a global trans shift is observed.
+2. **Shorkie LFC on the T0 proxy tracks** — the current readout averages
+   384 unstranded T0 RNA-seq tracks. Whether a different track selection or
+   regional readout improves prediction remains an empirical question.
 3. **Rearrangement-type classification** — derive from `JS<S>_1` vs
    `JS94_1` diff; cross-check against Table S3 if obtainable.
 4. **Antisense / both-strand coverage** — the paper uses both-strand
-   cosine similarity for neighbourhood. v1 is gene-strand only; revisit
-   adding the antisense channel to the shape metric as a v2 extension.
+   cosine similarity for neighbourhood. Strand-aware models currently use
+   the gene strand; adding an antisense shape diagnostic remains future work.
 5. **Receptive-field window length** — Yorzoi 4992 bp; confirm the
    gene-centred placement keeps the relevant new junction in-window for
    the bulk of samples (drop / flag those where it doesn't).
 6. **JS94 run handling** — mean of the 3 runs vs per-run pairing for the
    denominator and the ceiling; pin in the build script.
-7. **Coverage-shape metric deferred to v2.** The shape profile (per-window
-   Pearson + JS divergence) is not in the v1 headline. It is scored over each
+7. **Comparable coverage-shape metrics remain future work.** The shape profile
+   (per-window Pearson + JS divergence) is not a headline metric. It is scored over each
    model's full output region (Yorzoi 3,000 bp vs Shorkie 14,336 bp), and JS
    divergence depends on support size, so the cross-model numbers aren't
-   comparable. v2 scores shape over a fixed common window (≤ 3 kb, CDS-centred —
-   the full receptive field still goes in as input, only the scored region is
-   shared), re-baselines the numbers, and promotes shape to a reported secondary
-   metric.
+   comparable. A future comparison needs a fixed common window (≤ 3 kb,
+   CDS-centred), while retaining each model's full receptive field as input.
+   It would need new measurements on that common region before shape could
+   become a reported secondary metric.
