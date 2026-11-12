@@ -151,18 +151,13 @@ ARTIFACTS: tuple[InputArtifact, ...] = (
         # json read by the adapter. construct_*.fa/.gtf + library_loci are build.
         include=("gfp_r1.tsv", "gfp_r2.tsv", "tdh3.tsv", "marginalized_hosts.json"),
     ),
-    InputArtifact(
-        id="gui",
-        kind=InputKind.TASK_PROCESSED,
+    _task(
+        "gui",
         dest="data/tasks/gui",
         needed_by=("gui_gfp_rna",),
         requires=(_REFS,),
         include=("gui_gfp_rna_v1.tsv", "constructs.fasta"),
-        # Prepared locally from source data and resolved sequence records.
-        # Add an actual published mirror/revision only once available.
-        mirrors=(),
-        license=License.GEO_TERMS,
-        redistributable=False,
+        license=License.CC_BY_NC_4_0,  # Gui et al.; attribution in the task docs.
     ),
     _task(
         "brooks_scramble",

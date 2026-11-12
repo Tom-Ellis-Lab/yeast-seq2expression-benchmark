@@ -115,8 +115,27 @@ configuration and code commit.
 
 ## Reproduction
 
-Run from the repository root in the installed project environment, with
-`pdftotext` available. Source URLs and checksums are in
+With model weights already available, download the processed inputs and shared
+reference, then run the task:
+
+```bash
+ybench data get --tasks gui_gfp_rna
+ybench data verify --tasks gui_gfp_rna
+ybench run --config configs/default.yaml --task gui_gfp_rna
+```
+
+Hugging Face is the default mirror; use `--from gcs --billing-project PROJECT`
+on `data get` for Google Cloud Storage. The processed files are published under
+[`gui/` on Hugging Face](https://huggingface.co/datasets/tom-ellis-lab/yeast-seq2expression-benchmark-data/tree/main/gui)
+and `gs://yeast-seq2expression-benchmark/gui_v1/`. The input lock records the
+file checksums and verified Hugging Face revision. The processed distribution
+uses CC BY-NC 4.0 terms with attribution to Gui et al., whose
+[article](https://academic.oup.com/mbe/article-pdf/38/8/3294/39457229/msab104.pdf)
+carries that license; sequence reconstruction sources are listed above and in
+`scripts/gui/sources.json`.
+
+To rebuild from sources, run from the repository root in the installed project
+environment, with `pdftotext` available. Source URLs and checksums are in
 [`scripts/gui/sources.json`](../../scripts/gui/sources.json). Place the Gui
 supplementary ZIP at `archive/msab104_supplementary_data.zip` and the source
 downloads under `data/tasks/gui_audit/source/`:
@@ -153,8 +172,8 @@ label reconciliation before exporting the runtime distribution. Running the
 distribution builder without a sequence map deliberately leaves every sequence
 unresolved and cannot produce a scored benchmark.
 
-Use `--device cpu` when no GPU is available. The task currently has no published
-data mirror; preparing and locking local files is separate from publishing them.
+Use `--device cpu` when no GPU is available. Preparing and locking local files
+is separate from the [data publication workflow](../data.md).
 Alongside the shared reference genome, only the TSV and construct FASTA are
 task-specific runtime dependencies. Download caches,
 library-level audit tables and build provenance are outside the runtime

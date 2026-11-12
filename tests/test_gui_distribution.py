@@ -107,10 +107,17 @@ def test_resolved_map_preserves_geometry_and_omits_unused_payloads(builder, tmp_
     assert fasta_text == ">test_construct\nCCATGAAATAACC\n"
 
 
-def test_gui_runtime_manifest_is_small_and_local():
+def test_gui_runtime_manifest_uses_processed_data_mirrors():
+    from yeastbench.data.artifacts import BackendKind, License
     from yeastbench.data.manifest import artifacts_for
 
     artifacts = {artifact.id: artifact for artifact in artifacts_for(tasks=["gui_gfp_rna"])}
     assert set(artifacts) == {"gui", "refs"}
     assert artifacts["gui"].include == ("gui_gfp_rna_v1.tsv", "constructs.fasta")
-    assert artifacts["gui"].mirrors == ()
+    artifact = artifacts["gui"]
+    assert artifact.redistributable
+    assert artifact.license == License.CC_BY_NC_4_0
+    assert [(mirror.backend, mirror.base, mirror.prefix) for mirror in artifact.mirrors] == [
+        (BackendKind.HF, "tom-ellis-lab/yeast-seq2expression-benchmark-data", "gui/"),
+        (BackendKind.GCS, "gs://yeast-seq2expression-benchmark/", "gui_v1/"),
+    ]

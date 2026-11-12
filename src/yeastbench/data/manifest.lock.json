@@ -90,7 +90,16 @@
           "sha256": "0634f94840ad3ab2ac66084792e04d9732d024ba8d6229270c63fc8ba24e8268",
           "size": 99889
         }
-      }
+      },
+      "sources": [
+        {
+          "backend": "hf",
+          "prefix": "gui/",
+          "repo_id": "tom-ellis-lab/yeast-seq2expression-benchmark-data",
+          "repo_type": "dataset",
+          "revision": "c5d375a97f1b94257fbbba801201889b52c86200"
+        }
+      ]
     },
     "hong": {
       "files": {
