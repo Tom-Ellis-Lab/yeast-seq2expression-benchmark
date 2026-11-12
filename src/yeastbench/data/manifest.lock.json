@@ -58,6 +58,10 @@
     },
     "cuperus_mpra_5utr": {
       "files": {
+        "construct.json": {
+          "sha256": "bb04725c05b2d6ed0903dfb344e99a5359226413bcc61306c4dae8c21aa4854d",
+          "size": 1765
+        },
         "native_utrs.tsv": {
           "sha256": "2efc7689b10b33783f23cc7fbc8f485af75b0b3fb55a99c8c48ac5a68a07fcff",
           "size": 992240
@@ -77,6 +81,54 @@
         "plasmid.json": {
           "sha256": "e1444cace7908c314be020e79c7790558f3947c3c932fd0c02136df14df59113",
           "size": 8296
+        }
+      }
+    },
+    "exoshorkie_chr7": {
+      "files": {
+        "student_chr7_distilled.h5": {
+          "sha256": "f3cda1bea821a41c9cb1bfdbc122bda8abaea025d9090c5efbed7cc099b481ef",
+          "size": 49458536
+        }
+      }
+    },
+    "exoshorkie_dchr": {
+      "files": {
+        "student_dChr_distilled.h5": {
+          "sha256": "5b16871a030fdce1997279476123dd1e804774eba5e470f304f41a314c0d5273",
+          "size": 49458536
+        }
+      }
+    },
+    "exoshorkie_hprt1": {
+      "files": {
+        "student_HPRT1_distilled.h5": {
+          "sha256": "c3128cc7be842ebb253471eac6f40de78ee1432fa0a7b4ce5826e0228fbce241",
+          "size": 49458536
+        }
+      }
+    },
+    "exoshorkie_hprt1r": {
+      "files": {
+        "student_HPRT1R_distilled.h5": {
+          "sha256": "5a1df106215f6c8919de94410d21c980ff8bf1b0df16e4c3e16e2b0bf0376dfe",
+          "size": 49458536
+        }
+      }
+    },
+    "exoshorkie_mmmyco": {
+      "files": {
+        "student_Mmmyco_distilled.h5": {
+          "sha256": "30799c6f227c34f7d52f68a9128fc293680fb52b87466721730e31f2001e3a06",
+          "size": 49458536
+        }
+      }
+    },
+    "exoshorkie_mpneumo": {
+      "files": {
+        "student_Mpneumo_distilled.h5": {
+          "sha256": "b6801a63e1e3d821bb3ad504ecda1d20bcadeed3465744ef89dda0fc61ff90e8",
+          "size": 49458536
         }
       }
     },
@@ -244,6 +296,50 @@
         }
       }
     },
+    "shorkie_random_init": {
+      "files": {
+        "checkpoints/f0.h5": {
+          "sha256": "9004e2a42967cfc455c1df9c134e9e3ae6a0582341ffba55a9f2d3ae4a6ca27d",
+          "size": 56870796
+        },
+        "checkpoints/f1.h5": {
+          "sha256": "affb437752b6f8f6f982acad7398347aa32a8aaf52bc89dfa5c4cf8f8f76a23c",
+          "size": 56870796
+        },
+        "checkpoints/f2.h5": {
+          "sha256": "6715fe6784153fd02210f93af9351aaef107f90e93c056f2f075d5f2062e8fd0",
+          "size": 56870796
+        },
+        "checkpoints/f3.h5": {
+          "sha256": "b42731f2fb754e48e41eebeedb1b73f1d9653826ee3ed2f61e1eadff81945da8",
+          "size": 56870796
+        },
+        "checkpoints/f4.h5": {
+          "sha256": "36e993b94e8eea4edd0bd0d08be8bce402d2b04246e2177dee5e35094b993da0",
+          "size": 56870796
+        },
+        "checkpoints/f5.h5": {
+          "sha256": "7c693b80b9badc77a45417ad10cd1390fab2320ab60f74b54266e03d320d2f01",
+          "size": 56870796
+        },
+        "checkpoints/f6.h5": {
+          "sha256": "ef948fbf1a2e5a0d5cc0eed3fe6d4305c55e49667020caff67b0bc50b4220763",
+          "size": 56870796
+        },
+        "checkpoints/f7.h5": {
+          "sha256": "084337cf40c3a154861e15e2fd3029d77b6ae1e7f096f3ca15378cc7cf2eb3e6",
+          "size": 56870796
+        },
+        "params.json": {
+          "sha256": "a6ba56bb3b3c89301f40bc5140838a216c850688c71b05d74acc4d257e9435d9",
+          "size": 2748
+        },
+        "targets.txt": {
+          "sha256": "2c1592eba8928b063f753daddfb3b4ead16609e06713dbad6bc74bc142af9ad7",
+          "size": 781531
+        }
+      }
+    },
     "wu_rfpins": {
       "files": {
         "barcodes.tsv": {
@@ -277,5 +373,5 @@
       }
     }
   },
-  "version": 1
+  "version": 2
 }

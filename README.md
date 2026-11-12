@@ -38,6 +38,7 @@ Please find a more comprehensive overview in [docs/benchmarks/](docs/benchmarks)
 | Model | Description | Paper | Status |
 | --- | --- | --- | --- |
 | Shorkie | Language model based S2F model | [Predicting dynamic expression patterns in budding yeast with a fungal DNA language model](https://www.biorxiv.org/content/10.1101/2025.09.19.677475v1) | done |
+| Shorkie_Random_Init | Shorkie trained supervised from scratch without language-model pretraining; eight-fold ensemble | [Published checkpoints](https://github.com/calico/shorkie-paper/blob/main/data/manifest.json) | done |
 | Yorzoi | Borzoi-based S2F model | [Yorzoi: Predicting RNA-seq coverage from DNA sequence in yeast](https://www.biorxiv.org/content/10.1101/2025.09.20.677345v1) | done |
 | ExoShorkie | Shorkie finetuned on exo. genomes | [ExoShorkie: Predicting RNA-seq coverage of exogenous genomes in yeast by transfer learning](https://www.biorxiv.org/content/10.64898/2026.01.25.701486v1) | in progress |
 
@@ -79,6 +80,71 @@ Results land in `results/default/<model>__<task>/`. The separate
 For everything else — the
 other models, partial data pulls, GPU selection, every flag, and the output
 layout — see the [CLI reference](docs/cli.md).
+
+## Individual ExoShorkie students
+
+`configs/exoshorkie_students.yaml` runs each of the six released distilled
+students on all eleven tasks (66 pairs), including `dChr`. Each has its own
+registry name and result directory: `exoshorkie_hprt1`, `exoshorkie_hprt1r`,
+`exoshorkie_dchr`, `exoshorkie_chr7`, `exoshorkie_mpneumo`, and
+`exoshorkie_mmmyco`. No student ensemble is selected at this stage.
+
+```bash
+uv sync --extra exoshorkie --extra data
+uv run ybench data get --config configs/exoshorkie_students.yaml
+uv run ybench run --config configs/exoshorkie_students.yaml --dry-run
+uv run ybench run --config configs/exoshorkie_students.yaml
+# Disjoint students on two GPUs, with matching completed pairs resumed:
+uv run python scripts/run_exoshorkie_students.py --gpus 0,1 --resume
+# A single student/task:
+uv run ybench run --config configs/exoshorkie_students.yaml --model exoshorkie_dchr --task meneu_foreign_dna
+```
+
+Results land under `results/exoshorkie_students_v1/`. Matching bacterial
+training/test overlap is deliberately retained as a sanity check and recorded
+in `prediction_metadata` in both summary and run metadata files. These matching
+results must not be described as zero-shot. Compare all students individually
+before choosing any later ensemble or excluding the data-chromosome student.
+
+The model wrapper decodes each orientation with `expm1(z * sigma + mu)`, clamps
+negative bin coverage to zero, and then performs strand/region reductions.
+It uses the authors' per-dataset notebook constants; distilled outputs average
+fold-normalized teacher predictions, so this convention does not reconstruct
+the arithmetic mean of teacher coverage exactly. Values are in CPM coverage
+units. Forward/RC predictions represent separate strands: gene readouts select
+one, while Meneu sums both. Exact exon/CDS positions receive their fractional
+share of each 16 bp bin, equivalent to uniform unbinning. Clipping counts and
+fractions over all processed bins are saved with each run.
+
+The released students use species index 114, matching the `v1.0.1` loader.
+Across their six first-convolution kernels, only species channel 114 differs;
+the other 164 species channels are bit-identical. This supports the historical
+encoding for these weights, which predate upstream's July 2026 change to 109.
+Original Shorkie retains its existing index 109. Checkpoint smoke tests establish
+loading and finite outputs, not numerical parity with TensorFlow. Upstream
+reference: [ExoShorkie v1.0.1](https://github.com/OrensteinLab/ExoShorkie/tree/v1.0.1).
+
+### ExoShorkie ensemble
+
+`configs/exoshorkie_ensemble.yaml` benchmarks an equal-weight ensemble on all
+eleven tasks. Each student is decoded with its own normalization constants and
+clamped to zero before averaging bin coverage; strand/region aggregation and
+log effects follow the coverage mean. All six students, including `dChr`, are
+used except on Meneu, where **both Mpneumo and Mmmyco are excluded**, leaving
+HPRT1, HPRT1R, dChr and chr7. Each run records its members, equal weights,
+exclusions, normalization constants and per-student clipping diagnostics.
+
+```bash
+CUDA_VISIBLE_DEVICES=0 uv run python scripts/run_exoshorkie_students.py \
+  --config configs/exoshorkie_ensemble.yaml --gpus 0 --resume
+```
+
+Results are written to `results/exoshorkie_ensemble_v1/`. The comparison config
+`configs/exoshorkie_ensemble_comparison.yaml` includes the six individual
+students. To include completed individual runs, link their result directories
+from `results/exoshorkie_students_v1/` into this output folder. Passing
+`--compare-config configs/exoshorkie_ensemble_comparison.yaml` to the runner
+generates the combined comparison after the ensemble finishes.
 
 ## Architecture
 

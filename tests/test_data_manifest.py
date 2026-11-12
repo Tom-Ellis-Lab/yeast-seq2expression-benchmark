@@ -181,13 +181,14 @@ def test_committed_lock_covers_shorkie_and_refs():
 
 
 @pytest.mark.network
-def test_http_backend_fetches_shorkie_params_matching_lock(tmp_path):
+@pytest.mark.parametrize("model", ["shorkie", "shorkie_random_init"])
+def test_http_backend_fetches_shorkie_params_matching_lock(tmp_path, model):
     """Fetch the (2.7 KB) Shorkie params.json from its public source and check
     it hashes to what the committed lock expects."""
-    art = artifact_by_id("shorkie")
+    art = artifact_by_id(model)
     mirror = art.mirrors[0]
     lock = read_lock(LOCK_PATH)
-    want = {lf.path: lf.sha256 for lf in locked_files(lock, "shorkie")}
+    want = {lf.path: lf.sha256 for lf in locked_files(lock, model)}
 
     out = tmp_path / "params.json"
     try:
@@ -258,3 +259,10 @@ def test_check_run_data_lists_cache_only_models(tmp_path):
     check = check_run_data([], ["yorzoi"], tmp_path, lock=read_lock())
     assert "yorzoi" in check.cache_only
     assert check.ready
+
+
+def test_cuperus_reporter_construct_is_locked():
+    artifact = artifact_by_id("cuperus_mpra_5utr")
+    assert "construct.json" in artifact.include
+    files = {f.path for f in locked_files(read_lock(), artifact.id)}
+    assert "construct.json" in files

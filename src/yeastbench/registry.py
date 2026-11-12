@@ -12,6 +12,7 @@ Model factory signature: ``(task, device, **model_config) → adapter``
 from __future__ import annotations
 
 from pathlib import Path
+from functools import partial
 from typing import Any, Callable
 
 from yeastbench.adapters.protocols import (
@@ -35,6 +36,7 @@ from yeastbench.benchmarks.shalem import ShalemMPRAMarginalizedBenchmark
 from yeastbench.benchmarks.rfpins import RFPInsertionBenchmark
 from yeastbench.benchmarks.cuperus import CuperusUTRBenchmark
 from yeastbench.benchmarks.ytk_promoter import YTKPromoterBenchmark
+from yeastbench.models.exoshorkie.checkpoints import STUDENT_MODELS
 
 ModelFactory = Callable[..., Any]
 TaskFactory = Callable[..., Benchmark]
@@ -345,12 +347,112 @@ def _build_dream_rnn_baseline(task: Benchmark, device: str, **cfg: Any) -> Any:
     return DreamRnnRafiPredictor.from_weights(device=device, **cfg)
 
 
+def _exoshorkie_adapter(task, model, batch_size, **cfg):
+    from yeastbench.adapters import exoshorkie as adapters
+
+    classes = {
+        VariantEffectScorer: (adapters.ExoShorkieVariantScorer, REFS_FIELDS),
+        SequenceExpressionScorer: (adapters.ExoShorkieMPRAPredictor, REFS_FIELDS),
+        TerminatorMarginalizedExpressionPredictor: (adapters.ExoShorkieShalemPredictor, REFS_FIELDS),
+        CassetteExpressionPredictor: (adapters.ExoShorkieWuPredictor, REFS_FIELDS),
+        IGRInsertionExpressionPredictor: (adapters.ExoShorkieHongPredictor, FASTA_ONLY),
+        FivePrimeUtrReporterExpressionPredictor: (adapters.ExoShorkieCuperusPredictor, FASTA_ONLY),
+        IntegratedPromoterPanelPredictor: (adapters.ExoShorkieYTKPredictor, FASTA_ONLY),
+        CoverageTrackPredictor: (adapters.ExoShorkieBrooksPredictor, ()),
+        TiledCoverageTrackPredictor: (adapters.ExoShorkieMeneuPredictor, ()),
+        LocalCodingVariantPredictor: (adapters.ExoShorkieChenPredictor, CHEN_FIELDS),
+    }
+    adapter_class, fields = classes[task.adapter_protocol]
+    if batch_size < 1:
+        raise ValueError("batch_size must be positive")
+    adapter = adapter_class(
+        model, **{f: getattr(task, f) for f in fields}, batch_size=batch_size, **cfg,
+    )
+    return adapter
+
+
+def _build_exoshorkie(
+    task: Benchmark, device: str, *, variant: str,
+    checkpoint_path: str | Path, params_path: str | Path | None = None,
+    autocast: bool = False, batch_size: int = 8, **cfg: Any,
+) -> Any:
+    from yeastbench.models.exoshorkie import ExoShorkie
+    from yeastbench.models.exoshorkie.constants import RELEASED_SPECIES_INDEX
+
+    if batch_size < 1:
+        raise ValueError("batch_size must be positive")
+    model = ExoShorkie.from_checkpoint(
+        checkpoint_path, variant, params_path=params_path, device=device, autocast=autocast,
+    )
+    adapter = _exoshorkie_adapter(task, model, batch_size, **cfg)
+    adapter.benchmark_metadata = {
+        "model_type": "distilled_student",
+        "variant": variant,
+        "coverage_units": "CPM",
+        "normalization": "authors_whole_dataset_notebook_statistics",
+        "mu": model.checkpoint.mu,
+        "sigma": model.checkpoint.sigma,
+        "negative_coverage": "clamp_zero_before_aggregation",
+        "species_index": RELEASED_SPECIES_INDEX,
+        "training_overlap_contigs": (
+            [variant] if task.info.name == "meneu_foreign_dna"
+            and variant in ("Mpneumo", "Mmmyco") else []
+        ),
+    }
+    adapter.benchmark_diagnostics = model.coverage_statistics
+    return adapter
+
+
+def _build_exoshorkie_ensemble(
+    task: Benchmark, device: str, *, checkpoint_dir: str | Path,
+    params_path: str | Path | None = None, autocast: bool = False,
+    batch_size: int = 8, **cfg: Any,
+) -> Any:
+    from yeastbench.models.exoshorkie import CHECKPOINTS, ExoShorkie, ExoShorkieEnsemble
+    from yeastbench.models.exoshorkie.constants import RELEASED_SPECIES_INDEX
+
+    if batch_size < 1:
+        raise ValueError("batch_size must be positive")
+    excluded = ("Mpneumo", "Mmmyco") if task.info.name == "meneu_foreign_dna" else ()
+    members = [
+        ExoShorkie.from_checkpoint(
+            Path(checkpoint_dir) / info.filename, variant,
+            params_path=params_path, device=device, autocast=autocast,
+        )
+        for variant, info in CHECKPOINTS.items() if variant not in excluded
+    ]
+    model = ExoShorkieEnsemble(members)
+    adapter = _exoshorkie_adapter(task, model, batch_size, **cfg)
+    adapter.benchmark_metadata = {
+        "model_type": "distilled_student_ensemble",
+        "ensemble_members": list(model.variants),
+        "excluded_students": list(excluded),
+        "ensemble_weights": {variant: 1 / len(members) for variant in model.variants},
+        "ensemble_reduction": "arithmetic_mean_of_decoded_clamped_bin_coverage",
+        "coverage_units": "CPM",
+        "normalization": "authors_whole_dataset_notebook_statistics_per_student",
+        "student_normalization": {
+            member.variant: {"mu": member.checkpoint.mu, "sigma": member.checkpoint.sigma}
+            for member in members
+        },
+        "negative_coverage": "clamp_zero_per_student_before_ensemble_mean",
+        "species_index": RELEASED_SPECIES_INDEX,
+        "training_overlap_contigs": [],
+    }
+    adapter.benchmark_diagnostics = model.coverage_statistics
+    return adapter
+
+
 MODELS: dict[str, ModelFactory] = {
     "shorkie": _build_shorkie,
+    "shorkie_random_init": _build_shorkie,
     "yorzoi": _build_yorzoi,
     "cai": _build_cai_baseline,
     "codon_transformer": _build_codon_transformer_baseline,
     "dream_rnn": _build_dream_rnn_baseline,
+    "exoshorkie_ensemble": _build_exoshorkie_ensemble,
+    **{name: partial(_build_exoshorkie, variant=variant)
+       for name, variant in STUDENT_MODELS.items()},
 }
 
 
