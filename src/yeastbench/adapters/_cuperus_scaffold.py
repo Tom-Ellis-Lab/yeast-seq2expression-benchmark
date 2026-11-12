@@ -48,6 +48,23 @@ class CuperusConstruct:
     cyc1_terminator: str
 
     @classmethod
+    def from_reference(cls, fasta: "pysam.FastaFile") -> "CuperusConstruct":
+        """Reproduce build_construct.py directly from the supplied R64-1-1 FASTA.
+
+        The fixed reporter JSON is not part of the published task artifact.
+        These are the same 1-based inclusive coordinates and junction checks
+        used by the existing build script; no external plasmid lookup is needed.
+        """
+        promoter = fasta.fetch("X", 525980, 526278).upper()
+        his3 = fasta.fetch("XV", 721945, 722608).upper()
+        terminator = fasta.fetch("X", 526664, 526914).upper()
+        if (len(promoter) != 298 or not promoter.endswith("ACATTAGGACCTTTGCAGC")
+                or len(his3) != 663 or not his3.startswith("ATGACAGAGCAGAAAGCCCT")
+                or his3[-3:] not in {"TAA", "TAG", "TGA"} or len(terminator) != 250):
+            raise ValueError("Reference does not reproduce the Cuperus reporter junctions")
+        return cls(promoter, his3, terminator)
+
+    @classmethod
     def from_json(cls, path: str | Path = DEFAULT_CONSTRUCT_JSON) -> "CuperusConstruct":
         d = json.loads(Path(path).read_text())
         return cls(

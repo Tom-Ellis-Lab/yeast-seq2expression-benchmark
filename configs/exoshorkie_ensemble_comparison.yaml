@@ -1,0 +1,178 @@
+# Comparison only: student directories link to completed individual runs.
+out_dir: results/exoshorkie_ensemble_v1
+device: cuda:0
+tasks_config:
+  caudal_eqtl:
+    distribution_dir: data/tasks/caudal_eqtl
+    fasta_path: data/tasks/R64-1-1.fa
+    gtf_path: data/tasks/R64-1-1.115.gtf
+  kita_eqtl:
+    distribution_dir: data/tasks/kita_eqtl
+    fasta_path: data/tasks/R64-1-1.fa
+    gtf_path: data/tasks/R64-1-1.115.gtf
+  rafi_mpra_marginalized:
+    data_dir: data/tasks/rafi_mpra
+    fasta_path: data/tasks/R64-1-1.fa
+    gtf_path: data/tasks/R64-1-1.115.gtf
+  shalem_mpra_marginalized:
+    data_path: data/tasks/shalem_mpra_terminator/segal_2015.tsv
+    fasta_path: data/tasks/R64-1-1.fa
+    gtf_path: data/tasks/R64-1-1.115.gtf
+  wu_rfpins:
+    cassette_seq: data/tasks/wu_rfpins/expression_cassette.fasta
+    labels_path: data/tasks/wu_rfpins/table_s2_fluorescence_1044_loci.csv
+    fasta_path: data/tasks/R64-1-1.fa
+    gtf_path: data/tasks/R64-1-1.115.gtf
+  hong_igr:
+    labels_path: data/tasks/hong/hong_igr_v1.tsv
+    cassette_seq: data/tasks/hong/expression_cassette.fasta
+    fasta_path: data/tasks/R64-5-1.fa
+  chen_synonymous:
+    fasta_path: data/tasks/R64-1-1.fa
+    hosts_path: data/tasks/chen_synonymous/marginalized_hosts.json
+    data_dir: data/tasks/chen_synonymous
+    libraries:
+    - library: gfp_r1
+      data_path: data/tasks/chen_synonymous/gfp_r1.tsv
+      replicate_ceiling_pearson: 0.83
+      replicate_ceiling_spearman: 0.71
+    - library: gfp_r2
+      data_path: data/tasks/chen_synonymous/gfp_r2.tsv
+      replicate_ceiling_pearson: 0.73
+      replicate_ceiling_spearman: 0.71
+    - library: tdh3
+      data_path: data/tasks/chen_synonymous/tdh3.tsv
+      replicate_ceiling_pearson: 0.72
+  cuperus_utr:
+    random_path: data/tasks/cuperus_mpra_5utr/random_utrs.tsv
+    native_path: data/tasks/cuperus_mpra_5utr/native_utrs.tsv
+    fasta_path: data/tasks/R64-1-1.fa
+  ytk_promoter:
+    labels_path: data/tasks/ytk_promoter/figure3a.tsv
+    constructs_path: data/tasks/ytk_promoter/constructs.tsv
+    constructs_fasta: data/tasks/ytk_promoter/constructs.fasta
+    fasta_path: data/tasks/R64-1-1.fa
+  brooks_scramble:
+    data_path: data/tasks/brooks_scramble
+  meneu_foreign_dna:
+    data_path: data/tasks/meneu_foreign_dna
+runs:
+- model: exoshorkie_hprt1
+  tasks:
+  - caudal_eqtl
+  - kita_eqtl
+  - rafi_mpra_marginalized
+  - shalem_mpra_marginalized
+  - wu_rfpins
+  - hong_igr
+  - brooks_scramble
+  - meneu_foreign_dna
+  - chen_synonymous
+  - cuperus_utr
+  - ytk_promoter
+  model_config:
+    checkpoint_path: data/models/exoshorkie/student_HPRT1_distilled.h5
+    batch_size: 64
+    autocast: false
+- model: exoshorkie_hprt1r
+  tasks:
+  - caudal_eqtl
+  - kita_eqtl
+  - rafi_mpra_marginalized
+  - shalem_mpra_marginalized
+  - wu_rfpins
+  - hong_igr
+  - brooks_scramble
+  - meneu_foreign_dna
+  - chen_synonymous
+  - cuperus_utr
+  - ytk_promoter
+  model_config:
+    checkpoint_path: data/models/exoshorkie/student_HPRT1R_distilled.h5
+    batch_size: 64
+    autocast: false
+- model: exoshorkie_dchr
+  tasks:
+  - caudal_eqtl
+  - kita_eqtl
+  - rafi_mpra_marginalized
+  - shalem_mpra_marginalized
+  - wu_rfpins
+  - hong_igr
+  - brooks_scramble
+  - meneu_foreign_dna
+  - chen_synonymous
+  - cuperus_utr
+  - ytk_promoter
+  model_config:
+    checkpoint_path: data/models/exoshorkie/student_dChr_distilled.h5
+    batch_size: 64
+    autocast: false
+- model: exoshorkie_chr7
+  tasks:
+  - caudal_eqtl
+  - kita_eqtl
+  - rafi_mpra_marginalized
+  - shalem_mpra_marginalized
+  - wu_rfpins
+  - hong_igr
+  - brooks_scramble
+  - meneu_foreign_dna
+  - chen_synonymous
+  - cuperus_utr
+  - ytk_promoter
+  model_config:
+    checkpoint_path: data/models/exoshorkie/student_chr7_distilled.h5
+    batch_size: 64
+    autocast: false
+- model: exoshorkie_mpneumo
+  tasks:
+  - caudal_eqtl
+  - kita_eqtl
+  - rafi_mpra_marginalized
+  - shalem_mpra_marginalized
+  - wu_rfpins
+  - hong_igr
+  - brooks_scramble
+  - meneu_foreign_dna
+  - chen_synonymous
+  - cuperus_utr
+  - ytk_promoter
+  model_config:
+    checkpoint_path: data/models/exoshorkie/student_Mpneumo_distilled.h5
+    batch_size: 64
+    autocast: false
+- model: exoshorkie_mmmyco
+  tasks:
+  - caudal_eqtl
+  - kita_eqtl
+  - rafi_mpra_marginalized
+  - shalem_mpra_marginalized
+  - wu_rfpins
+  - hong_igr
+  - brooks_scramble
+  - meneu_foreign_dna
+  - chen_synonymous
+  - cuperus_utr
+  - ytk_promoter
+  model_config:
+    checkpoint_path: data/models/exoshorkie/student_Mmmyco_distilled.h5
+    batch_size: 64
+    autocast: false
+- model: exoshorkie_ensemble
+  tasks:
+  - ytk_promoter
+  - meneu_foreign_dna
+  - caudal_eqtl
+  - kita_eqtl
+  - rafi_mpra_marginalized
+  - shalem_mpra_marginalized
+  - wu_rfpins
+  - hong_igr
+  - brooks_scramble
+  - chen_synonymous
+  - cuperus_utr
+  model_config:
+    checkpoint_dir: data/models/exoshorkie
+    batch_size: 64
+    autocast: false

@@ -90,6 +90,13 @@ def _shorkie_diagnostic_track_groups(
 PRIMARY_READOUT_NAME = "RNA-seq T0 × cassette CDS"
 
 
+def _default_targets_path(params_path: str | Path) -> Path:
+    adjacent = Path(params_path).with_name("targets.txt")
+    if adjacent.is_file():
+        return adjacent
+    return Path(__file__).resolve().parents[3] / "data/models/shorkie/targets.txt"
+
+
 class ShorkieHongPredictor(IGRInsertionExpressionPredictor):
     def __init__(
         self,
@@ -146,7 +153,9 @@ class ShorkieHongPredictor(IGRInsertionExpressionPredictor):
             cassette_fasta=cassette_fasta,
             track_subset=list(track_subset),
             batch_size=batch_size,
-            targets_path=targets_path,
+            targets_path=(
+                _default_targets_path(params_path) if targets_path is None else targets_path
+            ),
         )
 
     # ── Window-building helpers (shared between primary + diagnostic) ─

@@ -92,7 +92,6 @@ runs:
         shalem_mpra_marginalized,
         wu_rfpins,
         hong_igr,
-        chen_synonymous,
         cuperus_utr,
         ytk_promoter,
       ]
@@ -107,6 +106,32 @@ runs:
         - data/models/shorkie/checkpoints/f5.h5
         - data/models/shorkie/checkpoints/f6.h5
         - data/models/shorkie/checkpoints/f7.h5
+      batch_size: 32
+      use_rc: true
+
+  - model: shorkie_random_init
+    tasks:
+      [
+        caudal_eqtl,
+        kita_eqtl,
+        rafi_mpra_marginalized,
+        shalem_mpra_marginalized,
+        wu_rfpins,
+        hong_igr,
+        cuperus_utr,
+        ytk_promoter,
+      ]
+    model_config: &shorkie_random_init_config
+      params_path: data/models/shorkie_random_init/params.json
+      checkpoint_paths:
+        - data/models/shorkie_random_init/checkpoints/f0.h5
+        - data/models/shorkie_random_init/checkpoints/f1.h5
+        - data/models/shorkie_random_init/checkpoints/f2.h5
+        - data/models/shorkie_random_init/checkpoints/f3.h5
+        - data/models/shorkie_random_init/checkpoints/f4.h5
+        - data/models/shorkie_random_init/checkpoints/f5.h5
+        - data/models/shorkie_random_init/checkpoints/f6.h5
+        - data/models/shorkie_random_init/checkpoints/f7.h5
       batch_size: 32
       use_rc: true
 
@@ -142,12 +167,31 @@ runs:
       hf_revision: cba61e046a75e0b302e946aaf27f88a73824a8a9
       batch_size: 16
 
+  # Chen batches variants, each expanded over all host contexts.
+  - model: shorkie
+    tasks: [chen_synonymous]
+    model_config:
+      <<: *shorkie_config
+      batch_size: 4
+
+  - model: shorkie_random_init
+    tasks: [chen_synonymous]
+    model_config:
+      <<: *shorkie_random_init_config
+      batch_size: 4
+
   # Coverage tasks use the same weights with smaller batches, matching
   # the adapter defaults used by configs/brooks.yaml and configs/meneu.yaml.
   - model: shorkie
     tasks: [brooks_scramble, meneu_foreign_dna]
     model_config:
       <<: *shorkie_config
+      batch_size: 4
+
+  - model: shorkie_random_init
+    tasks: [brooks_scramble, meneu_foreign_dna]
+    model_config:
+      <<: *shorkie_random_init_config
       batch_size: 4
 
   - model: yorzoi

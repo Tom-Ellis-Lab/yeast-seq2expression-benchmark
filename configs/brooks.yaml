@@ -36,3 +36,18 @@ runs:
         - data/models/shorkie/checkpoints/f6.h5
         - data/models/shorkie/checkpoints/f7.h5
       use_rc: true
+
+  - model: shorkie_random_init
+    tasks: [brooks_scramble]
+    model_config:
+      params_path: data/models/shorkie_random_init/params.json
+      checkpoint_paths:
+        - data/models/shorkie_random_init/checkpoints/f0.h5
+        - data/models/shorkie_random_init/checkpoints/f1.h5
+        - data/models/shorkie_random_init/checkpoints/f2.h5
+        - data/models/shorkie_random_init/checkpoints/f3.h5
+        - data/models/shorkie_random_init/checkpoints/f4.h5
+        - data/models/shorkie_random_init/checkpoints/f5.h5
+        - data/models/shorkie_random_init/checkpoints/f6.h5
+        - data/models/shorkie_random_init/checkpoints/f7.h5
+      use_rc: true
