@@ -2,6 +2,7 @@
 
 Run from the repository root with PYTHONPATH=src. No inference or downloads.
 The optional historical comparison uses only the local results/brooks tree.
+Generated audit files default to the configured results directory.
 """
 from __future__ import annotations
 
@@ -113,10 +114,14 @@ def unchanged_geometry_check(legacy_root: Path, current: dict) -> dict:
             "raw_files": {str(directory / name): file_record(directory / name) for name in RAW_FILES}}
 
 
-def report(config: Path, output_json: Path, output_csv: Path,
+def report(config: Path, output_json: Path | None, output_csv: Path | None,
            legacy_summary: Path) -> None:
     config_path = config
     config = load_config(config_path)
+    if output_json is None:
+        output_json = config.out_dir / "brooks_native_v2_results.json"
+    if output_csv is None:
+        output_csv = config.out_dir / "brooks_native_v2_predictions.csv"
     assert {run.model for run in config.runs} == set(MODELS)
     source_digest = hashlib.sha256()
     sources = {}
@@ -251,7 +256,7 @@ def report(config: Path, output_json: Path, output_csv: Path,
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, default=Path("configs/brooks_native_v2.yaml"))
-    parser.add_argument("--output-json", type=Path, default=Path("docs/benchmarks/brooks_native_v2_results.json"))
-    parser.add_argument("--output-csv", type=Path, default=Path("docs/benchmarks/brooks_native_v2_predictions.csv"))
+    parser.add_argument("--output-json", type=Path, help="Audit JSON path (default: configured results directory)")
+    parser.add_argument("--output-csv", type=Path, help="Predictions CSV path (default: configured results directory)")
     parser.add_argument("--legacy-summary", type=Path, default=Path("results/brooks/compare__shared/summary.json"))
     report(**vars(parser.parse_args()))

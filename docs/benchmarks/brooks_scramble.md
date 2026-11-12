@@ -90,11 +90,12 @@ variants use eight folds and reverse-complement averaging.
 ![Shared-cohort LFC metrics for all four models, with per-run ceilings.](../../img/results/brooks_scramble/shared_lfc.svg)
 ![Per-sample agreement on the shared cohort.](../../img/results/brooks_scramble/shared_per_sample.svg)
 
-The [audited results and provenance](brooks_native_v2_results.json) include
-input hashes and the inference commit; the [per-sample predictions](brooks_native_v2_predictions.csv)
-contain all 576 scored sample/run pairs. Runtime outputs are under
-`results/brooks_native_v2/`. Regenerate the audit after inference with
-`python scripts/docs/report_brooks_native_v2.py`.
+Runtime outputs are under `results/brooks_native_v2/`. After inference, run
+`python scripts/docs/report_brooks_native_v2.py` to generate
+`brooks_native_v2_results.json` (audited metrics, input hashes and inference
+commit) and `brooks_native_v2_predictions.csv` (all 576 scored sample/run pairs)
+in the configured results directory. These generated data files are not tracked
+in Git.
 
 ## Data
 

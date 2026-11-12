@@ -197,9 +197,9 @@ that observed class. Shape diagnostics remain outside the headline comparison
 because the models use different output windows.
 
 Inference used `configs/brooks_native_v2.yaml` at commit `21cc528` on RTX A6000
-GPU 0. See the [audited metrics and provenance](benchmarks/brooks_native_v2_results.json)
-and [per-sample predictions](benchmarks/brooks_native_v2_predictions.csv).
-Full outputs are in `results/brooks_native_v2/`.
+GPU 0. Full outputs are in `results/brooks_native_v2/`. Run
+`python scripts/docs/report_brooks_native_v2.py` after inference to generate
+the audit JSON and per-sample predictions CSV in that results directory.
 
 ## Cuperus 5′-UTR
 
