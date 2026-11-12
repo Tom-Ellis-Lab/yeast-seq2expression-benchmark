@@ -20,6 +20,7 @@ per-metric tables for each comparison live next to the runs in
 | [Chen synonymous MPRA](#chen-synonymous-mpra) | CAI, CodonTransformer, Shorkie, Yorzoi | Pearson r / Spearman ρ | **Mixed** (Shorkie on GFP, CAI on TDH3) |
 | [Wu RFP insertions](#wu-rfp-insertions) | Shorkie, Yorzoi | Pearson r / Spearman ρ | **Neither** (both ≈ 0) |
 | [Hong IGR insertions](#hong-igr-insertions) | Shorkie, Yorzoi | Spearman ρ (held-out test set) | **Neither** (both ≈ 0) |
+| [Gui GFP RNA](#gui-gfp-rna) | Shorkie, Shorkie random init, Yorzoi, ExoShorkie ensemble | Spearman ρ | **None established** (all 95% CIs include zero) |
 | [Brooks SCRaMBLE](#brooks-scramble) | Shorkie, Yorzoi | LFC direction balanced acc., per JS94 run | **Yorzoi** (all 3 runs) |
 | [Cuperus 5′-UTR](#cuperus-5-utr) | Shorkie, Yorzoi | Spearman ρ (+ partial correlation) | **Shorkie** |
 | [Lee YTK promoters](#lee-ytk-promoters) | Shorkie, Yorzoi | consensus dynamic-range recovery + Spearman ρ | **Shorkie** |
@@ -138,6 +139,33 @@ preserved intergenic regions. ([spec](benchmarks/hong_igr.md))
 | Spearman ρ (secondary split, n=98) | -0.2687 | -0.0728 |
 
 **Winner: Neither** — both ≈ 0 / negative (informative negative).
+
+## Gui GFP RNA
+
+GFP RNA abundance across 205 source-resolved heterozygous gene replacements.
+All four models score the same genotypes and complete 717 bp GFP CDS, using
+identical labels, constructs and reference input files.
+([spec and full results](benchmarks/gui_gfp_rna.md))
+
+| Model | Spearman ρ | 95% bootstrap CI |
+| --- | ---: | ---: |
+| Shorkie, eight folds + RC | 0.060 | −0.077 to 0.182 |
+| Shorkie random init, eight folds + RC | 0.115 | −0.031 to 0.267 |
+| Yorzoi, all Illumina + RC | 0.096 | −0.045 to 0.233 |
+| ExoShorkie, six-student ensemble | −0.110 | −0.247 to 0.032 |
+
+**Winner: None established.** All intervals include zero. Shorkie trained from
+random initialization uses the published trained weights and the same 1,014
+RNA-seq tracks as pretrained Shorkie. ExoShorkie averages the six students'
+decoded, nonnegative CPM coverage on the reporter strand.
+
+Shorkie and Yorzoi retain their 2026-11-11 runs at commit `b356a5f` on RTX A6000
+GPU 1. The other two ran on 2026-11-12 at commit `1e91d39` on RTX A6000 GPU 0,
+using `configs/default.yaml`. Runtime outputs are under
+`results/default/<model>__gui_gfp_rna/`, with the original run metadata preserved.
+See the [four-model comparison](../img/results/gui_gfp_rna/comparison.png) and
+the task page for secondary correlations, IMP4 sensitivity and individual plots.
+The historical 11-task random-init appendix below predates this Gui run.
 
 ## Brooks SCRaMBLE
 

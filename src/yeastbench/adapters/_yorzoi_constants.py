@@ -20,6 +20,11 @@ CROP_BP_EACH_SIDE: int = 996  # (4992 - 3000) // 2
 YORZOI_PLUS_TRACK_IDS: list[int] = list(range(0, 81))
 YORZOI_MINUS_TRACK_IDS: list[int] = list(range(81, 162))
 
+# All 11 Illumina samples: 10 human BAC/cosmid samples plus SRR21628668.
+# The latter is the BY4741 UBR1 promoter variant; it is not a Nanopore track.
+YORZOI_ILLUMINA_PLUS_TRACK_IDS: list[int] = list(range(0, 11))
+YORZOI_ILLUMINA_MINUS_TRACK_IDS: list[int] = list(range(81, 92))
+
 # Exogenous-human Illumina RNA-seq plus-track indices, from
 # `yorzoi/track_annotation.json` plus axis: idx 0..9 are the 10 human
 # BAC/cosmid RNA-seq samples (`759h10_NC_000004.12`, `802D1new_NC_…`,

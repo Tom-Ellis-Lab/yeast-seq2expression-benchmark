@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Protocol, Sequence, runtime_checkable
+from typing import TYPE_CHECKING, Mapping, Protocol, Sequence, runtime_checkable
 
 import numpy as np
+
+if TYPE_CHECKING:
+    from yeastbench.adapters._gui_scaffold import GuiLocus
 
 
 @dataclass(frozen=True)
@@ -29,6 +32,24 @@ class CassetteExpressionPredictor(Protocol):
     scalar per locus, aligned to input order."""
 
     def predict_expressions(self, loci: Sequence) -> np.ndarray: ...
+
+
+@runtime_checkable
+class GuiReporterExpressionPredictor(Protocol):
+    """Predict one GFP RNA score per verified heterozygous replacement locus.
+
+    Scores sum raw per-base RNA predictions over the entire GFP CDS, in input
+    order. Unscoreable loci receive NaN and an entry in prediction_exclusions.
+    The reporter occurs only on the edited homolog; no WT subtraction or
+    averaging with the unedited homolog is performed.
+    """
+
+    @property
+    def prediction_exclusions(self) -> Mapping[str, str]:
+        """Locus identifier to reason for the most recent prediction call."""
+        ...
+
+    def predict_expressions(self, loci: Sequence[GuiLocus]) -> np.ndarray: ...
 
 
 @runtime_checkable

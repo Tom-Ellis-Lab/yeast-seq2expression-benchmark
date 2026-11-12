@@ -153,6 +153,14 @@ ARTIFACTS: tuple[InputArtifact, ...] = (
         include=("gfp_r1.tsv", "gfp_r2.tsv", "tdh3.tsv", "marginalized_hosts.json"),
     ),
     _task(
+        "gui",
+        dest="data/tasks/gui",
+        needed_by=("gui_gfp_rna",),
+        requires=(_REFS,),
+        include=("gui_gfp_rna_v1.tsv", "constructs.fasta"),
+        license=License.CC_BY_NC_4_0,  # Gui et al.; attribution in the task docs.
+    ),
+    _task(
         "brooks_scramble",
         dest="data/tasks/brooks_scramble",
         needed_by=("brooks_scramble",),

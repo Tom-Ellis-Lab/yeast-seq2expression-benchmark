@@ -19,6 +19,7 @@ from yeastbench.adapters.protocols import (
     CassetteExpressionPredictor,
     CoverageTrackPredictor,
     FivePrimeUtrReporterExpressionPredictor,
+    GuiReporterExpressionPredictor,
     IGRInsertionExpressionPredictor,
     IntegratedPromoterPanelPredictor,
     LocalCodingVariantPredictor,
@@ -31,6 +32,7 @@ from yeastbench.benchmarks.base import Benchmark, BenchmarkInfo
 from yeastbench.benchmarks.chen import ChenSynonymousBenchmark
 from yeastbench.benchmarks.eqtl import EQTLClassificationBenchmark
 from yeastbench.benchmarks.hong_igr import HongIGRInsertionBenchmark
+from yeastbench.benchmarks.gui_gfp_rna import GuiGFPRNABenchmark
 from yeastbench.benchmarks.mpra import MPRAMarginalizedBenchmark
 from yeastbench.benchmarks.shalem import ShalemMPRAMarginalizedBenchmark
 from yeastbench.benchmarks.rfpins import RFPInsertionBenchmark
@@ -198,6 +200,22 @@ def _yorzoi_brooks_adapter(device, **cfg):
     return YorzoiBrooksPredictor.from_pretrained(device=device, **cfg)
 
 
+def _shorkie_gui_adapter(device, fasta_path, constructs_path, **cfg):
+    from yeastbench.adapters.shorkie_gui import ShorkieGuiPredictor
+
+    return ShorkieGuiPredictor.from_checkpoints(
+        fasta_path=fasta_path, constructs_path=constructs_path, device=device, **cfg,
+    )
+
+
+def _yorzoi_gui_adapter(device, fasta_path, constructs_path, **cfg):
+    from yeastbench.adapters.yorzoi_gui import YorzoiGuiPredictor
+
+    return YorzoiGuiPredictor.from_pretrained(
+        fasta_path=fasta_path, constructs_path=constructs_path, device=device, **cfg,
+    )
+
+
 def _shorkie_brooks_adapter(device, **cfg):
     from yeastbench.adapters.shorkie_brooks import ShorkieBrooksPredictor
 
@@ -253,6 +271,7 @@ def _shorkie_meneu_adapter(device, **cfg):
 # as a keyword argument.
 REFS_FIELDS: tuple[str, ...] = ("fasta_path", "gtf_path")
 FASTA_ONLY: tuple[str, ...] = ("fasta_path",)
+GUI_FIELDS: tuple[str, ...] = ("fasta_path", "constructs_path")
 CHEN_FIELDS: tuple[str, ...] = (
     "fasta_path", "hosts_path", "data_dir",
 )
@@ -263,6 +282,7 @@ SHORKIE_ADAPTERS: dict[type, tuple[Callable, tuple[str, ...]]] = {
     TerminatorMarginalizedExpressionPredictor: (_shorkie_shalem_adapter, REFS_FIELDS),
     CassetteExpressionPredictor: (_shorkie_wu_adapter, REFS_FIELDS),
     IGRInsertionExpressionPredictor: (_shorkie_hong_adapter, FASTA_ONLY),
+    GuiReporterExpressionPredictor: (_shorkie_gui_adapter, GUI_FIELDS),
     FivePrimeUtrReporterExpressionPredictor: (_shorkie_cuperus_adapter, FASTA_ONLY),
     IntegratedPromoterPanelPredictor: (_shorkie_ytk_adapter, FASTA_ONLY),
     CoverageTrackPredictor: (_shorkie_brooks_adapter, ()),
@@ -276,6 +296,7 @@ YORZOI_ADAPTERS: dict[type, tuple[Callable, tuple[str, ...]]] = {
     TerminatorMarginalizedExpressionPredictor: (_yorzoi_shalem_adapter, REFS_FIELDS),
     CassetteExpressionPredictor: (_yorzoi_wu_adapter, REFS_FIELDS),
     IGRInsertionExpressionPredictor: (_yorzoi_hong_adapter, FASTA_ONLY),
+    GuiReporterExpressionPredictor: (_yorzoi_gui_adapter, GUI_FIELDS),
     FivePrimeUtrReporterExpressionPredictor: (_yorzoi_cuperus_adapter, FASTA_ONLY),
     IntegratedPromoterPanelPredictor: (_yorzoi_ytk_adapter, FASTA_ONLY),
     CoverageTrackPredictor: (_yorzoi_brooks_adapter, ()),
@@ -356,6 +377,7 @@ def _exoshorkie_adapter(task, model, batch_size, **cfg):
         TerminatorMarginalizedExpressionPredictor: (adapters.ExoShorkieShalemPredictor, REFS_FIELDS),
         CassetteExpressionPredictor: (adapters.ExoShorkieWuPredictor, REFS_FIELDS),
         IGRInsertionExpressionPredictor: (adapters.ExoShorkieHongPredictor, FASTA_ONLY),
+        GuiReporterExpressionPredictor: (adapters.ExoShorkieGuiPredictor, GUI_FIELDS),
         FivePrimeUtrReporterExpressionPredictor: (adapters.ExoShorkieCuperusPredictor, FASTA_ONLY),
         IntegratedPromoterPanelPredictor: (adapters.ExoShorkieYTKPredictor, FASTA_ONLY),
         CoverageTrackPredictor: (adapters.ExoShorkieBrooksPredictor, ()),
@@ -673,6 +695,26 @@ def _build_ytk_promoter(
     )
 
 
+def _build_gui_gfp_rna(
+    distribution_dir: str | Path,
+    fasta_path: str | Path,
+    bootstrap_samples: int = 2000,
+    bootstrap_seed: int = 57,
+) -> Benchmark:
+    return GuiGFPRNABenchmark(
+        distribution_dir=Path(distribution_dir),
+        fasta_path=Path(fasta_path),
+        bootstrap_samples=bootstrap_samples,
+        bootstrap_seed=bootstrap_seed,
+        info=BenchmarkInfo(
+            name="gui_gfp_rna",
+            version="v1",
+            description="Gui et al. GFP RNA abundance after heterozygous gene replacement",
+            distribution_uri="data/tasks/gui",
+        ),
+    )
+
+
 TASKS: dict[str, TaskFactory] = {
     "caudal_eqtl": _build_caudal_eqtl,
     "kita_eqtl": _build_kita_eqtl,
@@ -680,6 +722,7 @@ TASKS: dict[str, TaskFactory] = {
     "shalem_mpra_marginalized": _build_shalem_mpra_marginalized,
     "wu_rfpins": _build_wu_rfpins,
     "hong_igr": _build_hong_igr,
+    "gui_gfp_rna": _build_gui_gfp_rna,
     "brooks_scramble": _build_brooks_scramble,
     "meneu_foreign_dna": _build_meneu,
     "chen_synonymous": _build_chen,

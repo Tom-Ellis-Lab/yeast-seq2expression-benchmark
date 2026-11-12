@@ -243,7 +243,8 @@ def test_config_has_all_students_tasks_and_unique_output_paths():
 
     config = load_config("configs/exoshorkie_students.yaml")
     assert {r.model for r in config.runs} == set(STUDENT_MODELS)
-    assert len({(r.model, t) for r in config.runs for t in r.tasks}) == 66
+    model_tasks = [(run.model, task) for run in config.runs for task in run.tasks]
+    assert len(model_tasks) == len(set(model_tasks))
     for run in config.runs:
         assert set(run.tasks) == set(TASKS)
         artifacts = artifacts_for(models=[run.model])
@@ -332,6 +333,8 @@ def test_real_data_task_scaffolds(monkeypatch, ensemble):
         if name == "wu_rfpins":
             loci = [locus for locus in task.loci if locus is not None][:2]
             scores = adapter.predict_expressions(loci)
+        elif name == "gui_gfp_rna":
+            scores = adapter.predict_expressions(task.loci[:2])
         elif name == "hong_igr":
             loci = task.loci[:2]
             scores = adapter.predict_expressions(loci)

@@ -42,6 +42,11 @@ tasks_config:
     labels_path: data/tasks/hong/hong_igr_v1.tsv
     cassette_seq: data/tasks/hong/expression_cassette.fasta
     fasta_path: data/tasks/R64-5-1.fa
+  gui_gfp_rna:
+    distribution_dir: data/tasks/gui
+    fasta_path: data/tasks/R64-5-1.fa
+    bootstrap_samples: 2000
+    bootstrap_seed: 57
   chen_synonymous:
     fasta_path: data/tasks/R64-1-1.fa
     hosts_path: data/tasks/chen_synonymous/marginalized_hosts.json
@@ -147,6 +152,33 @@ runs:
       hf_repo: tom-ellis-lab/yorzoi
       batch_size: 64
       use_rc: true
+
+  # Gui uses the shared model settings with smaller inference batches.
+  - model: shorkie
+    tasks: [gui_gfp_rna]
+    model_config:
+      <<: *shorkie_config
+      batch_size: 8
+
+  - model: shorkie_random_init
+    tasks: [gui_gfp_rna]
+    model_config:
+      <<: *shorkie_random_init_config
+      batch_size: 8
+
+  - model: yorzoi
+    tasks: [gui_gfp_rna]
+    model_config:
+      <<: *yorzoi_config
+      hf_revision: cba61e046a75e0b302e946aaf27f88a73824a8a9
+      batch_size: 16
+
+  - model: exoshorkie_ensemble
+    tasks: [gui_gfp_rna]
+    model_config:
+      checkpoint_dir: data/models/exoshorkie
+      batch_size: 8
+      autocast: false
 
   # Chen batches variants, each expanded over all host contexts.
   - model: shorkie
