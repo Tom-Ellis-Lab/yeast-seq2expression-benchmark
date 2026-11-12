@@ -605,7 +605,7 @@ def _build_brooks_scramble(
         data_path=Path(data_path),
         info=BenchmarkInfo(
             name="brooks_scramble",
-            version="v1",
+            version="v2",
             description="Brooks et al. SCRaMBLE structural-rearrangement effect",
             distribution_uri="",
         ),

@@ -21,7 +21,7 @@ per-metric tables for each comparison live next to the runs in
 | [Wu RFP insertions](#wu-rfp-insertions) | Shorkie, Yorzoi | Pearson r / Spearman ρ | **Neither** (both ≈ 0) |
 | [Hong IGR insertions](#hong-igr-insertions) | Shorkie, Yorzoi | Spearman ρ (held-out test set) | **Neither** (both ≈ 0) |
 | [Gui GFP RNA](#gui-gfp-rna) | Shorkie, Shorkie random init, Yorzoi, ExoShorkie ensemble | Spearman ρ | **None established** (all 95% CIs include zero) |
-| [Brooks SCRaMBLE](#brooks-scramble) | Shorkie, Yorzoi | LFC direction balanced acc., per JS94 run | **Yorzoi** (all 3 runs) |
+| [Brooks SCRaMBLE](#brooks-scramble) | Shorkie, Yorzoi, ExoShorkie, Shorkie random-init | LFC direction balanced acc., per JS94 run | **Yorzoi** (all 3 runs) |
 | [Cuperus 5′-UTR](#cuperus-5-utr) | Shorkie, Yorzoi | Spearman ρ (+ partial correlation) | **Shorkie** |
 | [Lee YTK promoters](#lee-ytk-promoters) | Shorkie, Yorzoi | consensus dynamic-range recovery + Spearman ρ | **Shorkie** |
 | [Meneu foreign DNA](#meneu-foreign-dna) | Shorkie, Yorzoi | per-window shape Pearson / JS↓ | **Yorzoi** |
@@ -169,41 +169,37 @@ The historical 11-task random-init appendix below predates this Gui run.
 
 ## Brooks SCRaMBLE
 
-SCRaMBLE genome rearrangement; per-construct log-fold-change of CDS coverage vs.
-an unscrambled parental control, against a leave-one-out reproducibility ceiling.
-([spec](benchmarks/brooks_scramble.md))
+SCRaMBLE genome rearrangement; per-construct log-fold-change of CDS coverage
+against a parental control ([spec](benchmarks/brooks_scramble.md)). All four
+models were rerun on 2026-11-12 with task version `v2`, which uses each
+sequence's own CDS coordinates and strand. These scores supersede `v1`.
 
-Shared cohort (n = 327 — the intersection both models' receptive fields support,
-the apples-to-apples view). Metrics are reported **per JS94 parental run** and
-never averaged across the three: each run scores a different set of genes (a
-gene needs enough reads *in that run*, and the cutoff falls per gene), so the
-cohorts differ in size and composition and each has its own ceiling. Compare
-models within a row, never across rows.
+The shared cohort remains 327 samples. Runs support different subsets, so
+metrics are reported separately and never averaged across the three runs.
 
-| metric | run (n) | Shorkie | Yorzoi | LOO ceiling |
-| --- | --- | --- | --- | --- |
-| LFC direction balanced acc. | JS94_r0 (205) | 0.514 | **0.624** | 0.761 |
-| | JS94_r1 (80) | 0.613 | **0.650** | 0.963 |
-| | JS94_r2 (291) | 0.534 | **0.630** | 0.694 |
-| LFC Spearman ρ | JS94_r0 (205) | -0.065 | **0.439** | 0.779 |
-| | JS94_r1 (80) | -0.157 | **0.275** | 0.955 |
-| | JS94_r2 (291) | 0.109 | **0.224** | 0.589 |
-| LFC Pearson r | JS94_r0 (205) | -0.087 | **0.297** | 0.789 |
-| | JS94_r1 (80) | 0.004 | **0.212** | 0.954 |
-| | JS94_r2 (291) | 0.023 | **0.153** | 0.671 |
+| Metric | Run (n) | Shorkie | Yorzoi | ExoShorkie | Shorkie random-init | LOO ceiling |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| LFC direction balanced accuracy | JS94_r0 (205) | 0.513 | **0.593** | 0.512 | 0.534 | 0.761 |
+|  | JS94_r1 (80) | 0.625 | **0.738** | 0.450 | 0.512 | 0.963 |
+|  | JS94_r2 (291) | 0.548 | **0.602** | 0.553 | 0.559 | 0.694 |
+| LFC Spearman ρ | JS94_r0 (205) | -0.083 | **0.461** | 0.004 | 0.085 | 0.779 |
+|  | JS94_r1 (80) | -0.171 | **0.236** | 0.037 | 0.063 | 0.955 |
+|  | JS94_r2 (291) | 0.153 | **0.337** | 0.169 | 0.246 | 0.589 |
+| LFC Pearson r | JS94_r0 (205) | -0.123 | **0.391** | -0.058 | 0.026 | 0.789 |
+|  | JS94_r1 (80) | -0.104 | **0.198** | -0.113 | -0.087 | 0.954 |
+|  | JS94_r2 (291) | 0.201 | 0.384 | 0.228 | **0.420** | 0.671 |
 
-**Winner: Yorzoi** — leads Shorkie on all three metrics in all three parental
-runs, nine out of nine. Shorkie sits at chance throughout. Both stay well short
-of the reproducibility ceiling in every run. Full-set numbers (Shorkie n=528,
-Yorzoi n=327) are kept as secondary in `results/brooks/compare/`. The
-coverage-**shape** metric (Yorzoi 0.83 / Shorkie 0.42 Pearson) is **deferred to
-v2** — cross-model shape numbers aren't comparable until a common readout
-window is fixed (see the [spec](benchmarks/brooks_scramble.md)).
+Yorzoi leads on direction accuracy and Spearman correlation in every run;
+Random-init Shorkie leads on Run 3 Pearson correlation. Correlations remain
+below the leave-one-out ceilings, computed on 198 / 80 / 169 samples.
+Run 2 has only measured decreases, so its direction score is the recall for
+that observed class. Shape diagnostics remain outside the headline comparison
+because the models use different output windows.
 
-> 2026-07-31 Modal run, recomputed per replicate 2026-09-02 from the saved
-> per-replicate arrays — the models were not re-run. The earlier single-number
-> headline averaged these three correlations, which weighted the 80-sample run
-> equally with the 291-sample one.
+Inference used `configs/brooks_native_v2.yaml` at commit `21cc528` on RTX A6000
+GPU 0. Full outputs are in `results/brooks_native_v2/`. Run
+`python scripts/docs/report_brooks_native_v2.py` after inference to generate
+the audit JSON and per-sample predictions CSV in that results directory.
 
 ## Cuperus 5′-UTR
 
@@ -289,12 +285,13 @@ and run metadata remain with the local benchmark outputs.
 | Chen | mean r / mean ρ | — | 0.4708 / 0.4369 | 63.3 min |
 | Wu | Pearson r / Spearman ρ | -0.0387 / -0.0290 | 0.0582 / 0.1040 | 1.5 min |
 | Hong | held-out ρ / fitted-track ρ | -0.1475 / 0.1826 | 0.3520 / 0.1621 | 0.5 min |
-| Brooks | shared-cohort balanced accuracy, r0 / r1 / r2 | 0.5135 / 0.6125 / 0.5339 | 0.5234 / 0.4875 / 0.5462 | 2.3 min |
+| Brooks (v2) | shared-cohort balanced accuracy, r0 / r1 / r2 | 0.5128 / 0.6250 / 0.5476 | 0.5338 / 0.5125 / 0.5588 | 2.6 min |
 | Cuperus | random clean / partial ρ; native / partial ρ | — | 0.1565 / 0.1510 / 0.2548 / 0.2420 | 268.3 min |
 | YTK | range recovery / Spearman ρ | 0.1650 / 0.6526 | 0.0626 / 0.8035 | 0.0 min |
 | Meneu | shape r / JS↓: M. pneumoniae; M. mycoides | 0.0912 / 0.0982 / 0.2638 / 0.2844 | 0.1405 / 0.0851 / 0.0616 / 0.3867 | 0.2 min |
 
-Brooks uses the same 698 shared sample IDs before and after adding random-init.
+The Brooks row was updated after the 2026-11-12 v2 scoring correction; other
+rows retain their historical runs. Brooks uses the same 698 shared sample IDs.
 Its three replicate metrics are reported separately. The raw-result audit checks
 all reconstructable metrics; Brooks's secondary shape diagnostics are available
 only in its saved summary because coverage arrays are not persisted.

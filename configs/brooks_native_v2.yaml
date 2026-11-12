@@ -1,0 +1,58 @@
+# Brooks rerun with native gene geometry used for every parental prediction.
+# Keep the four published model definitions; write corrected results separately.
+out_dir: results/brooks_native_v2
+device: cuda
+
+tasks_config:
+  brooks_scramble:
+    data_path: data/tasks/brooks_scramble
+
+runs:
+  - model: shorkie
+    tasks: [brooks_scramble]
+    model_config:
+      params_path: data/models/shorkie/params.json
+      checkpoint_paths:
+        - data/models/shorkie/checkpoints/f0.h5
+        - data/models/shorkie/checkpoints/f1.h5
+        - data/models/shorkie/checkpoints/f2.h5
+        - data/models/shorkie/checkpoints/f3.h5
+        - data/models/shorkie/checkpoints/f4.h5
+        - data/models/shorkie/checkpoints/f5.h5
+        - data/models/shorkie/checkpoints/f6.h5
+        - data/models/shorkie/checkpoints/f7.h5
+      batch_size: 4
+      use_rc: true
+
+  - model: shorkie_random_init
+    tasks: [brooks_scramble]
+    model_config:
+      params_path: data/models/shorkie_random_init/params.json
+      checkpoint_paths:
+        - data/models/shorkie_random_init/checkpoints/f0.h5
+        - data/models/shorkie_random_init/checkpoints/f1.h5
+        - data/models/shorkie_random_init/checkpoints/f2.h5
+        - data/models/shorkie_random_init/checkpoints/f3.h5
+        - data/models/shorkie_random_init/checkpoints/f4.h5
+        - data/models/shorkie_random_init/checkpoints/f5.h5
+        - data/models/shorkie_random_init/checkpoints/f6.h5
+        - data/models/shorkie_random_init/checkpoints/f7.h5
+      batch_size: 4
+      use_rc: true
+
+  - model: yorzoi
+    tasks: [brooks_scramble]
+    model_config:
+      hf_repo: tom-ellis-lab/yorzoi
+      hf_revision: cba61e046a75e0b302e946aaf27f88a73824a8a9
+      batch_size: 16
+      use_rc: true
+      autocast: true
+      track_mode: matched
+
+  - model: exoshorkie_ensemble
+    tasks: [brooks_scramble]
+    model_config:
+      checkpoint_dir: data/models/exoshorkie
+      batch_size: 64
+      autocast: false
