@@ -16,6 +16,7 @@ import h5py
 import torch
 from torch import nn
 
+from yeastbench.models.exoshorkie.constants import RELEASED_SPECIES_INDEX
 from yeastbench.models.shared.shorkie.backbone import ShorkieBackbone
 from yeastbench.models.shared.shorkie.encoding import expand_species_encoding
 from yeastbench.models.shared.shorkie.keras_weights import (
@@ -42,7 +43,9 @@ class ExoShorkieModule(nn.Module):
         self.distill_head = nn.Linear(self.backbone.out_channels, 1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = expand_species_encoding(x, encode_n=True)
+        x = expand_species_encoding(
+            x, encode_n=True, species_index=RELEASED_SPECIES_INDEX,
+        )
         return self.distill_head(self.backbone(x)).squeeze(-1)
 
     @classmethod

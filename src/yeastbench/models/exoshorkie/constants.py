@@ -14,6 +14,11 @@ compute_logz_stats_multi with the same crop/bin sizes. Round to four decimals.
 Source: https://github.com/OrensteinLab/ExoShorkie/tree/v1.0.1/Motif_visualization
 """
 
+# Released checkpoints predate upstream's change to 109. Across the six
+# students, only species channel 114 has different first-convolution weights,
+# agreeing with the v1.0.1 training loader. Keep Shorkie's default independent.
+RELEASED_SPECIES_INDEX = 114
+
 # Keys match the upstream distilled-student names; values are (mu, sigma).
 NORMALIZATION_STATS: dict[str, tuple[float, float]] = {
     "Mpneumo": (3.5228, 1.7232),

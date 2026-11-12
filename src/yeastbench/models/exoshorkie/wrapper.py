@@ -3,7 +3,9 @@
 Forward and reverse-complement inputs predict opposite genomic strands.
 They remain separate until an explicit unstranded sum. Normalization uses
 the authors' whole-dataset notebook statistics, preserving their
-``expm1(z * sigma + mu)`` convention without clipping negative values.
+``expm1(z * sigma + mu)`` convention. Benchmark coverage is clamped at zero
+before any strand or region aggregation; ``to_coverage`` exposes the exact,
+unclipped inverse for upstream parity checks.
 """
 
 from __future__ import annotations
@@ -20,10 +22,10 @@ if TYPE_CHECKING:
     from yeastbench.models.exoshorkie.nn import ExoShorkieModule
 
 from yeastbench.models.exoshorkie.checkpoints import get_checkpoint
-from yeastbench.models.shared.shorkie.encoding import reverse_complement
+from yeastbench.models.exoshorkie.readouts import CoverageReadouts
 
 
-class ExoShorkie:
+class ExoShorkie(CoverageReadouts):
     """Single-student inference wrapper; ``variant`` selects normalization."""
 
     def __init__(
@@ -44,6 +46,8 @@ class ExoShorkie:
         self.output_bins = model.backbone.output_bins
         self.bin_width = model.backbone.bin_width
         self.crop_bp_each_side = model.backbone.crop_bp_each_side
+        self._coverage_bins_seen = 0
+        self._negative_coverage_bins = torch.zeros((), dtype=torch.int64, device=self.device)
 
     @classmethod
     def from_checkpoint(
@@ -111,29 +115,18 @@ class ExoShorkie:
         )
 
     def forward_coverage_binned(self, x: torch.Tensor) -> torch.Tensor:
-        """Input-orientation coverage bin totals: ``(B, bins)``."""
-        return self.to_coverage(self.forward_normalized_binned(x))
+        """Nonnegative input-orientation CPM coverage totals: ``(B, bins)``."""
+        coverage = self.to_coverage(self.forward_normalized_binned(x))
+        self._coverage_bins_seen += coverage.numel()
+        self._negative_coverage_bins += (coverage < 0).sum()
+        return coverage.clamp_min(0)
 
-    def forward_strands_binned(self, x: torch.Tensor) -> torch.Tensor:
-        """Coverage ``(B, 2, bins)`` in input coordinates, strands ``(+,-)``.
-
-        Reverse-complement DNA channels before adding species encoding;
-        the explicit N channel, if supplied, only reverses positions.
-        Convert each orientation to coverage before any strand reduction.
-        """
-        import torch
-
-        plus = self.forward_coverage_binned(x)
-        x_rc = reverse_complement(x)
-        minus = self.forward_coverage_binned(x_rc).flip(dims=[1])
-        return torch.stack((plus, minus), dim=1)
-
-    def forward_strands_perbase(self, x: torch.Tensor) -> torch.Tensor:
-        """Stranded coverage ``(B, 2, bins * bin_width)`` over the crop."""
-        binned = self.forward_strands_binned(x)
-        return binned.repeat_interleave(self.bin_width, dim=-1) / self.bin_width
-
-    def forward_unstranded_perbase(self, x: torch.Tensor) -> torch.Tensor:
-        """Sum both strands and spread each bin total uniformly over bases."""
-        binned = self.forward_strands_binned(x).sum(dim=1)
-        return binned.repeat_interleave(self.bin_width, dim=-1) / self.bin_width
+    def coverage_statistics(self) -> dict:
+        """Clipping frequency over processed bins, including repeated contexts."""
+        negative = int(self._negative_coverage_bins.item())
+        return {
+            "coverage_bins_processed": self._coverage_bins_seen,
+            "negative_bins_clipped": negative,
+            "negative_bin_fraction": negative / self._coverage_bins_seen
+            if self._coverage_bins_seen else 0.0,
+        }

@@ -11,6 +11,7 @@ R64_SPECIES_INDEX = 109
 
 def expand_species_encoding(
     x: torch.Tensor, *, encode_n: bool = False,
+    species_index: int = R64_SPECIES_INDEX,
 ) -> torch.Tensor:
     """Expand channels-first DNA to the 170 input features used by the trunk.
 
@@ -22,12 +23,14 @@ def expand_species_encoding(
     """
     if x.ndim != 3 or x.shape[1] not in (DNA_CHANNELS, SPECIES_OFFSET):
         raise ValueError("Expected DNA input with shape (B, 4, L) or (B, 5, L)")
+    if not 0 <= species_index < NUM_SPECIES:
+        raise ValueError(f"Species index must be in [0, {NUM_SPECIES})")
     batch, channels, length = x.shape
     expanded = x.new_zeros(batch, SPECIES_OFFSET + NUM_SPECIES, length)
     expanded[:, :channels, :] = x
     if channels == DNA_CHANNELS and encode_n:
         expanded[:, DNA_CHANNELS, :] = (x == 0).all(dim=1).to(x.dtype)
-    expanded[:, SPECIES_OFFSET + R64_SPECIES_INDEX, :] = 1
+    expanded[:, SPECIES_OFFSET + species_index, :] = 1
     return expanded
 
 

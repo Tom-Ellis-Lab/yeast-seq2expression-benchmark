@@ -37,6 +37,11 @@ CHECKPOINTS = MappingProxyType(
     }
 )
 
+# Separate names prevent the CLI's model/task result directories colliding.
+STUDENT_MODELS = MappingProxyType({
+    f"exoshorkie_{name.lower()}": name for name in CHECKPOINTS
+})
+
 
 def get_checkpoint(variant: str) -> CheckpointInfo:
     """Resolve an exact upstream variant name, including capitalization."""
