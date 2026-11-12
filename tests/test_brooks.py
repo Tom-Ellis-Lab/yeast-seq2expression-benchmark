@@ -74,6 +74,7 @@ def _construct(rng, sample_id, gene_id, strain, *, true_lfc, copy_idx=0,
     return {
         "sample_id": sample_id, "gene_id": gene_id, "strain": strain,
         "copy_idx": copy_idx, "n_copies": n_copies, "strand": "+",
+        "native_strand": "+",
         "rearr_class": "context_change",
         "alt_source_genome": f"genomes/{strain}_ERCC92.fasta",
         "alt_contig": f"{strain}_1", "alt_contig_len": SLICE,
@@ -131,6 +132,35 @@ class _MockAdapter:
 
 class _MockBroadcastAdapter(_MockAdapter):
     varies_by_strain = False
+
+
+class _SpatialStrandAdapter:
+    """Distinct positional profiles for the two strands of each sequence."""
+
+    seq_len = SEQ_LEN
+    crop_bp_each_side = CROP
+    batch_size = 4
+
+    def __init__(self, native_seq: str, alt_seq: str, *, varies_by_strain: bool):
+        self.varies_by_strain = varies_by_strain
+        positions = np.arange(1, OUT_LEN + 1, dtype=np.float64)
+        self.tracks = {
+            (native_seq, "+"): positions,
+            (native_seq, "-"): 3 * positions + 10,
+            (alt_seq, "+"): 2 * positions[::-1],
+            (alt_seq, "-"): 5 * positions[::-1] + 20,
+        }
+        # Recorded calls identify the strand and baseline replicate requested.
+        self.calls: list[tuple[str, str, str | None]] = []
+
+    def predict_coverage_batch(self, seqs, strands, strains=None):
+        aliases = {"JS94_r0": 1.0, "JS94_r1": 2.0, "JS94_r2": 3.0}
+        predictions = []
+        for sequence, strand, strain in zip(seqs, strands, strains):
+            self.calls.append((sequence, strand, strain))
+            scale = aliases.get(strain, 1.0) if self.varies_by_strain else 1.0
+            predictions.append(self.tracks[sequence, strand] * scale)
+        return np.stack(predictions)
 
 
 def _mock(b, lfcs, *, broadcast=False):
@@ -298,6 +328,108 @@ class TestBrooksBenchmark:
         # per-rep numbers are reported separately rather than averaged: r0
         # loses both edited samples, r1 loses one, r2 keeps all six.
         np.testing.assert_array_equal(res.n_scored_per_rep, [4, 5, 6])
+
+
+class TestNativeGeometry:
+    @pytest.mark.parametrize("varies_by_strain", [False, True])
+    @pytest.mark.parametrize(
+        "native_cds,alt_cds,native_interval,alt_interval,native_output,alt_output",
+        [
+            ((151, 210), (71, 130), (120, 180), (70, 130), (60, 120), (10, 70)),
+            # Both CDSs cross an output boundary, at opposite contig ends.
+            ((41, 100), (301, 360), (40, 100), (200, 260), (0, 40), (140, 180)),
+        ],
+        ids=["different_offsets", "independent_clipping"],
+    )
+    def test_native_and_alt_use_their_own_cds_intervals(
+        self, tmp_path, varies_by_strain, native_cds, alt_cds,
+        native_interval, alt_interval, native_output, alt_output,
+    ):
+        construct = _construct(
+            np.random.default_rng(30), "JSX:YG:0", "YG", "JSX", true_lfc=1.0,
+        )
+        construct.update(
+            native_cds_start=native_cds[0], native_cds_end=native_cds[1],
+            alt_cds_start=alt_cds[0], alt_cds_end=alt_cds[1],
+        )
+        _write_artifact(tmp_path, [construct])
+        benchmark = BrooksScrambleBenchmark(tmp_path, INFO)
+        row = benchmark._materialize(SEQ_LEN).iloc[0]
+        adapter = _SpatialStrandAdapter(
+            row.native_seq, row.alt_seq, varies_by_strain=varies_by_strain,
+        )
+
+        result = benchmark.evaluate(adapter)
+
+        # Explicit output intervals are independent of the scorer's windowing.
+        positions = np.arange(1, OUT_LEN + 1, dtype=np.float64)
+        native_total = positions[slice(*native_output)].sum()
+        alt_total = (2 * positions[::-1])[slice(*alt_output)].sum()
+        scales = np.array([1, 2, 3] if varies_by_strain else [1, 1, 1])
+        expected = np.log2((alt_total + 1) / (native_total * scales + 1))
+        np.testing.assert_allclose(result.pred_lfc_runs[0], expected, rtol=1e-12)
+        assert (row.native_cds_start_in_window, row.native_cds_end_in_window) == native_interval
+        assert (row.cds_start_in_window, row.cds_end_in_window) == alt_interval
+
+    @pytest.mark.parametrize("varies_by_strain", [False, True])
+    @pytest.mark.parametrize("native_strand,alt_strand", [("+", "-"), ("-", "+")])
+    def test_inversion_uses_native_strand_for_native_predictions(
+        self, tmp_path, varies_by_strain, native_strand, alt_strand,
+    ):
+        construct = _construct(
+            np.random.default_rng(31), "JSX:YG:0", "YG", "JSX", true_lfc=1.0,
+        )
+        construct.update(
+            native_cds_start=151, native_cds_end=210,
+            alt_cds_start=151, alt_cds_end=210,
+            native_strand=native_strand, strand=alt_strand,
+        )
+        _write_artifact(tmp_path, [construct])
+        benchmark = BrooksScrambleBenchmark(tmp_path, INFO)
+        row = benchmark._materialize(SEQ_LEN).iloc[0]
+        adapter = _SpatialStrandAdapter(
+            row.native_seq, row.alt_seq, varies_by_strain=varies_by_strain,
+        )
+
+        result = benchmark.evaluate(adapter)
+
+        native_total = adapter.tracks[row.native_seq, native_strand][60:120].sum()
+        alt_total = adapter.tracks[row.alt_seq, alt_strand][60:120].sum()
+        scales = np.array([1, 2, 3] if varies_by_strain else [1, 1, 1])
+        expected = np.log2((alt_total + 1) / (native_total * scales + 1))
+        np.testing.assert_allclose(result.pred_lfc_runs[0], expected, rtol=1e-12)
+        native_calls = [call for call in adapter.calls if call[0] == row.native_seq]
+        assert {call[1] for call in native_calls} == {native_strand}
+        assert {call[2] for call in native_calls} == (
+            {"JS94_r0", "JS94_r1", "JS94_r2"} if varies_by_strain else {"JS94"}
+        )
+        assert {call[1] for call in adapter.calls if call[0] == row.alt_seq} == {alt_strand}
+        assert row.native_strand == native_strand
+
+    @pytest.mark.parametrize("varies_by_strain", [False, True])
+    def test_native_cds_outside_output_does_not_create_lfc(
+        self, tmp_path, varies_by_strain,
+    ):
+        construct = _construct(
+            np.random.default_rng(32), "JSX:YG:0", "YG", "JSX", true_lfc=1.0,
+        )
+        construct.update(
+            native_cds_start=11, native_cds_end=40,
+            alt_cds_start=151, alt_cds_end=180,
+        )
+        _write_artifact(tmp_path, [construct])
+        benchmark = BrooksScrambleBenchmark(tmp_path, INFO)
+        row = benchmark._materialize(SEQ_LEN).iloc[0]
+        adapter = _SpatialStrandAdapter(
+            row.native_seq, row.alt_seq, varies_by_strain=varies_by_strain,
+        )
+
+        result = benchmark.evaluate(adapter)
+
+        assert np.isfinite(result.true_lfc_runs).all()
+        assert np.isnan(result.pred_lfc_runs).all()
+        np.testing.assert_array_equal(result.n_scored_per_rep, [0, 0, 0])
+        assert result.n_scored == 0
 
 
 class TestWindowDependentMembership:

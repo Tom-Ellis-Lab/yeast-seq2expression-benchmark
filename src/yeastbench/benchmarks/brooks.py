@@ -52,6 +52,7 @@ from scipy.stats import pearsonr, spearmanr
 from sklearn.metrics import balanced_accuracy_score
 
 from yeastbench.adapters.protocols import CoverageTrackPredictor
+from yeastbench.benchmarks._brooks_reference import resolve_native_strands
 from yeastbench.benchmarks.base import (
     Benchmark,
     BenchmarkInfo,
@@ -299,6 +300,7 @@ class BrooksScrambleBenchmark(Benchmark[CoverageTrackPredictor, BrooksResults]):
             "low_support",
         ):
             assert col in self.index.columns, f"{col} missing from {idx_path}"
+        self.index["native_strand"] = resolve_native_strands(self.index)
         self._fasta = _read_fasta(self.data_dir / "brooks_constructs.fasta")
         # Lazy NpzFile — per-construct coverage is decompressed on access.
         self._cov = np.load(self.data_dir / "brooks_cov.npz")
@@ -322,7 +324,7 @@ class BrooksScrambleBenchmark(Benchmark[CoverageTrackPredictor, BrooksResults]):
             )
             if nws is None:
                 continue  # native window doesn't fit → whole gene drops
-            nw0, _ncs, _nce = nws
+            nw0, ncs, nce = nws
             nk = cov_key("native", gid)
             noff = nw0 - int(nrow.native_slice_start)
             nat_full = self._fasta[nk]
@@ -360,11 +362,14 @@ class BrooksScrambleBenchmark(Benchmark[CoverageTrackPredictor, BrooksResults]):
                         "sample_id": row.sample_id,
                         "strain": strain,
                         "strand": row.strand,
+                        "native_strand": nrow.native_strand,
                         "alt_seq": alt_seq,
                         "native_seq": native_seq,
                         "true_cov_alt": self._cov[ak][aoff : aoff + window],
                         "cds_start_in_window": acs,
                         "cds_end_in_window": ace,
+                        "native_cds_start_in_window": ncs,
+                        "native_cds_end_in_window": nce,
                         "norm_cov_strain": row.norm_cov_strain,
                         "norm_cov_js94_runs": row.norm_cov_js94_runs,
                         "js94_reads_runs": row.js94_reads_runs,
@@ -485,6 +490,7 @@ class BrooksScrambleBenchmark(Benchmark[CoverageTrackPredictor, BrooksResults]):
         # against JS94 replicate k. NaN where unused (truth NaN).
         pred_nat_runs = np.full((n, n_reps, out_len), np.nan, dtype=np.float64)
         all_native_seqs = df.native_seq.tolist()
+        all_native_strands = df.native_strand.tolist()
         if varies_by_strain:
             # One batched call per JS94 replicate; restrict to samples
             # that need this replicate (truth is finite for it).
@@ -496,7 +502,7 @@ class BrooksScrambleBenchmark(Benchmark[CoverageTrackPredictor, BrooksResults]):
                 sub_pred = self._run_batched(
                     adapter,
                     seqs=[all_native_seqs[i] for i in idx],
-                    strands=[all_strands[i] for i in idx],
+                    strands=[all_native_strands[i] for i in idx],
                     strains=[alias] * idx.size,
                     desc=f"nat {alias} (n={idx.size})",
                 )
@@ -506,7 +512,7 @@ class BrooksScrambleBenchmark(Benchmark[CoverageTrackPredictor, BrooksResults]):
             pred_nat_one = self._run_batched(
                 adapter,
                 seqs=all_native_seqs,
-                strands=all_strands,
+                strands=all_native_strands,
                 strains=["JS94"] * n,
                 desc=f"nat   (n={n})",
             )
@@ -522,14 +528,18 @@ class BrooksScrambleBenchmark(Benchmark[CoverageTrackPredictor, BrooksResults]):
             if ce <= cs:
                 continue
             alt_cds = pred_alt[cs:ce].sum()
-
-            for k in range(n_reps):
-                if not np.isfinite(true_lfc_runs[i, k]):
-                    continue
-                nat_cds_k = pred_nat_runs[i, k, cs:ce].sum()
-                pred_lfc_runs[i, k] = float(
-                    np.log2((alt_cds + PSEUDOCOUNT) / (nat_cds_k + PSEUDOCOUNT))
-                )
+            # Native and rearranged windows can put the CDS at different
+            # positions, particularly when a window reaches a contig end.
+            native_start = max(0, int(row.native_cds_start_in_window) - crop)
+            native_end = min(out_len, int(row.native_cds_end_in_window) - crop)
+            if native_end > native_start:
+                for k in range(n_reps):
+                    if not np.isfinite(true_lfc_runs[i, k]):
+                        continue
+                    nat_cds_k = pred_nat_runs[i, k, native_start:native_end].sum()
+                    pred_lfc_runs[i, k] = float(
+                        np.log2((alt_cds + PSEUDOCOUNT) / (nat_cds_k + PSEUDOCOUNT))
+                    )
 
             true_alt = _crop_to_output(
                 np.asarray(row.true_cov_alt, dtype=np.int32), crop, out_len

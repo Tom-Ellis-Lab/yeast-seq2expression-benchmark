@@ -97,6 +97,7 @@ INDEX_COLUMNS = [
     "native_contig_len",
     "native_cds_start",
     "native_cds_end",
+    "native_strand",
     "native_slice_start",
     # window-agnostic truth scalars (CDS-based; independent of the window)
     "strain_reads",
@@ -448,6 +449,7 @@ def main() -> None:
                         "native_contig_len": js94_syn_len,
                         "native_cds_start": nat_start,
                         "native_cds_end": nat_end,
+                        "native_strand": nat_strand,
                         "native_slice_start": n0,
                         "strain_reads": s_raw,
                         "js94_reads_runs": ",".join(str(int(v)) for v in j_raws),
