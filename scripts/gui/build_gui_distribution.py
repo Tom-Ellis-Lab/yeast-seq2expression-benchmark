@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import argparse
 import gzip
-import hashlib
 import io
 import json
 from pathlib import Path
@@ -22,17 +21,13 @@ import pandas as pd
 import pysam
 
 from audit_data import load_soft_samples, load_xlsx_table
+from yeastbench.storage.files import sha256_file
 
 
 GEOMETRY_COLUMNS = (
     "chrom", "deletion_start", "deletion_end", "cassette_strand",
     "construct_id", "gfp_cds_start", "gfp_cds_end",
 )
-
-
-def compute_sha256(path: Path) -> str:
-    with path.open("rb") as source:
-        return hashlib.file_digest(source, "sha256").hexdigest()
 
 
 def load_gfp_libraries(abundance_path: Path, samples: pd.DataFrame) -> pd.DataFrame:
@@ -188,8 +183,8 @@ def build_distribution(args: argparse.Namespace) -> None:
         "n_sequence_verified": int((distribution.sequence_status == "verified").sum()),
         "label": "arithmetic mean of deposited per-library GFP TPM",
         "source_doi": "10.1093/molbev/msab104",
-        "inputs": {str(path): compute_sha256(path) for path in inputs},
-        "outputs": {name: compute_sha256(args.out_dir / name)
+        "inputs": {str(path): sha256_file(path) for path in inputs},
+        "outputs": {name: sha256_file(args.out_dir / name)
                     for name in ("gui_gfp_rna_v1.tsv", "constructs.fasta")},
     }
     (args.out_dir / "build_manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")

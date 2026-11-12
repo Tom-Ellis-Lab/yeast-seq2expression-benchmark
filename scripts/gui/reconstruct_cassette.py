@@ -16,6 +16,7 @@ import subprocess
 import tarfile
 import textwrap
 
+from yeastbench.storage.files import sha256_file
 
 SOURCE_RECORDS = {
     "AJ002682.1.embl": {
@@ -146,14 +147,14 @@ def main() -> None:
     sources = []
     for filename, record in SOURCE_RECORDS.items():
         path = args.source / filename
-        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        digest = sha256_file(path)
         if digest != record["sha256"]:
             raise ValueError(f"Source checksum differs: {path}")
         sources.append({"path": str(path), **record})
     addgene_sequences = {}
     for sequence_id, expected_digest in ADDGENE_RECORDS.items():
         path = args.archive / f"addgene-plasmid-72243-sequence-{sequence_id}.gbk"
-        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        digest = sha256_file(path)
         if digest != expected_digest:
             raise ValueError(f"Addgene source checksum differs: {path}")
         sequence_text = path.read_text().split("\nORIGIN", 1)[1].split("//", 1)[0]

@@ -6,7 +6,6 @@ the exported table. Scores are RNA coverage readouts, not calibrated TPM.
 """
 from __future__ import annotations
 
-import hashlib
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -19,6 +18,7 @@ from scipy.stats import pearsonr, rankdata, spearmanr
 from yeastbench.adapters._gui_scaffold import GuiLocus
 from yeastbench.adapters.protocols import GuiReporterExpressionPredictor
 from yeastbench.benchmarks.base import Benchmark, BenchmarkInfo, model_color
+from yeastbench.storage.files import sha256_file
 
 
 class _GuiLocusRow(Protocol):
@@ -56,7 +56,6 @@ _REQUIRED_COLUMNS = (
     *_GEOMETRY_COLUMNS, "gfp_tpm", "n_libraries", "library_accessions",
     "sequence_status", "exclusion_reason",
 )
-_METRIC_NAMES = ("spearman_rho", "pearson_r", "pearson_log2_r")
 _CONTEXT_METADATA_COLUMNS = (
     "window_sha256", "window_length", "gfp_start_in_window", "gfp_end_in_window",
     "gfp_readout_bases", "native_upstream_bp", "native_downstream_bp",
@@ -136,11 +135,6 @@ def compute_gui_metrics(
             np.quantile(coefficients, [.025, .975]).tolist() if len(coefficients) else None
         )
     return metrics
-
-
-def _compute_file_hash(path: Path) -> str:
-    with path.open("rb") as handle:
-        return hashlib.file_digest(handle, "sha256").hexdigest()
 
 
 class GuiGFPRNABenchmark(Benchmark[GuiReporterExpressionPredictor, GuiGFPResults]):
@@ -256,9 +250,9 @@ class GuiGFPRNABenchmark(Benchmark[GuiReporterExpressionPredictor, GuiGFPResults
                 "interpretation": "Conditional on measured labels; does not estimate RNA-seq measurement error",
             },
             "input_sha256": {
-                "labels": _compute_file_hash(self.labels_path),
-                "constructs": _compute_file_hash(self.constructs_path),
-                "reference_fasta": _compute_file_hash(self.fasta_path),
+                "labels": sha256_file(self.labels_path),
+                "constructs": sha256_file(self.constructs_path),
+                "reference_fasta": sha256_file(self.fasta_path),
             },
         }
         return GuiGFPResults(predictions=predictions, summary=summary)
@@ -267,13 +261,23 @@ class GuiGFPRNABenchmark(Benchmark[GuiReporterExpressionPredictor, GuiGFPResults
         out_dir = Path(out_dir)
         out_dir.mkdir(parents=True, exist_ok=True)
         results.predictions.to_csv(out_dir / "predictions.tsv", sep="\t", index=False)
-        (out_dir / "summary.json").write_text(json.dumps(results.summary, indent=2, allow_nan=False) + "\n")
+        # The CLI owns summary.json and adds run identity to it.
+        (out_dir / "metrics.json").write_text(
+            json.dumps(results.summary, indent=2, allow_nan=False) + "\n"
+        )
 
     def load_results(self, out_dir: Path) -> GuiGFPResults:
         out_dir = Path(out_dir)
         predictions = pd.read_csv(out_dir / "predictions.tsv", sep="\t", keep_default_na=False)
         predictions["prediction"] = pd.to_numeric(predictions.prediction, errors="coerce")
-        summary = json.loads((out_dir / "summary.json").read_text())
+        metrics_path = out_dir / "metrics.json"
+        if metrics_path.exists():
+            summary = json.loads(metrics_path.read_text())
+        else:
+            # Initial Gui runs stored metrics in the CLI summary file.
+            summary = json.loads((out_dir / "summary.json").read_text())
+            for key in ("model", "task", "task_version"):
+                summary.pop(key, None)
         return GuiGFPResults(predictions=predictions, summary=summary)
 
     def summary_dict(self, results: GuiGFPResults) -> dict[str, Any]:
@@ -292,6 +296,9 @@ class GuiGFPRNABenchmark(Benchmark[GuiReporterExpressionPredictor, GuiGFPResults
 
         out_dir = Path(out_dir)
         out_dir.mkdir(parents=True, exist_ok=True)
+        title = "Gui GFP RNA"
+        if "__" in out_dir.name:
+            title += f" — {out_dir.name.split('__')[0]}"
         scored = results.predictions.loc[results.predictions.evaluation_status == "scored"]
         for scale in ("linear", "log"):
             panel = scored if scale == "linear" else scored.loc[scored.prediction > 0]
@@ -302,7 +309,7 @@ class GuiGFPRNABenchmark(Benchmark[GuiReporterExpressionPredictor, GuiGFPResults
                 axis.scatter(imp4.gfp_tpm, imp4.prediction, color="#cf4054", s=34, label="IMP4")
                 axis.legend(frameon=False)
             axis.set(xlabel="Measured GFP TPM", ylabel="Predicted GFP RNA score",
-                     title=f"Gui GFP RNA · {out_dir.name.split('__')[0]} · n = {len(panel)}")
+                     title=f"{title} · n = {len(panel)}")
             if scale == "log" and not panel.empty:
                 axis.set(xscale="log", yscale="log")
             for extension in ("png", "svg"):
@@ -357,17 +364,18 @@ class GuiGFPRNABenchmark(Benchmark[GuiReporterExpressionPredictor, GuiGFPResults
             },
         }, indent=2, allow_nan=False) + "\n")
         figure, axis = plt.subplots(figsize=(7, 5), layout="constrained")
-        positions = np.arange(len(_METRIC_NAMES))
+        metric_labels = self.headline_metric_labels()
+        positions = np.arange(len(metric_labels))
         width = .8 / len(common_metrics)
         for model_index, (name, metrics) in enumerate(common_metrics.items()):
-            heights = [metrics[metric] if metrics[metric] is not None else np.nan for metric in _METRIC_NAMES]
+            heights = [metrics[metric] if metrics[metric] is not None else np.nan for metric in metric_labels]
             axis.bar(positions - .4 + width / 2 + model_index * width, heights,
                      width=width, color=model_color(name, list(common_metrics)), label=name)
         axis.axhline(0, color="#777", linewidth=.7)
-        axis.set(xticks=positions, xticklabels=list(self.headline_metric_labels().values()),
+        axis.set(xticks=positions, xticklabels=list(metric_labels.values()),
                  ylabel="Correlation", ylim=(-1, 1), title=f"Gui GFP RNA · shared cohort n = {len(shared_ids)}")
         axis.legend(frameon=False)
-        destination = out_dir / "gui_gfp_rna_comparison.png"
-        figure.savefig(destination, dpi=160)
+        destination = out_dir / "plot.svg"
+        figure.savefig(destination)
         plt.close(figure)
         return destination

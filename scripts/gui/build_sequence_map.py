@@ -12,7 +12,6 @@ are excluded, as are ambiguous designs and unresolved genomic homology arms.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 from pathlib import Path
 import textwrap
@@ -23,6 +22,7 @@ import pysam
 
 from audit_data import load_xlsx_table
 from yeastbench.adapters._gui_scaffold import GuiLocus, load_gui_constructs, validate_gui_locus
+from yeastbench.storage.files import sha256_file
 
 
 U1 = "GATGTCCACGAGGTCTCT"
@@ -81,11 +81,6 @@ def validate_genomic_arms(design: dict, chromosome: str, reference: pysam.FastaF
         matches = left == downstream and right == get_reverse_complement(upstream)
     if not matches:
         raise SequenceEvidenceError("genomic_arms_disagree_with_reference")
-
-
-def compute_sha256(path: Path) -> str:
-    with path.open("rb") as handle:
-        return hashlib.file_digest(handle, "sha256").hexdigest()
 
 
 def build_sequence_map(args: argparse.Namespace) -> None:
@@ -177,10 +172,10 @@ def build_sequence_map(args: argparse.Namespace) -> None:
         "canonical_payload_cds_end": len(U1) + 20 + CORE_CDS_END,
         "retained_architecture": "U1-UPTAG-[core includes U2 and RC(D2)]-RC(DNTAG)-RC(D1)",
         "policy": "Single exact design; canonical two-tag PCR layout; no phenotype-based exclusion",
-        "inputs": {str(path): compute_sha256(path) for path in (
+        "inputs": {str(path): sha256_file(path) for path in (
             args.core, args.archive, args.designs, args.primers, args.reference,
         )},
-        "outputs": {name: compute_sha256(args.out_dir / name) for name in (
+        "outputs": {name: sha256_file(args.out_dir / name) for name in (
             "resolved_loci.tsv", "resolved_constructs.fasta",
         )},
     }

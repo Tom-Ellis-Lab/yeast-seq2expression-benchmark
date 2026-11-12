@@ -7,8 +7,8 @@ only; its single edited copy needs neither a WT baseline nor diploid mixing.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
 import hashlib
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Mapping, Sequence
 
@@ -116,8 +116,17 @@ def build_gui_context(
     if locus.deletion_end > fasta.get_reference_length(locus.chrom):
         raise GuiContextError("replacement_outside_reference")
     context = build_insertion_context(
-        InsertionSite(locus.chrom, locus.deletion_start, locus.deletion_end, locus.cassette_strand),
-        CassetteGeometry(payload, locus.gfp_cds_start, locus.gfp_cds_end - locus.gfp_cds_start),
+        InsertionSite(
+            chrom=locus.chrom,
+            deletion_start=locus.deletion_start,
+            deletion_end=locus.deletion_end,
+            cassette_strand=locus.cassette_strand,
+        ),
+        CassetteGeometry(
+            payload=payload,
+            readout_start=locus.gfp_cds_start,
+            readout_len=locus.gfp_cds_end - locus.gfp_cds_start,
+        ),
         fasta, seq_len, crop_bp_each_side, bin_width, output_bins,
         window_anchor="center_readout",
     )

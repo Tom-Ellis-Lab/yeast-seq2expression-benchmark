@@ -18,6 +18,7 @@ import zlib
 
 import numpy as np
 
+from yeastbench.storage.files import sha256_file
 
 READ_RUNS = {
     "SRR10815545": ("IMP4 / YNL075W, GSM4241065, SRX7489025", "045",
@@ -146,7 +147,7 @@ def main() -> None:
         "reads_url": read_url,
         "reads_local_path": str(args.reads),
         "reads_input_bytes": args.reads.stat().st_size,
-        "reads_input_sha256": hashlib.sha256(args.reads.read_bytes()).hexdigest(),
+        "reads_input_sha256": sha256_file(args.reads),
         "default_download_range": "HTTP bytes=0-29999999 (partial file)",
         "full_remote_file_bytes": full_file_bytes,
         "full_remote_file_md5_from_ENA": full_file_md5,

@@ -165,7 +165,25 @@ def test_roundtrip_preserves_scores_exclusions_and_provenance(gui_distribution, 
     np.testing.assert_allclose(restored.predictions.prediction, evaluated.predictions.prediction, equal_nan=True)
     assert set(restored.summary["input_sha256"]) == {"labels", "constructs", "reference_fasta"}
     assert all(len(digest) == 64 for digest in restored.summary["input_sha256"].values())
-    assert "NaN" not in (destination / "summary.json").read_text()
+    assert "NaN" not in (destination / "metrics.json").read_text()
+
+
+@pytest.mark.parametrize("legacy", [False, True])
+def test_reload_keeps_cli_run_identity_out_of_benchmark_metrics(
+    gui_distribution, tmp_path, legacy,
+):
+    benchmark = build_benchmark(gui_distribution)
+    evaluated = benchmark.evaluate(KnownScorePredictor())
+    destination = tmp_path / "scores"
+    benchmark.save_results(evaluated, destination)
+    (destination / "summary.json").write_text(json.dumps({
+        "model": "example", "task": "gui_gfp_rna", "task_version": "1",
+        **benchmark.summary_dict(evaluated),
+    }))
+    if legacy:
+        (destination / "metrics.json").unlink()
+    restored = benchmark.load_results(destination)
+    assert benchmark.summary_dict(restored) == benchmark.summary_dict(evaluated)
 
 
 def test_model_comparison_uses_shared_loci(gui_distribution, tmp_path):
@@ -174,7 +192,9 @@ def test_model_comparison_uses_shared_loci(gui_distribution, tmp_path):
     benchmark.save_results(benchmark.evaluate(KnownScorePredictor([100, 2, 1])), directories["model_a"])
     benchmark.save_results(benchmark.evaluate(KnownScorePredictor([1, np.nan, 2])), directories["model_b"])
     comparison = tmp_path / "comparison"
-    assert benchmark.compare_plot(directories, comparison).is_file()
+    comparison_path = benchmark.compare_plot(directories, comparison)
+    assert comparison_path == comparison / "plot.svg"
+    assert comparison_path.is_file()
     summary = json.loads((comparison / "common_cohort_metrics.json").read_text())
     assert summary["locus_ids"] == ["YAL012W", "YNL075W"]
     assert summary["original_n_scored"] == {"model_a": 3, "model_b": 2}
@@ -191,7 +211,7 @@ def test_model_comparison_rejects_stale_input_sequences_even_with_same_labels(
     directories = {"model_a": tmp_path / "model_a", "model_b": tmp_path / "model_b"}
     for destination in directories.values():
         benchmark.save_results(benchmark.evaluate(KnownScorePredictor()), destination)
-    summary_path = directories["model_b"] / "summary.json"
+    summary_path = directories["model_b"] / "metrics.json"
     summary = json.loads(summary_path.read_text())
     summary["input_sha256"][changed_input] = "0" * 64
     summary_path.write_text(json.dumps(summary))
@@ -205,7 +225,7 @@ def test_model_comparison_requires_input_provenance(gui_distribution, tmp_path):
     directories = {"model_a": tmp_path / "model_a", "model_b": tmp_path / "model_b"}
     for destination in directories.values():
         benchmark.save_results(benchmark.evaluate(KnownScorePredictor()), destination)
-    summary_path = directories["model_b"] / "summary.json"
+    summary_path = directories["model_b"] / "metrics.json"
     summary = json.loads(summary_path.read_text())
     del summary["input_sha256"]
     summary_path.write_text(json.dumps(summary))

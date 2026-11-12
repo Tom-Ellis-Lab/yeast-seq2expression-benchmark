@@ -7,8 +7,8 @@ homolog, so this task needs neither WT subtraction nor diploid allele mixing.
 
 Source: [Gui et al. 2021](https://doi.org/10.1093/molbev/msab104), using strains
 constructed by [Chen and Zhang 2016](https://doi.org/10.1016/j.cels.2016.03.009).
-The [source audit](gui_insertion_audit.md) records expression reconciliation and
-sequence provenance. The archived PDF filename says 2026; the paper is from 2021.
+Source URLs and checksums are recorded in
+[`scripts/gui/sources.json`](../../scripts/gui/sources.json).
 
 ## Dataset and sequence eligibility
 
@@ -48,8 +48,7 @@ The core is reconstructed from the published Chen construction primers,
 [pFA6a-GFPS65T-kanMX6, AJ002682.1](https://www.ebi.ac.uk/ena/browser/view/AJ002682.1),
 [pGSKU, Addgene #72243](https://www.addgene.org/72243/) and the reference RPL5
 promoter. Public RNA reads from three strains support the complete 717 bp GFP
-CDS. The [audit](gui_insertion_audit.md#cassette-reconstruction) describes the
-marker sequence cross-check and remaining physical-strain uncertainties.
+CDS. These are source-reconstructed designs, not DNA sequencing of every clone.
 
 The shared R64-5-1 FASTA contains the same chromosome sequences as the original
 R64-2-1 release. Replacement intervals are explicitly recorded, rather than
@@ -116,9 +115,24 @@ configuration and code commit.
 
 ## Reproduction
 
-After preparing the source files described in the
-[audit reproduction instructions](gui_insertion_audit.md#reproduction), run
-from the repository root in the installed project environment:
+Run from the repository root in the installed project environment, with
+`pdftotext` available. Source URLs and checksums are in
+[`scripts/gui/sources.json`](../../scripts/gui/sources.json). Place the Gui
+supplementary ZIP at `archive/msab104_supplementary_data.zip` and the source
+downloads under `data/tasks/gui_audit/source/`:
+
+```text
+GSE142839_family.soft.gz       GSE142839_RAW.tar
+R64-2-1.tgz                   chen2016_mmc1.pdf
+chen2016_mmc2.xlsx            Deletion_primers_PCR_sizes.txt
+AJ002682.1.embl               pgsku_adelaide_thesis.pdf
+Y00454.embl
+```
+
+Download the three Addgene #72243 GenBank records into `archive/`, named
+`addgene-plasmid-72243-sequence-136113.gbk`,
+`addgene-plasmid-72243-sequence-136112.gbk`, and
+`addgene-plasmid-72243-sequence-136111.gbk`.
 
 ```bash
 python scripts/gui/audit_data.py --reference data/tasks/R64-5-1.fa
@@ -129,7 +143,7 @@ python scripts/gui/build_gui_distribution.py \
   --constructs data/tasks/gui_audit/resolved_constructs.fasta
 ybench data lock --artifacts gui
 ybench data verify --tasks gui_gfp_rna
-ybench run --config configs/gui_gfp_rna.yaml
+ybench run --config configs/default.yaml --task gui_gfp_rna
 ```
 
 The sequence map requires
@@ -157,7 +171,8 @@ No fluorescence, neighboring-gene or fitness endpoint is evaluated here.
 ## Results
 
 Both models were rerun on 2026-11-11, sequentially on NVIDIA RTX A6000 GPU 1,
-using code commit `b356a5f` and the configuration above.
+using code commit `b356a5f`. The model settings are now included in
+`configs/default.yaml`.
 All 205 eligible genotypes produced finite positive predictions; all 717 GFP
 CDS bases contributed to every score. The 35 source exclusions are identical
 between models.
@@ -178,16 +193,17 @@ native sequence to Shorkie, versus 1.43 kb and 0.34 kb to Yorzoi. These distance
 are relative to GFP transcription and exclude the synthetic payload. The models
 therefore have different amounts of native genomic context.
 
-[Complete metrics and run metadata](gui_gfp_rna_results.json) include all
-confidence intervals, input hashes and the IMP4 sensitivity analysis.
-[Per-genotype predictions](gui_gfp_rna_predictions.tsv) retain every exclusion
-and both model-window hashes. Full runtime outputs remain under
-`results/gui_gfp_rna/`. The broad local test suite passed with 534 tests,
-9 skips and 5 deselections; both real GPU runs and input verification passed.
-The new scores also match arithmetic means of the previously saved per-track
-predictions to within 2 × 10⁻⁷ relative error. Historical T0/all-RNA runtime
-outputs are retained locally in `results/gui_gfp_rna_t0_all_rna_v1/`; the earlier
-track diagnostics and their `default_selected` flags refer to those readouts.
+Runtime outputs follow the standard layout:
+`results/default/{shorkie,yorzoi}__gui_gfp_rna/`. Each contains
+`predictions.tsv`, `metrics.json`, the CLI's `summary.json`, and scatter plots.
+Predictions retain all exclusions and model-window hashes; metrics retain the
+confidence intervals, input hashes, selected tracks, and IMP4 sensitivity.
+Cross-model comparison writes `plot.svg` and `common_cohort_metrics.json` under
+`results/default/compare/per_task/gui_gfp_rna/`.
+
+The reported runs remain locally under `results/gui_gfp_rna/`. Historical
+T0/all-RNA outputs are in `results/gui_gfp_rna_t0_all_rna_v1/`; earlier track
+diagnostics refer to those historical readouts.
 
 ![Shorkie GFP RNA prediction](../../img/results/gui_gfp_rna/shorkie_scatter_log.png)
 
