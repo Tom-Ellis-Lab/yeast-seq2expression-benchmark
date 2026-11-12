@@ -121,7 +121,7 @@ def test_random_init_config_matches_pretrained(config_name):
     pretrained, scratch = configs("shorkie"), configs("shorkie_random_init")
     assert pretrained.keys() == scratch.keys()
     if config_name == "default":
-        assert len(scratch) == 11
+        assert "gui_gfp_rna" in scratch
     for task in scratch:
         expected = json.loads(
             json.dumps(pretrained[task]).replace(

@@ -160,12 +160,25 @@ runs:
       <<: *shorkie_config
       batch_size: 8
 
+  - model: shorkie_random_init
+    tasks: [gui_gfp_rna]
+    model_config:
+      <<: *shorkie_random_init_config
+      batch_size: 8
+
   - model: yorzoi
     tasks: [gui_gfp_rna]
     model_config:
       <<: *yorzoi_config
       hf_revision: cba61e046a75e0b302e946aaf27f88a73824a8a9
       batch_size: 16
+
+  - model: exoshorkie_ensemble
+    tasks: [gui_gfp_rna]
+    model_config:
+      checkpoint_dir: data/models/exoshorkie
+      batch_size: 8
+      autocast: false
 
   # Chen batches variants, each expanded over all host contexts.
   - model: shorkie

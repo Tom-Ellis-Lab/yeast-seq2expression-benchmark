@@ -1,4 +1,4 @@
-# All six released distilled students, individually, across all eleven tasks.
+# All six released distilled students, individually, across all registered tasks.
 # Matching Mpneumo/Mmmyco training-data overlap is intentionally retained as a
 # sanity check and recorded per run. No ensemble or data-chromosome exclusion.
 # Coverage: expm1(z*sigma+mu), clamp at zero, then strand/region aggregation.
@@ -32,6 +32,11 @@ tasks_config:
     labels_path: data/tasks/hong/hong_igr_v1.tsv
     cassette_seq: data/tasks/hong/expression_cassette.fasta
     fasta_path: data/tasks/R64-5-1.fa
+  gui_gfp_rna:
+    distribution_dir: data/tasks/gui
+    fasta_path: data/tasks/R64-5-1.fa
+    bootstrap_samples: 2000
+    bootstrap_seed: 57
   chen_synonymous:
     fasta_path: data/tasks/R64-1-1.fa
     hosts_path: data/tasks/chen_synonymous/marginalized_hosts.json
@@ -70,6 +75,7 @@ runs:
   - shalem_mpra_marginalized
   - wu_rfpins
   - hong_igr
+  - gui_gfp_rna
   - brooks_scramble
   - meneu_foreign_dna
   - chen_synonymous
@@ -87,6 +93,7 @@ runs:
   - shalem_mpra_marginalized
   - wu_rfpins
   - hong_igr
+  - gui_gfp_rna
   - brooks_scramble
   - meneu_foreign_dna
   - chen_synonymous
@@ -104,6 +111,7 @@ runs:
   - shalem_mpra_marginalized
   - wu_rfpins
   - hong_igr
+  - gui_gfp_rna
   - brooks_scramble
   - meneu_foreign_dna
   - chen_synonymous
@@ -121,6 +129,7 @@ runs:
   - shalem_mpra_marginalized
   - wu_rfpins
   - hong_igr
+  - gui_gfp_rna
   - brooks_scramble
   - meneu_foreign_dna
   - chen_synonymous
@@ -138,6 +147,7 @@ runs:
   - shalem_mpra_marginalized
   - wu_rfpins
   - hong_igr
+  - gui_gfp_rna
   - brooks_scramble
   - meneu_foreign_dna
   - chen_synonymous
@@ -155,6 +165,7 @@ runs:
   - shalem_mpra_marginalized
   - wu_rfpins
   - hong_igr
+  - gui_gfp_rna
   - brooks_scramble
   - meneu_foreign_dna
   - chen_synonymous

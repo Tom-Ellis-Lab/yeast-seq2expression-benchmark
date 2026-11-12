@@ -377,6 +377,7 @@ def _exoshorkie_adapter(task, model, batch_size, **cfg):
         TerminatorMarginalizedExpressionPredictor: (adapters.ExoShorkieShalemPredictor, REFS_FIELDS),
         CassetteExpressionPredictor: (adapters.ExoShorkieWuPredictor, REFS_FIELDS),
         IGRInsertionExpressionPredictor: (adapters.ExoShorkieHongPredictor, FASTA_ONLY),
+        GuiReporterExpressionPredictor: (adapters.ExoShorkieGuiPredictor, GUI_FIELDS),
         FivePrimeUtrReporterExpressionPredictor: (adapters.ExoShorkieCuperusPredictor, FASTA_ONLY),
         IntegratedPromoterPanelPredictor: (adapters.ExoShorkieYTKPredictor, FASTA_ONLY),
         CoverageTrackPredictor: (adapters.ExoShorkieBrooksPredictor, ()),
