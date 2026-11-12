@@ -18,7 +18,9 @@ CROP_BP_EACH_SIDE: int = 1024  # 64 bins × 16 bp/bin
 # Output-track indices for the '1000-RNA-Seq' group from the Shorkie
 # canonical targets sheet. The spec calls this set '1011 RNA-seq tracks';
 # the released targets sheet has 1014 contiguous indices 4201..5214.
-SHORKIE_1011_RNA_SEQ_TRACK_IDS: list[int] = list(range(4201, 5215))
+SHORKIE_1000_RNA_SEQ_TRACK_IDS: list[int] = list(range(4201, 5215))
+# Backward-compatible name used by the eQTL adapter; this contains 1014 tracks.
+SHORKIE_1011_RNA_SEQ_TRACK_IDS: list[int] = SHORKIE_1000_RNA_SEQ_TRACK_IDS
 
 # 384 T0 RNA-seq track indices extracted from data/models/shorkie/
 # targets.txt — tracks whose identifier contains "_T0_". Shorkie

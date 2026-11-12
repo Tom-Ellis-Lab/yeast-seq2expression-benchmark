@@ -29,7 +29,7 @@ _current_config: ContextVar[BuildConfig] = ContextVar("_current_config")
 class ConvDNA(nn.Module):
     """Initial convolution on one-hot DNA.
 
-    Accepts the full species-encoded input (170 channels by default):
+    Accepts DNA alone (4 channels) or species-encoded input (170 by default):
     channels 0-3 = one-hot nucleotides, channel 4 = reserved,
     channels 5-169 = one-hot species indicator.
     """
@@ -495,7 +495,8 @@ class Cropping1D(nn.Module):
 class ShorkieBackbone(nn.Module):
     """Shorkie trunk through its final GELU, shared by native and distilled models.
 
-    Takes species-encoded ``(B, 170, seq_len)`` tensors and returns
+    Takes DNA-only ``(B, 4, seq_len)`` or species-encoded
+    ``(B, 170, seq_len)`` tensors, as configured, and returns
     ``(B, output_bins, out_channels)`` features. Input encoding and output
     heads belong to the model using this backbone.
     """
@@ -582,8 +583,9 @@ class ShorkieBackbone(nn.Module):
         self.final_gelu = nn.GELU(approximate="tanh")
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        if x.ndim != 3 or x.shape[1] != SPECIES_OFFSET + NUM_SPECIES:
-            raise ValueError("Expected species-encoded input with shape (B, 170, L)")
+        in_channels = self.conv_dna.conv.in_channels
+        if x.ndim != 3 or x.shape[1] != in_channels:
+            raise ValueError(f"Expected backbone input with shape (B, {in_channels}, L)")
         if x.shape[2] != self.seq_len:
             raise ValueError(f"Expected {self.seq_len} input bases, got {x.shape[2]}")
 

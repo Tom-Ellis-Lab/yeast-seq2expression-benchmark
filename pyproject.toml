@@ -82,3 +82,8 @@ markers = [
     "integration: end-to-end, needs the published mirror (opt-in)",
     "gpu: needs a GPU + model extras (shorkie/yorzoi)",
 ]
+
+[dependency-groups]
+dev = [
+    "nvitop>=1.7.2",
+]

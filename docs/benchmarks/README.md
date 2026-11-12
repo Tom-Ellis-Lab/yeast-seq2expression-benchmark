@@ -9,12 +9,13 @@
 | [Chen synonymous MPRA](chen_synonymous.md) | coding-sequence / codon-usage effect on mRNA | regression, 3 libraries | Pearson *r* + Spearman ρ on `log2(R/D)` (R = RNA, D = DNA read counts) |
 | [Wu RFP insertions](wu_rfpins.md) | genomic *position* effect at an open reading frame (ORF) deletion locus | regression | Pearson *r* + Spearman ρ (+ tail AUROC) |
 | [Hong IGR insertions](hong_igr.md) | genomic *position* effect (intergenic) | regression | Spearman ρ on the held-out test loci (n = 52) |
+| [Gui GFP RNA](gui_gfp_rna.md) | reporter RNA abundance after heterozygous gene replacement | regression | Spearman ρ; raw/log Pearson alongside |
 | [Brooks SCRaMBLE](brooks_scramble.md) | genome-architecture rearrangement | coverage-track log-fold-change (LFC) | direction balanced accuracy, then Spearman / Pearson — reported per JS94 parental run |
 | [Cuperus 5′-UTR](cuperus_mpra_5utr.md) | 5′ untranslated region (5′-UTR) / translational grammar | regression (HIS3 reporter) | Spearman/Pearson + partial correlation over Kozak features |
 | [Lee YTK promoters](ytk_promoter.md) | integrated promoter dynamic range across two reporters | regression (reporter RNA range) | two-reporter consensus dynamic-range recovery + Spearman/Pearson |
 | [Meneu foreign DNA](meneu_foreign_dna.md) | foreign / out-of-distribution (OOD) sequence (whole bacterial chromosomes in yeast) | zero-shot coverage-track prediction | per-window Pearson + Jensen–Shannon (JS) divergence (+ fold-change error) |
 
-## Probing seven model capabilities across 11 benchmark tasks
+## Probing seven model capabilities across 12 benchmark tasks
 
 **eQTL classification — [Caudal](caudal_eqtl.md), [Kita](kita_eqtl.md).** 
 This benchmark asks the model to correctly predict the effect single-nucleotide changes on gene expression. Adapted from [Hao et al.](https://www.biorxiv.org/content/10.1101/2025.09.19.677475v1): We create mixed sets of eQTLs, i.e. (eVariant, eGene)-pairs, and distance-matched (variant, gene)-pairs that are not eQTLs, i.e. the variant does not have a statistical association with the gene's expression in the population. The model is then asked to classify each (variant, gene)-pair as either "eQTL" or "no-eQTL". This is done by making two predictions, with and without the respective variant, to calculate a log-change score between REF and ALT gene expression. Thresholding the magnitude of that score creates the aforementioned labels. Caudal and Kita differ only in where the positives come from: Caudal takes any eQTL within 25 kb of the gene body, Kita takes promoter, UTR, and ORF variants within 8 kb of the transcription start site.

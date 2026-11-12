@@ -18,13 +18,12 @@ from yeastbench.config import Config, load_config
 from yeastbench.data.cli import app as data_app
 from yeastbench.data.fetch import (
     RunDataCheck,
-    _human,
     check_run_data,
     default_data_root,
+    format_bytes,
 )
 from yeastbench.hardware import describe_device
 from yeastbench.registry import MODELS, TASKS
-
 
 app = typer.Typer(add_completion=False, help="yeast-seq2expression benchmark runner")
 app.add_typer(data_app, name="data")
@@ -237,12 +236,14 @@ def _print_data_check(c: RunDataCheck) -> None:
     _echo(
         f"data:          {mark}  "
         f"{c.files_present}/{c.files_total} files "
-        f"({_human(c.bytes_present)}/{_human(c.bytes_total)}){extra}"
+        f"({format_bytes(c.bytes_present)}/{format_bytes(c.bytes_total)}){extra}"
     )
     for aid, rel in c.missing:
         _echo(f"  missing: {aid}/{rel}")
     for aid, rel in c.stale:
         _echo(f"  stale:   {aid}/{rel}")
+    for problem in c.invalid:
+        _echo(f"  invalid: {problem}")
 
 
 def _run_compare(cfg: Config) -> None:

@@ -99,6 +99,6 @@ def test_ensemble_config_and_downloads():
     assert len(cfg.runs) == 1
     assert cfg.runs[0].model == "exoshorkie_ensemble"
     assert set(cfg.runs[0].tasks) == set(TASKS)
-    assert len(cfg.runs[0].tasks) == 11
+    assert "gui_gfp_rna" in cfg.runs[0].tasks
     assert len(artifacts_for(models=["exoshorkie_ensemble"])) == 6
     assert validate_against_registry() == []

@@ -2,7 +2,7 @@
 
 ![image](img/readme_banner.svg)
 
-`ybench` is a comprehensive set of eleven tasks to benchmark yeast-focussed sequence-to-function (S2F) models like Shorkie and Yorzoi. Each task covers a different part of the genome's regulatory complexity from eQTLs, promoter/UTR/terminator [MPRAs](https://www.google.com/search?q=mpra+massively+parallel+reporter+assay), reporter gene insertions in different genomic locations to investigate context effects as well as exogenous but linearised bacterial DNA in yeast and structurally rearranged chromosomes.
+`ybench` is a comprehensive set of twelve tasks to benchmark yeast-focussed sequence-to-function (S2F) models like Shorkie and Yorzoi. Each task covers a different part of the genome's regulatory complexity from eQTLs, promoter/UTR/terminator [MPRAs](https://www.google.com/search?q=mpra+massively+parallel+reporter+assay), reporter gene insertions in different genomic locations to investigate context effects as well as exogenous but linearised bacterial DNA in yeast and structurally rearranged chromosomes.
 
 ## Table of Contents
 
@@ -28,6 +28,7 @@ Please find a more comprehensive overview in [docs/benchmarks/](docs/benchmarks)
 | [Chen synonymous MPRA](docs/benchmarks/chen_synonymous.md) | synonymous-codon effect on mRNA abundance | regression, 3 libraries | Pearson *r* + Spearman ρ on `log2(R/D)` (R = RNA, D = DNA read counts) | 
 | [Wu RFP insertions](docs/benchmarks/wu_rfpins.md) | fixed reporter cassette across open reading frame (ORF) deletion loci (position effect) | regression | Pearson *r* + Spearman ρ (+ tail AUROC) | 
 | [Hong IGR insertions](docs/benchmarks/hong_igr.md) | fixed reporter across intergenic loci (position effect) | regression | Spearman ρ on the held-out test loci (n = 52) | 
+| [Gui GFP RNA](docs/benchmarks/gui_gfp_rna.md) | GFP RNA abundance after heterozygous gene replacement at 205 resolved loci | regression | Spearman ρ; raw/log2 Pearson alongside |
 | [Brooks SCRaMBLE](docs/benchmarks/brooks_scramble.md) | SCRaMBLE rearrangement (altered neighbour / downstream context) | coverage-track log-fold-change (LFC) | direction balanced accuracy, then Spearman / Pearson — reported per JS94 parental run | 
 | [Cuperus 5′-UTR](docs/benchmarks/cuperus_mpra_5utr.md) | random 50 bp 5′ untranslated regions (5′-UTRs) — Kozak, uORFs, structure | regression (HIS3 reporter) | Spearman/Pearson + partial correlation over Kozak features | 
 | [Lee YTK promoters](docs/benchmarks/ytk_promoter.md) | 19 integrated promoters driving mRuby2 or Venus | regression (reporter RNA range) | two-reporter consensus dynamic-range recovery + Spearman/Pearson |
@@ -38,6 +39,7 @@ Please find a more comprehensive overview in [docs/benchmarks/](docs/benchmarks)
 | Model | Description | Paper | Status |
 | --- | --- | --- | --- |
 | Shorkie | Language model based S2F model | [Predicting dynamic expression patterns in budding yeast with a fungal DNA language model](https://www.biorxiv.org/content/10.1101/2025.09.19.677475v1) | done |
+| Shorkie_Random_Init | Shorkie trained supervised from scratch without language-model pretraining; eight-fold ensemble | [Published checkpoints](https://github.com/calico/shorkie-paper/blob/main/data/manifest.json) | done |
 | Yorzoi | Borzoi-based S2F model | [Yorzoi: Predicting RNA-seq coverage from DNA sequence in yeast](https://www.biorxiv.org/content/10.1101/2025.09.20.677345v1) | done |
 | ExoShorkie | Shorkie finetuned on exo. genomes | [ExoShorkie: Predicting RNA-seq coverage of exogenous genomes in yeast by transfer learning](https://www.biorxiv.org/content/10.64898/2026.01.25.701486v1) | in progress |
 
@@ -57,6 +59,7 @@ numbers are from earlier local runs.
 | [Chen synonymous MPRA](docs/benchmarks/chen_synonymous.md) | **Mixed** | Shorkie on GFP, CAI on TDH3 |
 | [Wu RFP insertions](docs/benchmarks/wu_rfpins.md) | **Neither** | both ≈ 0 — position effect not captured |
 | [Hong IGR insertions](docs/benchmarks/hong_igr.md) | **Neither** | both ≈ 0 |
+| [Gui GFP RNA](docs/benchmarks/gui_gfp_rna.md) | **No clear association** | four models, Spearman ρ −0.110 to 0.115; all 95% intervals include zero |
 | [Brooks SCRaMBLE](docs/benchmarks/brooks_scramble.md) | **Yorzoi** | LFC dir-acc 0.62–0.65 vs 0.51–0.61, leading in all 3 JS94 runs (shape metric deferred to v2) |
 | [Cuperus 5′-UTR](docs/benchmarks/cuperus_mpra_5utr.md) | **Shorkie** | random Spearman ρ 0.25 vs 0.12 |
 | [Lee YTK promoters](docs/benchmarks/ytk_promoter.md) | **Shorkie** | range recovery 0.165 vs 0.109; consensus ρ 0.653 vs 0.570 |
@@ -73,7 +76,10 @@ uv run ybench data get --config configs/default.yaml  # download data + weights
 uv run ybench run --config configs/default.yaml       # score every (model, task) pair
 ```
 
-Results land in `results/default/<model>__<task>/`. For everything else — the
+The default config includes all eleven tasks, including Brooks and Meneu.
+Results land in `results/default/<model>__<task>/`. The separate
+`configs/brooks.yaml` and `configs/meneu.yaml` remain available for focused runs.
+For everything else — the
 other models, partial data pulls, GPU selection, every flag, and the output
 layout — see the [CLI reference](docs/cli.md).
 

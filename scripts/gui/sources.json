@@ -1,0 +1,158 @@
+{
+  "audit_date": "2026-11-11",
+  "sources": [
+    {
+      "path": "data/tasks/gui_audit/source/GSE142839_family.soft.gz",
+      "url": "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE142nnn/GSE142839/soft/GSE142839_family.soft.gz",
+      "provenance": "Downloaded public GEO metadata",
+      "bytes": 18589,
+      "sha256": "6bd8791a618440c96ace4a96b8456eab75cf76769d1b97a6f0fca0a573b73e64"
+    },
+    {
+      "path": "data/tasks/gui_audit/source/GSE142839_RAW.tar",
+      "url": "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE142nnn/GSE142839/suppl/GSE142839_RAW.tar",
+      "provenance": "Downloaded processed abundance tables, not raw reads",
+      "bytes": 57016320,
+      "sha256": "b42447b93b259e982ef72dc6ad1cd070b960bf15eccd0422661b0c329bf3e853"
+    },
+    {
+      "url": "https://downloads.yeastgenome.org/sequence/S288C_reference/genome_releases/S288C_reference_genome_R64-2-1_20150113.tgz",
+      "sha256": "de3749dde095c1191a90c66d0da2b60d15cf2ccb8e14e0562f4f7b7d52a7c639",
+      "description": "S288C reference, pRPL5 chrXVI:302515-303120, 1-based inclusive",
+      "path": "data/tasks/gui_audit/source/R64-2-1.tgz",
+      "bytes": 17657104,
+      "provenance": "Downloaded public primary source; verified by reconstruct_cassette.py"
+    },
+    {
+      "url": "https://ars.els-cdn.com/content/image/1-s2.0-S2405471216301077-mmc1.pdf",
+      "sha256": "dd861e22450268b69c849173a41b9ca71abaa70adc8e322e7cdb00f3d60834cf",
+      "description": "Chen and Zhang 2016 supplemental Table S1 construction primers",
+      "path": "data/tasks/gui_audit/source/chen2016_mmc1.pdf",
+      "bytes": 848331,
+      "provenance": "Downloaded public primary source; verified by reconstruct_cassette.py"
+    },
+    {
+      "path": "data/tasks/gui_audit/source/chen2016_mmc2.xlsx",
+      "url": "https://ars.els-cdn.com/content/image/1-s2.0-S2405471216301077-mmc2.xlsx",
+      "provenance": "Downloaded GFP protein abundance table",
+      "bytes": 50263,
+      "sha256": "b33d76341d01eec1e8930fcf0385fc6fda9b331e911aaff1f332d30937c8e9dc"
+    },
+    {
+      "path": "data/tasks/gui_audit/source/Deletion_primers_PCR_sizes.txt",
+      "url": "http://yeastdeletion-sgtc.yeastgenome.org/Deletion_primers_PCR_sizes.txt",
+      "provenance": "Copied existing main-checkout Wu input; URL is documented upstream provenance, not re-downloaded in this audit",
+      "bytes": 4598959,
+      "sha256": "f7cd4fd399d6f8b0eb6e4f92349c37950ce33dd514b759d222eeb7ce1db8f046"
+    },
+    {
+      "path": "archive/msab104_supplementary_data.zip",
+      "doi": "10.1093/molbev/msab104",
+      "provenance": "User-supplied supplementary archive",
+      "bytes": 17479101,
+      "sha256": "fd029e1c56b0b7f384518aebd768060143c6f5761359b2cfed4763f4b03f5503"
+    },
+    {
+      "url": "https://www.ebi.ac.uk/ena/browser/api/embl/AJ002682.1?download=true",
+      "sha256": "ce8987428cbcb5bcfb27373481a4eacf02925f221f4aa54c2828e13e7fb5708c",
+      "description": "Original pFA6a-GFPS65T-kanMX6 sequence, AJ002682.1",
+      "path": "data/tasks/gui_audit/source/AJ002682.1.embl",
+      "bytes": 13006,
+      "provenance": "Downloaded public primary source; verified by reconstruct_cassette.py"
+    },
+    {
+      "url": "https://digital.library.adelaide.edu.au/server/api/core/bitstreams/de3fefeb-c096-4ed1-993b-91f3c1e82903/content",
+      "sha256": "1d98cd3c0e198356109bf1d46e016c50ba1d0b109b88499423ea5f3aeb0b0195",
+      "description": "Sylvie Callegari (2011), Elucidating the biochemical and genetic basis of statin toxicity using yeast as a model, Appendix D, printed pp130-131. Full pGSKU sequence; methods identify plasmid as a gift from Francesca Storici.",
+      "path": "data/tasks/gui_audit/source/pgsku_adelaide_thesis.pdf",
+      "bytes": 2820641,
+      "provenance": "Downloaded public primary source; verified by reconstruct_cassette.py"
+    },
+    {
+      "url": "https://www.ebi.ac.uk/ena/browser/api/embl/Y00454?download=true",
+      "sha256": "e9bc95c8988e060f5959d4d6fdb60b7fed8c992738e28b38ebb823f426eaee68",
+      "description": "Original Kluyveromyces lactis URA3 sequence, Y00454.1; its entire CDS matches the thesis pGSKU source, which differs from Addgene at one synonymous base",
+      "path": "data/tasks/gui_audit/source/Y00454.embl",
+      "bytes": 3834,
+      "provenance": "Downloaded public primary source; verified by reconstruct_cassette.py"
+    },
+    {
+      "path": "archive/addgene-plasmid-72243-sequence-136113.gbk",
+      "url": "https://www.addgene.org/72243/sequences/",
+      "sequence_id": "136113",
+      "bytes": 15433,
+      "sha256": "b6af9d1fc5e0fde834529d13b0d5fa200476fa13890d692e9135f85346f7d8ba",
+      "provenance": "User-downloaded Addgene GenBank file; 136113 is full pGSKU, 136111/136112 are matching partial sequences"
+    },
+    {
+      "path": "archive/addgene-plasmid-72243-sequence-136112.gbk",
+      "url": "https://www.addgene.org/72243/sequences/",
+      "sequence_id": "136112",
+      "bytes": 2520,
+      "sha256": "486f541ed707d0b8bca59876afdf3e347aa508e050e9e73ddc435b0db3035637",
+      "provenance": "User-downloaded Addgene GenBank file; 136113 is full pGSKU, 136111/136112 are matching partial sequences"
+    },
+    {
+      "path": "archive/addgene-plasmid-72243-sequence-136111.gbk",
+      "url": "https://www.addgene.org/72243/sequences/",
+      "sequence_id": "136111",
+      "bytes": 2534,
+      "sha256": "53e993fd56e101839ea38653ffc18b4d31c2a4f9b8902d4c40d0f5f87e8ce259",
+      "provenance": "User-downloaded Addgene GenBank file; 136113 is full pGSKU, 136111/136112 are matching partial sequences"
+    },
+    {
+      "path": "data/tasks/gui_audit/source/SRR10815545_1.prefix30MB.fastq.gz.part",
+      "url": "https://ftp.sra.ebi.ac.uk/vol1/fastq/SRR108/045/SRR10815545/SRR10815545_1.fastq.gz",
+      "sample": "IMP4 / YNL075W, GSM4241065, SRX7489025",
+      "bytes": 30000000,
+      "sha256": "929e94d2eb33a3e2d26c2409d6fb7ffad2e3dee8909716dffcae5e32f8b920b2",
+      "provenance": "Downloaded public RNA-seq R1 compressed prefix, HTTP bytes=0-29999999; deliberately incomplete gzip file; verify_reporter_reads.py reads complete FASTQ records only",
+      "http_range": "bytes=0-29999999",
+      "full_remote_file_bytes": 258387382,
+      "full_remote_file_md5_from_ENA": "8ce6967e9ce8b90855b4bbb2c66b11c5"
+    },
+    {
+      "path": "data/tasks/gui_audit/source/SRR10815486_1.prefix30MB.fastq.gz.part",
+      "url": "https://ftp.sra.ebi.ac.uk/vol1/fastq/SRR108/086/SRR10815486/SRR10815486_1.fastq.gz",
+      "sample": "SEC61 / YLR378C, GSM4241006, SRX7488966",
+      "bytes": 30000000,
+      "sha256": "be909734cc6eec558c908a4784e7b5409bab8859988ef9c078a8f6fb683660a1",
+      "provenance": "Downloaded public RNA-seq R1 compressed prefix, HTTP bytes=0-29999999; deliberately incomplete gzip file; verify_reporter_reads.py reads complete FASTQ records only",
+      "http_range": "bytes=0-29999999",
+      "full_remote_file_bytes": 315462997,
+      "full_remote_file_md5_from_ENA": "5167fe5abaeb14c8845e8002d093e5b3"
+    },
+    {
+      "path": "data/tasks/gui_audit/source/SRR10815459_1.prefix30MB.fastq.gz.part",
+      "url": "https://ftp.sra.ebi.ac.uk/vol1/fastq/SRR108/059/SRR10815459/SRR10815459_1.fastq.gz",
+      "sample": "IME1 / YJR094C, GSM4240979, SRX7488939",
+      "bytes": 30000000,
+      "sha256": "2997d5a457d7f67399bab283b24a9f3d6b80b368a4314ba9baeb839a9f536500",
+      "provenance": "Downloaded public RNA-seq R1 compressed prefix, HTTP bytes=0-29999999; deliberately incomplete gzip file; verify_reporter_reads.py reads complete FASTQ records only",
+      "http_range": "bytes=0-29999999",
+      "full_remote_file_bytes": 334217256,
+      "full_remote_file_md5_from_ENA": "b9d1de1979d788ef6156ae996595f0e5"
+    },
+    {
+      "path": "data/tasks/gui_audit/source/IMP4_ENA_reads.tsv",
+      "url": "https://www.ebi.ac.uk/ena/portal/api/filereport?accession=SRX7489025&result=read_run&fields=run_accession,experiment_accession,fastq_ftp,fastq_bytes,fastq_md5&format=tsv",
+      "bytes": 326,
+      "sha256": "1a2d8e189f973ec382cd24d76fc45035fb24b0c79c63d50bd05711a24d71c9bf",
+      "provenance": "Downloaded public ENA run-to-FASTQ URL/size/MD5 metadata"
+    },
+    {
+      "path": "data/tasks/gui_audit/source/SRX7488966_ENA_reads.tsv",
+      "url": "https://www.ebi.ac.uk/ena/portal/api/filereport?accession=SRX7488966&result=read_run&fields=run_accession,experiment_accession,fastq_ftp,fastq_bytes,fastq_md5&format=tsv",
+      "bytes": 326,
+      "sha256": "01ec816ec5a00ae40c00b0c2a0243df7a8cce77917e042ae5bb0a2f30d0036ea",
+      "provenance": "Downloaded public ENA run-to-FASTQ URL/size/MD5 metadata"
+    },
+    {
+      "path": "data/tasks/gui_audit/source/SRX7488939_ENA_reads.tsv",
+      "url": "https://www.ebi.ac.uk/ena/portal/api/filereport?accession=SRX7488939&result=read_run&fields=run_accession,experiment_accession,fastq_ftp,fastq_bytes,fastq_md5&format=tsv",
+      "bytes": 326,
+      "sha256": "c88c8f9e90d54b5fb82651a48533c6a2ce5c27a4fa1a23faef79cf3578a3a7d2",
+      "provenance": "Downloaded public ENA run-to-FASTQ URL/size/MD5 metadata"
+    }
+  ]
+}

@@ -210,8 +210,11 @@ def test_processed_v1_geometry_if_data_are_present():
     assert {(c.deletion_start, c.deletion_end) for c in benchmark.constructs} == {
         (115946, 117045)
     }
-    metadata_json = json.loads((metadata.parent / "build_metadata.json").read_text())
-    assert metadata_json["version"] == "v1"
+    # Build provenance is not a runtime input in the published distribution.
+    # Always check geometry above, including on a fresh data-only installation.
+    provenance = metadata.parent / "build_metadata.json"
+    if provenance.exists():
+        assert json.loads(provenance.read_text())["version"] == "v1"
 
 
 def test_shorkie_adapter_sums_selected_raw_bases(monkeypatch):

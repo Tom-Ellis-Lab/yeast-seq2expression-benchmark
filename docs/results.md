@@ -20,6 +20,7 @@ per-metric tables for each comparison live next to the runs in
 | [Chen synonymous MPRA](#chen-synonymous-mpra) | CAI, CodonTransformer, Shorkie, Yorzoi | Pearson r / Spearman ρ | **Mixed** (Shorkie on GFP, CAI on TDH3) |
 | [Wu RFP insertions](#wu-rfp-insertions) | Shorkie, Yorzoi | Pearson r / Spearman ρ | **Neither** (both ≈ 0) |
 | [Hong IGR insertions](#hong-igr-insertions) | Shorkie, Yorzoi | Spearman ρ (held-out test set) | **Neither** (both ≈ 0) |
+| [Gui GFP RNA](#gui-gfp-rna) | Shorkie, Shorkie random init, Yorzoi, ExoShorkie ensemble | Spearman ρ | **None established** (all 95% CIs include zero) |
 | [Brooks SCRaMBLE](#brooks-scramble) | Shorkie, Yorzoi | LFC direction balanced acc., per JS94 run | **Yorzoi** (all 3 runs) |
 | [Cuperus 5′-UTR](#cuperus-5-utr) | Shorkie, Yorzoi | Spearman ρ (+ partial correlation) | **Shorkie** |
 | [Lee YTK promoters](#lee-ytk-promoters) | Shorkie, Yorzoi | consensus dynamic-range recovery + Spearman ρ | **Shorkie** |
@@ -139,6 +140,33 @@ preserved intergenic regions. ([spec](benchmarks/hong_igr.md))
 
 **Winner: Neither** — both ≈ 0 / negative (informative negative).
 
+## Gui GFP RNA
+
+GFP RNA abundance across 205 source-resolved heterozygous gene replacements.
+All four models score the same genotypes and complete 717 bp GFP CDS, using
+identical labels, constructs and reference input files.
+([spec and full results](benchmarks/gui_gfp_rna.md))
+
+| Model | Spearman ρ | 95% bootstrap CI |
+| --- | ---: | ---: |
+| Shorkie, eight folds + RC | 0.060 | −0.077 to 0.182 |
+| Shorkie random init, eight folds + RC | 0.115 | −0.031 to 0.267 |
+| Yorzoi, all Illumina + RC | 0.096 | −0.045 to 0.233 |
+| ExoShorkie, six-student ensemble | −0.110 | −0.247 to 0.032 |
+
+**Winner: None established.** All intervals include zero. Shorkie trained from
+random initialization uses the published trained weights and the same 1,014
+RNA-seq tracks as pretrained Shorkie. ExoShorkie averages the six students'
+decoded, nonnegative CPM coverage on the reporter strand.
+
+Shorkie and Yorzoi retain their 2026-11-11 runs at commit `b356a5f` on RTX A6000
+GPU 1. The other two ran on 2026-11-12 at commit `1e91d39` on RTX A6000 GPU 0,
+using `configs/default.yaml`. Runtime outputs are under
+`results/default/<model>__gui_gfp_rna/`, with the original run metadata preserved.
+See the [four-model comparison](../img/results/gui_gfp_rna/comparison.png) and
+the task page for secondary correlations, IMP4 sensitivity and individual plots.
+The historical 11-task random-init appendix below predates this Gui run.
+
 ## Brooks SCRaMBLE
 
 SCRaMBLE genome rearrangement; per-construct log-fold-change of CDS coverage vs.
@@ -238,3 +266,37 @@ RNA-seq coverage zero-shot (far-OOD). Scored per contig over 5 kb windows.
 
 **Winner: Yorzoi** — higher within-window shape correlation and lower JS
 divergence on both chromosomes.
+
+<!-- shorkie-random-init:start -->
+## Shorkie trained from random initialization
+
+Completed 11/11 full tasks. Updated 2026-11-07T00:10:24 UTC.
+
+Eight published supervised-from-scratch folds, with reverse-complement averaging.
+Rafi retains its existing bfloat16/compiled adapter default; other tasks use
+float32. Chen uses four variants per batch, expanded over all host contexts.
+
+Pretrained columns use available saved runs; missing baselines are left blank.
+The earlier tables retain their historical results. Full summaries, sample counts,
+and run metadata remain with the local benchmark outputs.
+
+| Task | Metric(s) | Pretrained Shorkie | Random-init Shorkie | Eval time |
+| --- | --- | --- | --- | --- |
+| Caudal | AUROC / AUPRC | 0.5673 / 0.5793 | 0.5377 / 0.5381 | 26.0 min |
+| Kita | AUROC / AUPRC | 0.6668 / 0.6399 | 0.6614 / 0.6181 | 8.5 min |
+| Rafi | Pearson r / Spearman ρ | — | 0.5684 / 0.5808 | 239.9 min |
+| Shalem | Pearson r / Spearman ρ | — | 0.6249 / 0.6415 | 133.4 min |
+| Chen | mean r / mean ρ | — | 0.4708 / 0.4369 | 63.3 min |
+| Wu | Pearson r / Spearman ρ | -0.0387 / -0.0290 | 0.0582 / 0.1040 | 1.5 min |
+| Hong | held-out ρ / fitted-track ρ | -0.1475 / 0.1826 | 0.3520 / 0.1621 | 0.5 min |
+| Brooks | shared-cohort balanced accuracy, r0 / r1 / r2 | 0.5135 / 0.6125 / 0.5339 | 0.5234 / 0.4875 / 0.5462 | 2.3 min |
+| Cuperus | random clean / partial ρ; native / partial ρ | — | 0.1565 / 0.1510 / 0.2548 / 0.2420 | 268.3 min |
+| YTK | range recovery / Spearman ρ | 0.1650 / 0.6526 | 0.0626 / 0.8035 | 0.0 min |
+| Meneu | shape r / JS↓: M. pneumoniae; M. mycoides | 0.0912 / 0.0982 / 0.2638 / 0.2844 | 0.1405 / 0.0851 / 0.0616 / 0.3867 | 0.2 min |
+
+Brooks uses the same 698 shared sample IDs before and after adding random-init.
+Its three replicate metrics are reported separately. The raw-result audit checks
+all reconstructable metrics; Brooks's secondary shape diagnostics are available
+only in its saved summary because coverage arrays are not persisted.
+
+<!-- shorkie-random-init:end -->

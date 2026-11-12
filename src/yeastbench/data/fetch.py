@@ -11,6 +11,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
 
+from yeastbench.data.artifacts import (
+    BackendKind,
+    InputArtifact,
+    Mirror,
+)
 from yeastbench.data.backends import (
     BackendError,
     GcsBackend,
@@ -18,17 +23,14 @@ from yeastbench.data.backends import (
     get_backend,
 )
 from yeastbench.data.lock import (
-    LockedFile,
+    LockError,
     locked_files,
     read_lock,
-    sha256_file,
+    source_for,
+    validate_artifact_lock,
 )
-from yeastbench.data.manifest import (
-    Artifact,
-    BackendKind,
-    Mirror,
-    artifacts_for,
-)
+from yeastbench.data.manifest import artifacts_for
+from yeastbench.storage.files import FileRecord, sha256_file
 
 Log = Callable[[str], None]
 
@@ -43,7 +45,7 @@ def _noop(_: str) -> None:
 
 
 def default_data_root() -> Path:
-    """Repo root (nearest ancestor with pyproject.toml), else cwd. Artifact
+    """Repo root (nearest ancestor with pyproject.toml), else cwd. InputArtifact
     ``dest`` paths are resolved against this."""
     here = Path.cwd().resolve()
     for d in (here, *here.parents):
@@ -70,18 +72,20 @@ def selection_from_config(
 
 
 @dataclass
-class FilePlan:
-    relpath: str
-    dest_file: Path
-    sha256: str
-    size: int
+class DownloadFile:
+    """An expected file's identity, local destination, and download status."""
+
+    record: FileRecord
+    destination: Path
     state: str  # "ok" | "stale" | "missing"
 
 
 @dataclass
-class ArtifactPlan:
-    artifact: Artifact
-    files: list[FilePlan] = field(default_factory=list)
+class DownloadPlan:
+    """Files to fetch for one registered input, or a model cache to populate."""
+
+    artifact: InputArtifact
+    files: list[DownloadFile] = field(default_factory=list)
     mirror: Mirror | None = None
     mirror_available: bool = False
     note: str | None = None  # why nothing can be fetched, if applicable
@@ -91,18 +95,18 @@ class ArtifactPlan:
         return self.artifact.cache_only
 
     @property
-    def to_fetch(self) -> list[FilePlan]:
+    def to_fetch(self) -> list[DownloadFile]:
         return [f for f in self.files if f.state != "ok"]
 
 
 def _file_state(dest_file: Path, sha256: str) -> str:
-    if not dest_file.exists():
+    if not dest_file.is_file():
         return "missing"
     return "ok" if sha256_file(dest_file) == sha256 else "stale"
 
 
 def _choose_mirror(
-    artifact: Artifact, from_kind: BackendKind | None
+    artifact: InputArtifact, from_kind: BackendKind | None
 ) -> tuple[Mirror | None, bool]:
     candidates = [
         m for m in artifact.mirrors if from_kind is None or m.backend == from_kind
@@ -116,15 +120,25 @@ def _choose_mirror(
 
 
 def build_plans(
-    artifacts: list[Artifact],
+    artifacts: list[InputArtifact],
     lock: dict,
     from_kind: BackendKind | None,
     data_root: Path,
-) -> list[ArtifactPlan]:
-    plans: list[ArtifactPlan] = []
+    require_pinned: bool = False,
+) -> list[DownloadPlan]:
+    plans: list[DownloadPlan] = []
     for art in artifacts:
         mirror, available = _choose_mirror(art, from_kind)
-        plan = ArtifactPlan(artifact=art, mirror=mirror, mirror_available=available)
+        plan = DownloadPlan(artifact=art, mirror=mirror, mirror_available=available)
+
+        try:
+            validate_artifact_lock(art, lock, require_pinned=require_pinned)
+            if mirror is not None:
+                plan.mirror = source_for(lock, art.id, mirror, require_revision=require_pinned)
+        except LockError as exc:
+            plan.note = str(exc)
+            plans.append(plan)
+            continue
 
         if art.cache_only:
             if mirror is None:
@@ -134,20 +148,18 @@ def build_plans(
             plans.append(plan)
             continue
 
-        locked: list[LockedFile] = locked_files(lock, art.id)
+        locked = locked_files(lock, art.id)
         if not locked:
             plan.note = "not in lock (run `ybench data lock` against a local copy)"
             plans.append(plan)
             continue
 
         for lf in locked:
-            dest_file = data_root / art.dest / lf.relpath
+            dest_file = data_root / art.dest / lf.path
             plan.files.append(
-                FilePlan(
-                    relpath=lf.relpath,
-                    dest_file=dest_file,
-                    sha256=lf.sha256,
-                    size=lf.size,
+                DownloadFile(
+                    record=lf,
+                    destination=dest_file,
                     state=_file_state(dest_file, lf.sha256),
                 )
             )
@@ -182,17 +194,22 @@ class GetSummary:
 
     @property
     def ok(self) -> bool:
-        return not self.failures
+        return not self.failures and not self.skipped
 
 
 def run_get(
-    plans: list[ArtifactPlan],
+    plans: list[DownloadPlan],
     log: Log = _noop,
     billing_project: str | None = None,
 ) -> GetSummary:
     summary = GetSummary()
     for plan in plans:
         art = plan.artifact
+
+        if plan.note:
+            summary.failures.append(f"{art.id}: {plan.note}")
+            log(f"  ! {art.id}: {plan.note}")
+            continue
 
         if plan.cache_only:
             if not plan.mirror_available or plan.mirror is None:
@@ -220,115 +237,31 @@ def run_get(
 
         backend = _backend_for(plan.mirror.backend, billing_project)
         for fp in to_fetch:
-            remote = plan.mirror.remote_for(fp.relpath)
-            tmp = fp.dest_file.with_name(fp.dest_file.name + ".part")
-            log(f"  ↓ {art.id}/{fp.relpath}  ({_human(fp.size)})")
+            record = fp.record
+            remote = plan.mirror.remote_for(record.path)
+            tmp = fp.destination.with_name(fp.destination.name + ".part")
+            log(f"  ↓ {art.id}/{record.path}  ({format_bytes(record.size)})")
             try:
                 backend.fetch(plan.mirror, remote, tmp)
                 got = sha256_file(tmp)
-                if got != fp.sha256:
+                if got != record.sha256:
                     tmp.unlink(missing_ok=True)
-                    msg = f"{art.id}/{fp.relpath}: checksum mismatch"
+                    msg = f"{art.id}/{record.path}: checksum mismatch"
                     summary.failures.append(msg)
                     log(f"  ! {msg}")
                     continue
-                os.replace(tmp, fp.dest_file)
+                os.replace(tmp, fp.destination)
                 summary.fetched += 1
             except BackendError as e:
                 tmp.unlink(missing_ok=True)
-                summary.failures.append(f"{art.id}/{fp.relpath}: {e}")
-                log(f"  ! {art.id}/{fp.relpath}: {e}")
+                summary.failures.append(f"{art.id}/{record.path}: {e}")
+                log(f"  ! {art.id}/{record.path}: {e}")
     return summary
 
 
 # ──────────────────────────────────────────────────────────────
 # Verify / status
 # ──────────────────────────────────────────────────────────────
-
-
-@dataclass
-class PublishSummary:
-    artifacts: int = 0
-    files: int = 0
-    skipped: list[str] = field(default_factory=list)   # cache-only / not redistributable
-    failures: list[str] = field(default_factory=list)
-
-    @property
-    def ok(self) -> bool:
-        return not self.failures
-
-
-def run_publish(
-    artifacts: list[Artifact],
-    lock: dict,
-    to_kind: BackendKind,
-    data_root: Path,
-    message: str,
-    dry_run: bool,
-    log: Log = _noop,
-    billing_project: str | None = None,
-) -> PublishSummary:
-    """Upload redistributable artifacts to their ``to_kind`` mirror, exactly as
-    locked. Maintainer-only; the caller is responsible for the --yes guard."""
-    summary = PublishSummary()
-    backend = _backend_for(to_kind, billing_project)
-    for art in artifacts:
-        if art.cache_only:
-            summary.skipped.append(f"{art.id}: hf-hub model (nothing to publish)")
-            continue
-        if not art.redistributable:
-            summary.skipped.append(
-                f"{art.id}: not redistributable (license={art.license.value})"
-            )
-            log(f"  · {art.id}: not redistributable — skipping")
-            continue
-        mirror = next((m for m in art.mirrors if m.backend == to_kind), None)
-        if mirror is None:
-            summary.skipped.append(f"{art.id}: no {to_kind.value} mirror declared")
-            continue
-        files = locked_files(lock, art.id)
-        if not files:
-            summary.skipped.append(f"{art.id}: not in lock (run `ybench data lock`)")
-            continue
-
-        items: list[tuple[Path, str]] = []
-        bad = False
-        for lf in files:
-            p = data_root / art.dest / lf.relpath
-            if not p.exists():
-                summary.failures.append(f"{art.id}/{lf.relpath}: missing locally")
-                bad = True
-                continue
-            if sha256_file(p) != lf.sha256:
-                summary.failures.append(
-                    f"{art.id}/{lf.relpath}: local differs from lock (run `data lock`)"
-                )
-                bad = True
-                continue
-            items.append((p, mirror.remote_for(lf.relpath)))
-        if bad:
-            continue
-
-        log(f"  {art.id} → {to_kind.value}:{mirror.base}  ({len(items)} files)")
-        if dry_run:
-            for local, remote in items:
-                log(f"      {local.relative_to(data_root)} → {remote}")
-            summary.artifacts += 1
-            summary.files += len(items)
-            continue
-
-        try:
-            if to_kind == BackendKind.HF:
-                backend.upload(mirror, items, f"{message}: {art.id}")
-            else:  # GCS, per-file
-                for local, remote in items:
-                    backend.upload(mirror, local, remote)
-            summary.artifacts += 1
-            summary.files += len(items)
-        except BackendError as e:
-            summary.failures.append(f"{art.id}: {e}")
-            log(f"  ! {art.id}: {e}")
-    return summary
 
 
 @dataclass
@@ -339,14 +272,19 @@ class VerifyRow:
 
 
 def run_verify(
-    artifacts: list[Artifact], lock: dict, data_root: Path
+    artifacts: list[InputArtifact], lock: dict, data_root: Path,
+    require_pinned: bool = False,
 ) -> list[VerifyRow]:
     rows: list[VerifyRow] = []
     for art in artifacts:
+        try:
+            validate_artifact_lock(art, lock, require_pinned=require_pinned)
+        except LockError as exc:
+            rows.append(VerifyRow(art.id, "(lock)", str(exc)))
         for lf in locked_files(lock, art.id):
-            dest_file = data_root / art.dest / lf.relpath
+            dest_file = data_root / art.dest / lf.path
             rows.append(
-                VerifyRow(art.id, lf.relpath, _file_state(dest_file, lf.sha256))
+                VerifyRow(art.id, lf.path, _file_state(dest_file, lf.sha256))
             )
     return rows
 
@@ -360,18 +298,24 @@ class StatusRow:
     bytes_present: int
     bytes_total: int
     cache_only: bool
+    note: str | None = None
 
 
 def run_status(
-    artifacts: list[Artifact], lock: dict, data_root: Path
+    artifacts: list[InputArtifact], lock: dict, data_root: Path
 ) -> list[StatusRow]:
     rows: list[StatusRow] = []
     for art in artifacts:
+        note = None
+        try:
+            validate_artifact_lock(art, lock)
+        except LockError as exc:
+            note = str(exc)
         locked = locked_files(lock, art.id)
         present = bytes_present = 0
         bytes_total = sum(lf.size for lf in locked)
         for lf in locked:
-            dest_file = data_root / art.dest / lf.relpath
+            dest_file = data_root / art.dest / lf.path
             if dest_file.exists() and dest_file.stat().st_size == lf.size:
                 present += 1
                 bytes_present += lf.size
@@ -384,6 +328,7 @@ def run_status(
                 bytes_present=bytes_present,
                 bytes_total=bytes_total,
                 cache_only=art.cache_only,
+                note=note,
             )
         )
     return rows
@@ -403,10 +348,11 @@ class RunDataCheck:
     missing: list[tuple[str, str]] = field(default_factory=list)  # (id, relpath)
     stale: list[tuple[str, str]] = field(default_factory=list)
     cache_only: list[str] = field(default_factory=list)  # warmed at model-load
+    invalid: list[str] = field(default_factory=list)
 
     @property
     def ready(self) -> bool:
-        return not self.missing and not self.stale
+        return not self.missing and not self.stale and not self.invalid
 
 
 def check_run_data(
@@ -414,6 +360,7 @@ def check_run_data(
     models: list[str],
     data_root: Path,
     lock: dict | None = None,
+    require_pinned: bool = False,
 ) -> RunDataCheck:
     """Are the manifest-declared artifacts for these (tasks, models) present and
     checksum-valid under ``data_root``? Same selection + lock the matching
@@ -423,25 +370,29 @@ def check_run_data(
     lock = read_lock() if lock is None else lock
     check = RunDataCheck()
     for art in artifacts_for(tasks, models):
+        try:
+            validate_artifact_lock(art, lock, require_pinned=require_pinned)
+        except LockError as exc:
+            check.invalid.append(str(exc))
         if art.cache_only:
             check.cache_only.append(art.id)
             continue
         for lf in locked_files(lock, art.id):
             check.files_total += 1
             check.bytes_total += lf.size
-            dest_file = data_root / art.dest / lf.relpath
+            dest_file = data_root / art.dest / lf.path
             state = _file_state(dest_file, lf.sha256)
             if state == "ok":
                 check.files_present += 1
                 check.bytes_present += lf.size
             elif state == "stale":
-                check.stale.append((art.id, lf.relpath))
+                check.stale.append((art.id, lf.path))
             else:
-                check.missing.append((art.id, lf.relpath))
+                check.missing.append((art.id, lf.path))
     return check
 
 
-def _human(n: int) -> str:
+def format_bytes(n: int) -> str:
     f = float(n)
     for unit in ("B", "KB", "MB", "GB", "TB"):
         if f < 1024 or unit == "TB":
@@ -451,16 +402,16 @@ def _human(n: int) -> str:
 
 
 __all__ = [
-    "ArtifactPlan",
-    "FilePlan",
+    "DownloadPlan",
+    "DownloadFile",
     "GetSummary",
     "RunDataCheck",
     "StatusRow",
     "VerifyRow",
-    "artifacts_for",
     "build_plans",
     "check_run_data",
     "default_data_root",
+    "format_bytes",
     "run_get",
     "run_status",
     "run_verify",

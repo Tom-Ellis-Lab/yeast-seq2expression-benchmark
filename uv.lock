@@ -1680,6 +1680,15 @@ wheels = [
 ]
 
 [[package]]
+name = "nvidia-ml-py"
+version = "13.615.71"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/fd/30/b25216758be3d3e2834825d8193609e2d71c770a8bd7984438c058c90268/nvidia_ml_py-13.615.71.tar.gz", hash = "sha256:bebe4e48f51b1dc75028c0815cb7bfa14a31a5bb80be70c9d980c6036953fc3d", size = 57485, upload-time = "2026-09-25T15:15:28.226Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/53/a1/1681dfa1c904d4e3e72e51b55a0ff012d50b766843ef832d584abe2113c6/nvidia_ml_py-13.615.71-py3-none-any.whl", hash = "sha256:959bf4adf6fe1308e4bd739e722236b0d1ec8392e2cefad33ff70c311380b9b6", size = 58132, upload-time = "2026-09-25T15:15:26.54Z" },
+]
+
+[[package]]
 name = "nvidia-nccl-cu13"
 version = "2.28.9"
 source = { registry = "https://pypi.org/simple" }
@@ -1713,6 +1722,21 @@ source = { registry = "https://pypi.org/simple" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c2/f3/d86c845465a2723ad7e1e5c36dcd75ddb82898b3f53be47ebd429fb2fa5d/nvidia_nvtx-13.0.85-py3-none-manylinux1_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:4936d1d6780fbe68db454f5e72a42ff64d1fd6397df9f363ae786930fd5c1cd4", size = 148047, upload-time = "2025-09-04T08:29:01.761Z" },
     { url = "https://files.pythonhosted.org/packages/a8/64/3708a90d1ebe202ffdeb7185f878a3c84d15c2b2c31858da2ce0583e2def/nvidia_nvtx-13.0.85-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:cb7780edb6b14107373c835bf8b72e7a178bac7367e23da7acb108f973f157a6", size = 148878, upload-time = "2025-09-04T08:28:53.627Z" },
+]
+
+[[package]]
+name = "nvitop"
+version = "1.7.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "colorama", marker = "sys_platform == 'win32'" },
+    { name = "nvidia-ml-py" },
+    { name = "psutil" },
+    { name = "windows-curses", marker = "sys_platform == 'win32'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ff/6c/f336530c54bf30ed0e878b7838455a3a9ccdbf8eede12a78cd157140a366/nvitop-1.7.2.tar.gz", hash = "sha256:90b9d6dd3f61227acb2a8c9fdeb59f9a7c3cfa08196e0fe3bfd3877633cd4699", size = 224975, upload-time = "2026-10-26T04:41:02.089Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/19/bf/58080a8c4d0d517aeea6758187edfa59300f16e1fb55e7f78693fa05508f/nvitop-1.7.2-py3-none-any.whl", hash = "sha256:44206b26a8ed808d5f75be32dd37e83c69f80aef0570f8f804600926dea7881b", size = 209453, upload-time = "2026-10-26T04:41:00.02Z" },
 ]
 
 [[package]]
@@ -3105,6 +3129,19 @@ wheels = [
 ]
 
 [[package]]
+name = "windows-curses"
+version = "2.4.2"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2e/9c/b2a3706c8edadae8ae88b327ba072d6056ad1b492f9996214cff027e9f01/windows_curses-2.4.2-cp312-cp312-win32.whl", hash = "sha256:7ec4629685add716d494e8fbdd0b83485de726e9deeda57d30e742c77a32a156", size = 71547, upload-time = "2026-03-31T12:44:37.797Z" },
+    { url = "https://files.pythonhosted.org/packages/8b/ee/8c5da36191524856fb2c675f8cae99211ccf77bcd4e4a9010477e08000ac/windows_curses-2.4.2-cp312-cp312-win_amd64.whl", hash = "sha256:df782859176f9e8142618e4966d6cee7a53a8b1c819faeb6e606a60fa4f8972a", size = 82282, upload-time = "2026-03-31T12:44:39.106Z" },
+    { url = "https://files.pythonhosted.org/packages/b1/54/195f2c4d0258ced34a401c8e3c9eefa2aa2221a9f0179ae64ad3cb039e64/windows_curses-2.4.2-cp313-cp313-win32.whl", hash = "sha256:248bf3f1d973e92ca193b1ea8a626ec7f81a66be6f6d6c5e31ff82056453678d", size = 71458, upload-time = "2026-03-31T12:44:40.184Z" },
+    { url = "https://files.pythonhosted.org/packages/47/e8/38fd0fef95271280a77a4f3b65e0961d3c39716388b39c08b3040bfb4f2c/windows_curses-2.4.2-cp313-cp313-win_amd64.whl", hash = "sha256:1bf3d0c902374b6c430a954adcb686a5ecd7a31fc4195d31136385b5c1bea925", size = 82200, upload-time = "2026-03-31T12:44:41.503Z" },
+    { url = "https://files.pythonhosted.org/packages/d2/22/f90c7d1d83464eb63345802f33e8de41bd732521d9a60a69ad985c8faa90/windows_curses-2.4.2-cp314-cp314-win32.whl", hash = "sha256:a970bf067b3126251423b4da051ef8c1c77acf6294ec96a7d6de7f6b9e5c27a0", size = 77028, upload-time = "2026-03-31T12:44:42.611Z" },
+    { url = "https://files.pythonhosted.org/packages/6f/6a/1f8754de746474a049a841e139b443b250a96908d6913ccf2db9a4303584/windows_curses-2.4.2-cp314-cp314-win_amd64.whl", hash = "sha256:6c22cb0310500dfbfe54c76354e37070e300d5473596d48ac4f9c65b2d578b6f", size = 86361, upload-time = "2026-03-31T12:44:43.893Z" },
+]
+
+[[package]]
 name = "yarl"
 version = "1.24.2"
 source = { registry = "https://pypi.org/simple" }
@@ -3246,6 +3283,11 @@ yorzoi = [
     { name = "yorzoi" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "nvitop" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "biopython", marker = "extra == 'codon-transformer'" },
@@ -3280,6 +3322,9 @@ requires-dist = [
     { name = "yorzoi", marker = "extra == 'yorzoi'", specifier = "==0.2.1" },
 ]
 provides-extras = ["exoshorkie", "shorkie", "yorzoi", "dream-rnn", "data", "all", "dev", "modal", "codon-transformer"]
+
+[package.metadata.requires-dev]
+dev = [{ name = "nvitop", specifier = ">=1.7.2" }]
 
 [[package]]
 name = "yorzoi"

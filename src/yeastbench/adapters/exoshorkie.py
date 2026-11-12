@@ -1,10 +1,13 @@
-"""Task adapters for individual distilled ExoShorkie students.
+"""Task adapters for distilled ExoShorkie students and coverage ensembles.
 
 Scaffolds own experimental sequence construction. The model owns decoding,
 nonnegative coverage, strand alignment, bin geometry and region sums.
 """
 
 from __future__ import annotations
+
+from pathlib import Path
+from typing import TYPE_CHECKING, Mapping, Sequence
 
 import numpy as np
 from tqdm import tqdm
@@ -13,6 +16,10 @@ from yeastbench.adapters._chen_predictor import ChenMarginalizedBase
 from yeastbench.adapters._marginalized_mpra import MPRAMarginalizedBase
 from yeastbench.adapters._shalem_scaffold import ShalemMarginalizedBase
 from yeastbench.adapters._variant_scorer import VariantScorerBase
+
+if TYPE_CHECKING:
+    from yeastbench.adapters._gui_scaffold import GuiLocus
+    from yeastbench.models.exoshorkie import ExoShorkie, ExoShorkieEnsemble
 
 
 def _geometry(model):
@@ -203,6 +210,76 @@ class _ReporterPredictor:
                 batch = []
         if batch:
             flush(batch)
+        return scores
+
+
+class ExoShorkieGuiPredictor(_ReporterPredictor):
+    """Read complete GFP CDS coverage on each replacement cassette's strand."""
+
+    def __init__(
+        self,
+        model: ExoShorkie | ExoShorkieEnsemble,
+        fasta_path: str | Path,
+        constructs_path: str | Path,
+        batch_size: int = 8,
+    ) -> None:
+        from yeastbench.adapters._gui_scaffold import load_gui_constructs
+
+        if batch_size < 1:
+            raise ValueError("batch_size must be positive")
+        self.constructs = load_gui_constructs(constructs_path)
+        super().__init__(model, fasta_path, batch_size)
+        self._prediction_exclusions: dict[str, str] = {}  # Locus ID -> exclusion reason.
+        self._prediction_metadata: dict[str, dict[str, int | str]] = {}  # Locus ID -> window metadata.
+
+    @property
+    def prediction_exclusions(self) -> Mapping[str, str]:
+        return self._prediction_exclusions
+
+    @property
+    def prediction_metadata(self) -> Mapping[str, Mapping[str, int | str]]:
+        """Per-locus window hashes, CDS coverage and visible native flanks."""
+        return self._prediction_metadata
+
+    @property
+    def readout_metadata(self) -> Mapping[str, object]:
+        return {
+            "group": "distilled RNA-seq",
+            "n_tracks": 1,
+            "strand": "reporter strand",
+            "coverage_units": "CPM",
+            "aggregation": "linear RNA coverage summed over complete GFP CDS",
+        }
+
+    def predict_expressions(self, loci: Sequence[GuiLocus]) -> np.ndarray:
+        from yeastbench.adapters._gui_scaffold import (
+            build_gui_contexts,
+            compute_gui_context_metadata,
+        )
+
+        contexts, self._prediction_exclusions = build_gui_contexts(
+            loci, self.constructs, self.fasta, **_geometry(self.model),
+        )
+        self._prediction_metadata = {
+            locus.locus_id: compute_gui_context_metadata(
+                locus, context, len(self.constructs[locus.construct_id]),
+            )
+            for _, locus, context in contexts
+        }
+        # Reverse-complement inference predicts the opposite RNA strand;
+        # the model selects the cassette strand instead of averaging them.
+        scores = self._score_contexts(
+            (
+                (row_index, context, context.readout_base_positions, locus.cassette_strand)
+                for row_index, locus, context in contexts
+            ),
+            len(loci),
+            "ExoShorkie Gui GFP RNA",
+        )
+        for row_index, locus, _ in contexts:
+            if not np.isfinite(scores[row_index]) or scores[row_index] < 0:
+                scores[row_index] = np.nan
+                self._prediction_exclusions[locus.locus_id] = "invalid_model_score"
         return scores
 
 

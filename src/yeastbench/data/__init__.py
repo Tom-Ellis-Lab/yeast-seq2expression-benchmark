@@ -1,4 +1,4 @@
-"""Data storage, manifest, and download for yeastbench.
+"""Registered benchmark inputs, version locks, and data workflows.
 
 Artifacts (task data, model weights, shared references) are declared in
 ``manifest.py`` and frozen to a checksum lock (``manifest.lock.json``). The
@@ -6,22 +6,24 @@ Artifacts (task data, model weights, shared references) are declared in
 HTTP), verifying every file against the lock.
 """
 
-from yeastbench.data.manifest import (
-    ARTIFACTS,
-    Artifact,
+from yeastbench.data.artifacts import (
     BackendKind,
-    Kind,
+    InputArtifact,
+    InputKind,
     License,
     Mirror,
+)
+from yeastbench.data.manifest import (
+    ARTIFACTS,
     artifact_by_id,
     artifacts_for,
 )
 
 __all__ = [
     "ARTIFACTS",
-    "Artifact",
     "BackendKind",
-    "Kind",
+    "InputArtifact",
+    "InputKind",
     "License",
     "Mirror",
     "artifact_by_id",

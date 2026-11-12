@@ -82,10 +82,12 @@ class YorzoiBrooksPredictor(CoverageTrackPredictor):
         use_rc: bool = True, autocast: bool = True,
         track_mode: TrackMode = "matched",
         batch_size: int = 16,
+        hf_revision: str | None = None,
     ) -> "YorzoiBrooksPredictor":
         return cls(
             Yorzoi.from_pretrained(
                 hf_repo, device=device, use_rc=use_rc, autocast=autocast,
+                hf_revision=hf_revision,
             ),
             track_mode=track_mode,
             batch_size=batch_size,
