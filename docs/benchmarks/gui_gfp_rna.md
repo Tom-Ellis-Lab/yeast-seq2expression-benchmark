@@ -72,15 +72,26 @@ strategies and the existing Hong/Wu tasks are unchanged.
 
 Shorkie uses all **1,014 tracks from the 1000-RNA-Seq group** (zero-based track
 IDs 4201–5214), with the configured eight-fold ensemble and reverse-complement
-averaging. Yorzoi uses all **11 Illumina samples**, selecting the matching
-reporter strand: plus-strand track IDs 0–10 or minus-strand IDs 81–91. This
-includes the ten human-construct samples and SRR21628668; Nanopore tracks are
-excluded. Yorzoi retains its existing inverse transformation and
-reverse-complement handling. Both sum linear per-base RNA predictions over the
-complete GFP CDS and take the arithmetic mean across the selected tracks.
-Scores are not calibrated TPM.
+averaging. `shorkie_random_init` uses eight published folds trained from random
+initialization, with the same tracks, readout and reverse-complement averaging.
 
-These groups replace the initial Shorkie T0 and Yorzoi all-RNA readouts. The
+Yorzoi uses all **11 Illumina samples**, selecting the matching reporter strand:
+plus-strand track IDs 0–10 or minus-strand IDs 81–91. This includes the ten
+human-construct samples and SRR21628668; Nanopore tracks are excluded. Yorzoi
+retains its existing inverse transformation and reverse-complement handling.
+Both Shorkie variants and Yorzoi sum linear per-base RNA predictions over the
+complete GFP CDS and take the arithmetic mean across the selected tracks.
+
+ExoShorkie uses all six distilled students (`HPRT1`, `HPRT1R`, `dChr`, `chr7`,
+`Mpneumo`, `Mmmyco`) with equal weights. Each student's predictions are decoded
+to linear CPM coverage using its published normalization statistics and clipped
+at zero before averaging. The adapter selects the reporter's RNA strand by
+input orientation and sums coverage over the exact GFP CDS bases, including
+partial output bins. Reverse-complement inference selects the opposite RNA
+strand; the two strands are not averaged. None of these scores are calibrated
+GFP TPM.
+
+The Shorkie and Yorzoi track groups replace the initial T0 and all-RNA readouts. The
 choice was revised after examining per-track and group performance on Gui, so
 it was informed by this dataset rather than specified before evaluation.
 The sequence cohort, CDS readout and evaluation metrics are unchanged.
@@ -107,11 +118,11 @@ intersection of scored locus IDs and requires identical input-file hashes and
 matching labels, so stale results from different sequence reconstructions cannot
 be compared silently.
 
-Outputs include `predictions.tsv`, `summary.json`, separate linear/log scatter
-PNGs and SVGs, and a common-cohort model comparison. Each new benchmark figure
-has one panel; no PDF is written. The summary records input file hashes and
-the selected track IDs and aggregation; the CLI also records the run
-configuration and code commit.
+Outputs include `predictions.tsv`, `metrics.json`, the CLI's `summary.json`,
+separate linear/log scatter PNGs and SVGs, and a common-cohort model comparison.
+Each new benchmark figure has one panel; no PDF is written. Metrics record input
+file hashes and the selected tracks and aggregation; the CLI also records the
+run configuration and code commit.
 
 ## Reproduction
 
@@ -189,44 +200,62 @@ No fluorescence, neighboring-gene or fitness endpoint is evaluated here.
 
 ## Results
 
-Both models were rerun on 2026-11-11, sequentially on NVIDIA RTX A6000 GPU 1,
-using code commit `b356a5f`. The model settings are now included in
-`configs/default.yaml`.
-All 205 eligible genotypes produced finite positive predictions; all 717 GFP
-CDS bases contributed to every score. The 35 source exclusions are identical
-between models.
+Shorkie and Yorzoi were run on 2026-11-11, sequentially on NVIDIA RTX A6000
+GPU 1, using code commit `b356a5f`. Shorkie trained from random initialization
+and the ExoShorkie ensemble were run on 2026-11-12 on GPU 0 of the same GPU
+type, using commit `1e91d39` and `configs/default.yaml` (config hash
+`aa8c51e3f437`). The default config includes all four model settings.
+
+All four runs use identical input-file hashes and the same 205 eligible
+genotypes. Every prediction is finite and positive, so all 205 also enter log2
+Pearson; all 717 GFP CDS bases contribute to every score. The 35 source
+exclusions are identical between models.
 
 | Model | n | Spearman ρ (95% CI) | Pearson r | log2 Pearson r |
 | --- | ---: | ---: | ---: | ---: |
 | Shorkie, 1000-RNA-Seq, eight folds + RC | 205 | 0.060 (−0.077, 0.182) | 0.002 | 0.034 |
+| Shorkie random init, eight folds + RC | 205 | 0.115 (−0.031, 0.267) | 0.101 | 0.104 |
 | Yorzoi, all Illumina + RC | 205 | 0.096 (−0.045, 0.233) | 0.076 | 0.094 |
+| ExoShorkie, six-student ensemble | 205 | −0.110 (−0.247, 0.032) | −0.133 | −0.129 |
 
-Removing IMP4 leaves Spearman ρ = 0.066 for Shorkie and 0.091 for Yorzoi
-(n = 204). Neither model shows a clear rank association under this protocol;
-the confidence intervals for all three correlations include zero. This does
-not identify whether the limitation comes from the models, unobserved strain
-variation, trans effects, or measurement variability.
+Removing IMP4 leaves Spearman ρ = 0.066 for Shorkie, 0.106 for Shorkie trained
+from random initialization, 0.091 for Yorzoi and −0.098 for ExoShorkie (n = 204).
+None of the models shows a clear rank association under this protocol; the
+confidence intervals for all three correlations include zero for every model.
+This does not identify whether the limitation comes from the models,
+unobserved strain variation, trans effects, or measurement variability.
 
 The centered inputs expose about 7.13 kb upstream and 6.04 kb downstream of
-native sequence to Shorkie, versus 1.43 kb and 0.34 kb to Yorzoi. These distances
-are relative to GFP transcription and exclude the synthetic payload. The models
-therefore have different amounts of native genomic context.
+native sequence to both Shorkie variants and ExoShorkie, versus 1.43 kb and
+0.34 kb to Yorzoi. These distances are relative to GFP transcription and exclude
+the synthetic payload. The models therefore have different amounts of native
+genomic context.
 
-Runtime outputs follow the standard layout:
-`results/default/{shorkie,yorzoi}__gui_gfp_rna/`. Each contains
-`predictions.tsv`, `metrics.json`, the CLI's `summary.json`, and scatter plots.
-Predictions retain all exclusions and model-window hashes; metrics retain the
-confidence intervals, input hashes, selected tracks, and IMP4 sensitivity.
-Cross-model comparison writes `plot.svg` and `common_cohort_metrics.json` under
+All four runs are available under `results/default/<model>__gui_gfp_rna/`,
+where `<model>` is `shorkie`, `shorkie_random_init`, `yorzoi` or
+`exoshorkie_ensemble`. Each contains `predictions.tsv`, `summary.json`,
+`run_metadata.json` and scatter plots. The two new runs also have `metrics.json`;
+the original Shorkie/Yorzoi runs retain their metrics inside `summary.json`.
+Predictions retain all exclusions and model-window hashes; metrics retain
+confidence intervals, input hashes, readout details and IMP4 sensitivity.
+The four-model comparison uses the same 205 genotypes and writes `plot.svg`
+and `common_cohort_metrics.json` under
 `results/default/compare/per_task/gui_gfp_rna/`.
 
-The reported runs remain locally under `results/gui_gfp_rna/`. Historical
-T0/all-RNA outputs are in `results/gui_gfp_rna_t0_all_rna_v1/`; earlier track
-diagnostics refer to those historical readouts.
+The original Shorkie/Yorzoi runs also remain under `results/gui_gfp_rna/`;
+their copies in `results/default/` preserve the original files and provenance.
+Historical T0/all-RNA outputs are in `results/gui_gfp_rna_t0_all_rna_v1/`;
+earlier track diagnostics refer to those historical readouts. Raw predictions
+and metrics remain with the runtime outputs rather than being copied into docs.
 
 ![Shorkie GFP RNA prediction](../../img/results/gui_gfp_rna/shorkie_scatter_log.png)
 
+![Shorkie trained from random initialization GFP RNA prediction](../../img/results/gui_gfp_rna/shorkie_random_init_scatter_log.png)
+
 ![Yorzoi GFP RNA prediction](../../img/results/gui_gfp_rna/yorzoi_scatter_log.png)
 
-Linear-scale versions and the shared-cohort comparison are in
+![ExoShorkie ensemble GFP RNA prediction](../../img/results/gui_gfp_rna/exoshorkie_ensemble_scatter_log.png)
+
+The [four-model comparison](../../img/results/gui_gfp_rna/comparison.png) and
+linear-scale scatter plots are in
 [`img/results/gui_gfp_rna/`](../../img/results/gui_gfp_rna/).
