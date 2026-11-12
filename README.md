@@ -38,6 +38,7 @@ Please find a more comprehensive overview in [docs/benchmarks/](docs/benchmarks)
 | Model | Description | Paper | Status |
 | --- | --- | --- | --- |
 | Shorkie | Language model based S2F model | [Predicting dynamic expression patterns in budding yeast with a fungal DNA language model](https://www.biorxiv.org/content/10.1101/2025.09.19.677475v1) | done |
+| Shorkie_Random_Init | Shorkie trained supervised from scratch without language-model pretraining; eight-fold ensemble | [Published checkpoints](https://github.com/calico/shorkie-paper/blob/main/data/manifest.json) | done |
 | Yorzoi | Borzoi-based S2F model | [Yorzoi: Predicting RNA-seq coverage from DNA sequence in yeast](https://www.biorxiv.org/content/10.1101/2025.09.20.677345v1) | done |
 | ExoShorkie | Shorkie finetuned on exo. genomes | [ExoShorkie: Predicting RNA-seq coverage of exogenous genomes in yeast by transfer learning](https://www.biorxiv.org/content/10.64898/2026.01.25.701486v1) | in progress |
 

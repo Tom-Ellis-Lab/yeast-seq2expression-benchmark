@@ -1,279 +1,127 @@
-# Add `shorkie_random_init` to ybench
+# Benchmark Shorkie trained from random initialization
 
-## Context
+Reviewed against `0e37d14` on 2026-11-06. This branch was fast-forwarded from
+`7b090ee` to include the updated input-storage workflow and default config.
 
-Shorkie is a masked DNA language model pretrained on 165 fungal genomes, then
-fine-tuned on yeast RNA-seq tracks. The authors also trained the same
-architecture supervised **from scratch**, skipping the pretraining step, and
-called it `Shorkie_Random_Init`. Their own summary of the difference: "the only
-difference between finetuned and random-init is the `--restore` flag + learning
-rate."
+## Scope
 
-Scoring it across all ten ybench tasks turns the benchmark into a controlled
-measurement of what language-model pretraining actually buys, task by task. The
-paper reports that comparison for eQTLs and MPRAs; ybench would extend it to
-reporter insertions, synonymous codons, SCRaMBLE rearrangements and foreign DNA.
+Add the authors' supervised, eight-fold `Shorkie_Random_Init` ensemble and score
+all eleven tasks with the same adapters, inputs, track selection, and reverse-
+complement averaging as pretrained Shorkie. This is a model trained without
+language-model pretraining, not an untrained network. Compare ensembles; matching
+fold numbers alone does not establish corresponding train/test splits.
 
-Your instinct was right — it is a different set of weights, same architecture,
-same adapters. There is exactly one wrinkle, described below.
+The published weights are at
+`https://storage.googleapis.com/seqnn-share/shorkie_models/shorkie_random_init/`.
+Eight checkpoints total 454,966,368 bytes. Upstream's manifest lists their MD5s:
+<https://github.com/calico/shorkie-paper/blob/main/data/manifest.json>.
 
-## What I verified
+## Changes from the original plan
 
-**The weights are published and need no auth.** All eight folds return HTTP 200
-at `https://storage.googleapis.com/seqnn-share/shorkie_models/shorkie_random_init/f{0..7}/model_best.h5`
-(56,870,796 bytes each), with `params.json` at that prefix's root. I downloaded
-fold 0 and opened it.
+- `configs/default.yaml` now covers all eleven tasks, including YTK, Brooks,
+  and Meneu. Coverage runs and Chen use batch size 4; the other eight use 32. Keep the
+  standalone Brooks/Meneu configs consistent, but do not run these tasks twice.
+- Inputs now use `InputArtifact`/`InputKind` from `data.artifacts`, with selection
+  in `data.manifest`. The lock workflow supports immutable HF revisions and
+  rejects missing lock entries. Use `data lock --artifacts`, not the old
+  description of silently skipping unregistered checkpoints.
+- Use the cluster GPUs as requested. On this host GPUs are visible outside the
+  sandbox; four A6000s are shared with active jobs. Limit CPU threads and retain
+  separate task logs. Do not stop or change other jobs.
+- Local sibling checkouts contain weights, task inputs, and some previous
+  results. Copy inputs into this checkout and verify their committed checksums;
+  do not modify shared inputs. Retain old result metadata when importing peers.
+- Preserve original config bytes before edits for optional recovery of Modal
+  results by their old hashes. No cloud compute is required for the new runs.
+- The pretrained manifest still uses the old bucket path. Correct it in this
+  change; no branch switching or historical cherry-pick is needed.
+- Initial measured throughput is about 3 Rafi sequences/s and 17 Cuperus
+  sequences/s on the shared GPUs: roughly 6 and 8 hours respectively, excluding
+  initialization and contention changes. The old 1–2 GPU-hour estimate is withdrawn.
+- Chen's batch size counts variants, each expanded over 20 host contexts. The
+  inherited batch size 32 exhausted A6000 memory. Both Shorkie variants now use
+  the adapter default of 4 for this task.
+- Cuperus needs `construct.json`, which the previous manifest omitted. Rebuild
+  it with `scripts/cuperus/build_construct.py` from the locked reference, include
+  its checksum in the input lock, and commit the small reporter definition.
+  Its bytes match the existing local reference exactly. It is not present on
+  the current HF mirror, so source checkouts carry this file directly.
+- Rafi's adapter already defaults to bfloat16 autocast and compilation. Other
+  Shorkie adapters use float32. Preserve these existing per-task defaults;
+  the CPU regression check exercises float32.
 
-**The architecture is identical.** Diffing the two `params.json` files, the only
-differences sit in the `train` block: `task: "fine-tune"→"supervised"` and
-`learning_rate: 2e-05→0.0005`. The `model` block — sequence length 16,384, trunk
-of conv_dna/res_tower/transformer_tower/3× unet_conv/Cropping1D, 5,215-unit
-softplus head — is byte-identical. All 192 layer names in the two checkpoints
-match.
+## Implementation
 
-**The one real difference is the input width.** Pretrained Shorkie's first conv
-kernel is `(11, 170, 96)`; the random-init one is `(11, 4, 96)`. 170 = 4
-nucleotides + 1 reserved + 165 species channels. The random-init model was
-trained on plain DNA one-hot with no species encoding. The size gap between the
-two checkpoints is 701,184 bytes = 11 × 166 × 96 × 4 exactly, which is that conv
-layer and nothing else. Upstream's own scoring script says the same thing:
-`shorkie-paper/from_kuanhao/eQTL/inference/caudal_etal_Shorkie_Random_Init/positive/1_score_variants_Shorkie.py:68`
-— *"Do NOT set num_features (unlike Shorkie which needs 170 features)."*
+1. Inspect real checkpoint kernels and both parameter files. The previous audit
+   found first-convolution shapes `(11, 170, 96)` and `(11, 4, 96)`, despite equal
+   model config blocks. Preserve a deterministic pretrained CPU output before
+   modifying the loader.
+2. Read input width from the H5 kernel shape before building `ShorkieModule`.
+   Accept only 4 or 170 channels. Copy the config before inserting `in_channels`
+   since the wrapper reuses it across folds. Expand species channels only for
+   the 170-channel model; keep weight-shape validation against the built module.
+   A width allowlist cannot distinguish a genuine four-channel checkpoint from
+   an incorrectly extracted one: use the published, checksummed checkpoints.
+3. Resolve Hong's `targets.txt` beside `params.json`, retaining the existing
+   pretrained fallback. Fetch the same upstream 5,215-track metadata into the
+   new model directory without depending on all pretrained checkpoints.
+4. Register `shorkie_random_init` with `_build_shorkie`. Add its HTTP input
+   artifact, ten-file checksum inventory, and config entries. Reuse all ten
+   adapters (eleven tasks share ten protocols/adapters).
+5. Test channel inference across supported H5 layouts, unknown widths,
+   nonmutation of config, conditional species expansion, registry/config
+   coverage, metadata resolution, and manifest/lock completeness.
+6. Compare pretrained outputs before/after with `np.array_equal` on the same
+   CPU/runtime. Smoke-test random-init on Hong (including its fitted metrics)
+   and YTK, then execute every remaining full task on cluster GPUs.
 
-Our PyTorch port hard-codes 170 in three places (`src/yeastbench/models/shorkie/nn.py`),
-so it cannot load these checkpoints today. That is the whole code change.
+## Execution and evidence
 
-## Where it runs: Modal
-
-All four local A6000s are pinned at 98–100% utilisation by other users
-(`es1219`, `xz9118`), with host load average 80 and 6 GB of 250 GB RAM free.
-Only VRAM is free (~37 GB per card), not compute. Run on Modal: the backend is
-merged on `dev` (`src/yeastbench/modal/`), `modal` is installed in `.venv`, and
-`~/.modal.toml` already holds a token. An A10 run of ten tasks is roughly
-$1–3.
-
-## Steps
-
-### 1. Branch, and take the URL fix with it
-
-```bash
-git checkout dev && git checkout -b feat/shorkie-random-init
-git cherry-pick d16b299
-```
-
-`d16b299` ("Fix the Shorkie weights URL — upstream moved the bucket path") lives
-only on `mytk-v1`. Without it `dev` cannot fetch Shorkie at all — the manifest
-still points at `seqnn-share/shorkie/`, which 404s. Both variants now live under
-`seqnn-share/shorkie_models/`, so this branch needs it. Cherry-pick rather than
-retype, so the two branches don't conflict later.
-
-### 2. Pull the existing Modal results first — before editing any config
-
-`results/default/` on this machine holds only four pair directories (`cai`,
-`codon_transformer`, `dream_rnn`, `yorzoi__hong_igr`). Every pretrained-Shorkie
-number lives on the Modal results volume, namespaced by config hash
-(`src/yeastbench/modal/app.py:159-160`). Editing `configs/default.yaml` changes
-that hash, and `ybench modal pull -c configs/default.yaml` would then look in an
-empty namespace.
-
-```bash
-uv run ybench modal pull -c configs/default.yaml --out results
-uv run ybench modal pull -c configs/brooks.yaml  --out results
-uv run ybench modal pull -c configs/meneu.yaml   --out results
-```
-
-Do this before step 5. (Recovery if it is missed: `ybench modal pull` with no
-`-c` dumps every namespace under `results/<hash>/`.)
-
-### 3. `src/yeastbench/models/shorkie/nn.py` — read the width from the checkpoint
-
-Rather than add a flag and thread it through nine adapters, let the checkpoint
-describe itself. `from_tf_checkpoint` already opens the H5; have it read the
-conv kernel's shape first and build the module to match.
-
-- Add `KNOWN_IN_CHANNELS = (DNA_CHANNELS, SPECIES_OFFSET + NUM_SPECIES)` next to
-  the existing constants (`nn.py:12-17`).
-- Add a small `_tf_conv_dna_in_channels(h5_path)` that reads
-  `model_weights/conv1d/conv1d/kernel:0`'s `.shape[1]` without materialising the
-  kernel, reusing the Keras double-nesting unwrap from `_get_tf_layer`
-  (`nn.py:643-660`).
-- Add `_with_conv_dna_in_channels(config, n)` returning a **copy** of the config
-  whose `trunk[0]` carries `in_channels: n`. A copy, not a mutation —
-  `wrapper.py:110-115` loads the config once and hands the same dict to all
-  eight folds. `_build` already splats `trunk[0]` into `ConvDNA(**cfg)`
-  (`nn.py:517-519`), so nothing else changes there.
-- In `_build`, set `self._expects_species_encoding = self.conv_dna.conv.in_channels != DNA_CHANNELS`.
-- In `forward` (`nn.py:596`), guard the expansion:
-  `if self._expects_species_encoding: x = self._expand_species_encoding(x)`.
-- In `from_tf_checkpoint` (`nn.py:626-635`), read the width, reject anything
-  outside `KNOWN_IN_CHANNELS` with a message naming both valid widths, then
-  build from the injected config.
-- In `_load_tf_weights` (`nn.py:702-707`), compare against
-  `model.conv_dna.conv.in_channels` instead of the hard-coded 170. Keep the
-  raise — it still guards anyone hand-building a module.
-- Refresh the two docstrings that assert 170 (`nn.py:33-38`, `nn.py:577-590`).
-
-Keep the allowlist. Accepting any width would turn today's loud "these are
-extracted weights, not a real checkpoint" failure into quietly wrong numbers.
-
-### 4. `src/yeastbench/adapters/shorkie_hong.py` — resolve `targets.txt` per variant
-
-The fallback at `shorkie_hong.py:117-121` hard-codes
-`data/models/shorkie/targets.txt`. Seed a fresh Modal volume with only
-`--model shorkie_random_init` and that file is absent, at which point Hong
-silently degrades to primary-only (`shorkie_hong.py:213-215`) and the two models
-get scored on different metric sets — Hong reports the IntTrain-fitted ρ as a
-co-primary metric.
-
-Add a `_default_targets_path(params_path)` helper that prefers `targets.txt`
-beside the checkpoint's `params.json` and falls back to the existing
-repo-anchored path, and call it from `from_checkpoints` when `targets_path` is
-None. For the pretrained model both branches name the same file, so nothing
-moves. Don't route this through `model_config` — that dict goes to every adapter
-in the run and the other eight signatures don't take it.
-
-### 5. Registry, manifest, lock, configs
-
-**`src/yeastbench/registry.py:328`** — one line:
-
-```python
-"shorkie_random_init": _build_shorkie,
-```
-
-`_build_shorkie` dispatches on the task's protocol, never on the model name, so
-all nine adapters are reused as they stand. The name has no `__`, so
-`compare._DIR_RE` (`compare.py:41`) splits the result directories correctly.
-
-**`src/yeastbench/data/manifest.py`** — a new `InputArtifact` after the `shorkie`
-block (`:258-289`), `dest="data/models/shorkie_random_init"`, mirror base
-`.../shorkie_models/shorkie_random_init/`, the same `f{i}/model_best.h5`
-remapping. Upstream ships no `targets.txt` for this variant and both models were
-trained on the same 5,215-track sheet, so point that member at the pretrained
-copy by absolute URL (absolute URLs bypass the base — `data/backends.py:58-61`).
-Do not use `requires=("shorkie",)`; that drags 460 MB along for a 781 KB file.
-
-**Lock it before running anything.** Until the lock entry exists, `build_plans`
-skips the artifact (`fetch.py:137-140`), the preflight reports "ready", and the
-run dies at model load.
+Use this checkout's source (`PYTHONPATH=src`) when using a shared Python
+installation. Example commands after acquiring and locking the new weights:
 
 ```bash
-# fetch once so `data lock` has local files to hash
-mkdir -p data/models/shorkie_random_init/checkpoints
-BASE=https://storage.googleapis.com/seqnn-share/shorkie_models
-for i in 0 1 2 3 4 5 6 7; do
-  curl -fL "$BASE/shorkie_random_init/f$i/model_best.h5" \
-       -o "data/models/shorkie_random_init/checkpoints/f$i.h5"
-done
-curl -fL "$BASE/shorkie_random_init/params.json" -o data/models/shorkie_random_init/params.json
-curl -fL "$BASE/shorkie/targets.txt"             -o data/models/shorkie_random_init/targets.txt
-
-uv run ybench data lock   --tasks  shorkie_random_init
-uv run ybench data verify --models shorkie_random_init
+PYTHONPATH=src .venv/bin/python -m yeastbench.cli data lock --artifacts shorkie_random_init
+PYTHONPATH=src .venv/bin/python -m yeastbench.cli data verify -c configs/default.yaml -m shorkie_random_init
+PYTHONPATH=src .venv/bin/python -m yeastbench.cli run -c configs/default.yaml -m shorkie_random_init --dry-run
+PYTHONPATH=src .venv/bin/python -m yeastbench.cli run -c configs/default.yaml -m shorkie_random_init --gpu 0
 ```
 
-**Configs** — add a `shorkie_random_init` run block to `configs/default.yaml`
-(after the Shorkie block at `:72-96`, same eight tasks, `batch_size: 32`,
-`use_rc: true`), `configs/brooks.yaml` (`:25-38`) and `configs/meneu.yaml`
-(`:30-43`), each pointing at `data/models/shorkie_random_init/`.
+For parallel execution, select a distinct task per worker and write individual
+logs. Record source changes, input lock, config hash, device, runtime, and full
+sample counts. Preserve predictions before comparing or plotting.
 
-Adding it to the canonical config does not re-run the other models. `--model
-shorkie_random_init` selects only the new pairs, and the auto-compare afterwards
-deliberately walks the **unfiltered** config's `out_dir`, so it pairs the new
-results against whatever peers are already on disk (`cli.py:197-201`). There is
-no skip-if-exists logic in the runner, but with the filter there is nothing to
-skip.
+Update README model support and report only measured results in `docs/results.md`.
+Compare Brooks on identical sample IDs and report any cohort change. Existing
+plot colours depend on sorted model position and may change when adding a model.
+Unexpected performance differences warrant checking predictions and sample
+selection; agreement with the expected model ranking is not a correctness test.
 
-### 6. Tests (all CPU-only)
+## Status
 
-- `tests/test_registry.py` — the new name is in `MODELS` and maps to the same
-  factory as `shorkie`.
-- `tests/test_data_manifest.py` — the artifact is declared and locked; the
-  registry-coverage gate at `:44` stays green. Add a `@pytest.mark.network`
-  fetch of the 2.7 KB `params.json` against the lock, mirroring `:184-198`.
-- `tests/test_shorkie_input_channels.py` (new) — default config builds a
-  170-wide conv with expansion on; an injected 4 builds a 4-wide conv with
-  expansion off; the injection leaves the caller's dict untouched; an unknown
-  width raises and names both valid widths.
-- `tests/test_hong_igr.py` — `_default_targets_path` prefers the sheet beside
-  `params.json` and falls back when absent.
+Implementation and all eleven full benchmark runs completed.
 
-### 7. Docs
+- All eight random-init checkpoints match upstream MD5s; all have four input
+  channels. Their model config equals pretrained Shorkie's model config.
+- The entire pretrained fold-0 output on the deterministic CPU probe is
+  bit-identical before/after (shape `1 × 896 × 5215`). A compact T0-track mean
+  regression fixture is committed with the test.
+- Input verification passed (54 files after adding Cuperus's reporter definition).
+- Full CPU suite: 499 passed, 9 skipped, 6 deselected. Both real parameter-download/checksum tests also pass.
+- The initial broad suite had 497 passes, 9 skips, and one failure due to a
+  missing YTK build-provenance sidecar. Geometry itself passed. The test now
+  checks that optional provenance only when present, so fresh installations
+  of the declared runtime inputs pass the same geometry checks.
+- Run logs and execution provenance are under `tmp/random-init/`; completed
+  results are under `results/default/shorkie_random_init__<task>/`.
+- `tmp/random-init/finish.py` monitors active jobs and retries failed tasks when
+  GPU memory is available. It updates `tmp/random-init/status.json` and the
+  results appendix as tasks finish. `tmp/random-init/completion.json` is written
+  only after all eleven tasks have finished, their raw outputs reproduce the
+  saved reconstructable metrics (Brooks does not persist its secondary shape
+  diagnostic arrays), and the final comparison has been regenerated.
+- Regenerate the report with
+  `PYTHONPATH=src .venv/bin/python scripts/docs/report_shorkie_random_init.py`.
+  Pending tasks stay explicit; missing pretrained raw results remain blank.
 
-A row in the README Models table, and a `Shorkie_Random_Init` column in the
-per-benchmark tables in `docs/results.md`. House style per `CLAUDE.md`: say what
-changed, don't editorialise.
-
-## Verification
-
-**Prove the pretrained path is bit-for-bit unchanged.** This is the gate. The
-change adds one `if` and pins a value that was already the default, so it should
-hold exactly — but check it rather than argue it:
-
-```bash
-git worktree add /tmp/ybench-dev dev
-# same probe script in each tree: torch.manual_seed(0), torch.set_num_threads(1),
-# load data/models/shorkie/checkpoints/f0.h5 via from_tf_checkpoint,
-# forward one fixed 16,384 bp window, np.save the output
-python -c "import numpy as np; a=np.load('/tmp/before.npy'); b=np.load('/tmp/after.npy'); \
-           print('bit-identical:', np.array_equal(a, b))"
-```
-
-`np.array_equal`, not `allclose`. Then commit a small regression fixture — the
-T0-track mean per bin is 896 floats (~3.6 KB), where the full output would be
-18.7 MB — and assert it with `atol=0`, skipping when the checkpoint is absent.
-
-**Smoke-test the new model on CPU** before spending GPU time. Load one fold,
-confirm `conv_dna.conv.in_channels == 4` and that species expansion is off, then
-run the cheapest real pair:
-
-```bash
-uv run ybench run -c configs/default.yaml -m shorkie_random_init -t hong_igr --device cpu
-```
-
-Hong is the right smoke task: fewest loci of the eight, and the only one that
-reads `targets.txt`, so it exercises step 4. Check that
-`results/default/shorkie_random_init__hong_igr/summary.json` carries the
-IntTrain-fitted metric rather than the degraded primary-only shape.
-
-**Run the ten tasks on Modal.**
-
-```bash
-uv run ybench modal data get -c configs/default.yaml -m shorkie_random_init
-uv run ybench modal run      -c configs/default.yaml -m shorkie_random_init --gpu A10 --detach
-uv run ybench modal run      -c configs/brooks.yaml  -m shorkie_random_init --gpu A10 --detach
-uv run ybench modal run      -c configs/meneu.yaml   -m shorkie_random_init --gpu A10 --detach
-uv run ybench modal pull     -c configs/default.yaml --out results
-uv run ybench modal pull     -c configs/brooks.yaml  --out results
-uv run ybench modal pull     -c configs/meneu.yaml   --out results
-```
-
-The image bakes the working tree, so uncommitted edits ship and it rebuilds
-itself. Expect roughly 1–2 GPU-hours; `rafi_mpra_marginalized` (~1.56M windows)
-and `cuperus_utr` (~501k) dominate, everything else is minutes.
-
-**Sanity-check against the paper.** The random-init model should lose to
-pretrained Shorkie on the eQTL tasks — that is the published result, and it is
-the cheapest check that the port is right. If it wins, suspect the port before
-believing it.
-
-## Risks
-
-- **Brooks headline can move.** `BrooksScrambleBenchmark.compare_plot`
-  (`benchmarks/brooks.py:978-981`) intersects `sample_ids` across every model
-  present and reports on that shared cohort. A third model can shrink the
-  intersection. Both Shorkie variants share window geometry so the sets ought to
-  be identical — diff `shared_cohort["n"]` before and after, and if it shrinks,
-  send the random-init Brooks run to its own `out_dir` rather than restating the
-  published Shorkie-vs-Yorzoi numbers.
-- **Plot colours shift.** `model_color` indexes `MODEL_COLORS` by position in
-  the sorted model list (`benchmarks/base.py:106-124`). Sorted order becomes
-  `[shorkie, shorkie_random_init, yorzoi]`, so Yorzoi changes colour in every
-  regenerated compare figure. Cosmetic, but it will show up in docs diffs.
-- **Merge conflict with `exoshorkie/distill`.** That branch rewrites
-  `_expand_species_encoding`, `forward`'s tail and `from_tf_checkpoint` — the
-  same lines. Keeping this edit config-shaped keeps the conflict mechanical.
-  Worth a line in the PR description.
-- **Fold correspondence is unproven.** The random-init `f0..f7` are assumed to be
-  the same eight CV folds as the pretrained model's. The naming and the shared
-  experiment root say so, but nothing in the bucket proves it. Compare ensembles,
-  not individual folds, and don't claim per-fold correspondence in the writeup.
+All eleven completed-task summaries and evaluation timings are recorded in `docs/results.md` and `docs/results/shorkie_random_init.json`. Raw predictions, plots, and run metadata remain under `results/default/`.

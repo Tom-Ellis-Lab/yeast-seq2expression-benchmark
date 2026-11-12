@@ -238,3 +238,37 @@ RNA-seq coverage zero-shot (far-OOD). Scored per contig over 5 kb windows.
 
 **Winner: Yorzoi** — higher within-window shape correlation and lower JS
 divergence on both chromosomes.
+
+<!-- shorkie-random-init:start -->
+## Shorkie trained from random initialization
+
+Completed 11/11 full tasks. Updated 2026-11-07T00:10:24 UTC.
+
+Eight published supervised-from-scratch folds, with reverse-complement averaging.
+Rafi retains its existing bfloat16/compiled adapter default; other tasks use
+float32. Chen uses four variants per batch, expanded over all host contexts.
+
+Pretrained columns use available saved runs; missing baselines are left blank.
+The earlier tables retain their historical results. Full summaries, sample counts,
+run metadata, and source checksums are in [the machine-readable report](results/shorkie_random_init.json).
+
+| Task | Metric(s) | Pretrained Shorkie | Random-init Shorkie | Eval time |
+| --- | --- | --- | --- | --- |
+| Caudal | AUROC / AUPRC | 0.5673 / 0.5793 | 0.5377 / 0.5381 | 26.0 min |
+| Kita | AUROC / AUPRC | 0.6668 / 0.6399 | 0.6614 / 0.6181 | 8.5 min |
+| Rafi | Pearson r / Spearman ρ | — | 0.5684 / 0.5808 | 239.9 min |
+| Shalem | Pearson r / Spearman ρ | — | 0.6249 / 0.6415 | 133.4 min |
+| Chen | mean r / mean ρ | — | 0.4708 / 0.4369 | 63.3 min |
+| Wu | Pearson r / Spearman ρ | -0.0387 / -0.0290 | 0.0582 / 0.1040 | 1.5 min |
+| Hong | held-out ρ / fitted-track ρ | -0.1475 / 0.1826 | 0.3520 / 0.1621 | 0.5 min |
+| Brooks | shared-cohort balanced accuracy, r0 / r1 / r2 | 0.5135 / 0.6125 / 0.5339 | 0.5234 / 0.4875 / 0.5462 | 2.3 min |
+| Cuperus | random clean / partial ρ; native / partial ρ | — | 0.1565 / 0.1510 / 0.2548 / 0.2420 | 268.3 min |
+| YTK | range recovery / Spearman ρ | 0.1650 / 0.6526 | 0.0626 / 0.8035 | 0.0 min |
+| Meneu | shape r / JS↓: M. pneumoniae; M. mycoides | 0.0912 / 0.0982 / 0.2638 / 0.2844 | 0.1405 / 0.0851 / 0.0616 / 0.3867 | 0.2 min |
+
+Brooks uses the same 698 shared sample IDs before and after adding random-init.
+Its three replicate metrics are reported separately. The raw-result audit checks
+all reconstructable metrics; Brooks's secondary shape diagnostics are available
+only in its saved summary because coverage arrays are not persisted.
+
+<!-- shorkie-random-init:end -->

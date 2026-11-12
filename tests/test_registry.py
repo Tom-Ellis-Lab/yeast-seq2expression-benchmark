@@ -19,6 +19,9 @@ class TestRegistry:
     def test_shorkie_registered(self):
         assert "shorkie" in MODELS
 
+    def test_random_init_reuses_shorkie_factory(self):
+        assert MODELS["shorkie_random_init"] is MODELS["shorkie"]
+
     def test_yorzoi_registered(self):
         assert "yorzoi" in MODELS
 

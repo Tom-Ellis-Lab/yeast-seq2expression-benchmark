@@ -91,7 +91,7 @@ ARTIFACTS: tuple[InputArtifact, ...] = (
         dest="data/tasks/cuperus_mpra_5utr",
         needed_by=("cuperus_utr",),
         requires=(_REFS,),
-        include=("random_utrs.tsv", "native_utrs.tsv"),
+        include=("random_utrs.tsv", "native_utrs.tsv", "construct.json"),
     ),
     _task(
         "caudal_eqtl",
@@ -197,7 +197,7 @@ ARTIFACTS: tuple[InputArtifact, ...] = (
         mirrors=(
             Mirror(
                 BackendKind.HTTP,
-                base="https://storage.googleapis.com/seqnn-share/shorkie/",
+                base="https://storage.googleapis.com/seqnn-share/shorkie_models/shorkie/",
                 member_remote={
                     "checkpoints/f0.h5": "f0/model_best.h5",
                     "checkpoints/f1.h5": "f1/model_best.h5",
@@ -210,6 +210,38 @@ ARTIFACTS: tuple[InputArtifact, ...] = (
                     "params.json": (
                         "https://raw.githubusercontent.com/tdsone/"
                         "shorkie-pytorch/main/data/shorkie_params.json"
+                    ),
+                },
+            ),
+        ),
+    ),
+    InputArtifact(
+        id="shorkie_random_init",
+        kind=InputKind.MODEL_WEIGHTS,
+        dest="data/models/shorkie_random_init",
+        needed_by=("shorkie_random_init",),
+        include=("checkpoints/f0.h5", "checkpoints/f1.h5", "checkpoints/f2.h5",
+                 "checkpoints/f3.h5", "checkpoints/f4.h5", "checkpoints/f5.h5",
+                 "checkpoints/f6.h5", "checkpoints/f7.h5", "params.json",
+                 "targets.txt"),  # read at runtime by shorkie_hong
+        license=License.PUBLIC,
+        redistributable=False,  # upstream's to host; we point at their bucket
+        mirrors=(
+            Mirror(
+                BackendKind.HTTP,
+                base="https://storage.googleapis.com/seqnn-share/shorkie_models/shorkie_random_init/",
+                member_remote={
+                    "checkpoints/f0.h5": "f0/model_best.h5",
+                    "checkpoints/f1.h5": "f1/model_best.h5",
+                    "checkpoints/f2.h5": "f2/model_best.h5",
+                    "checkpoints/f3.h5": "f3/model_best.h5",
+                    "checkpoints/f4.h5": "f4/model_best.h5",
+                    "checkpoints/f5.h5": "f5/model_best.h5",
+                    "checkpoints/f6.h5": "f6/model_best.h5",
+                    "checkpoints/f7.h5": "f7/model_best.h5",
+                    "targets.txt": (
+                        "https://storage.googleapis.com/seqnn-share/"
+                        "shorkie_models/shorkie/targets.txt"
                     ),
                 },
             ),

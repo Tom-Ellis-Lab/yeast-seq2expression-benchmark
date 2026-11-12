@@ -1,4 +1,5 @@
 import json
+from copy import deepcopy
 
 import h5py
 import numpy as np
@@ -15,6 +16,7 @@ SPECIES_OFFSET = (
     5  # channels 0-3 = nucleotides, channel 4 = reserved, channels 5+ = species
 )
 R64_SPECIES_INDEX = 109  # S. cerevisiae (R64) index in the species encoding
+KNOWN_IN_CHANNELS = (DNA_CHANNELS, SPECIES_OFFSET + NUM_SPECIES)
 
 
 @dataclass(frozen=True)
@@ -32,7 +34,7 @@ _current_config: ContextVar[BuildConfig] = ContextVar("_current_config")
 class ConvDNA(nn.Module):
     """Initial convolution on one-hot DNA.
 
-    Accepts the full species-encoded input (170 channels by default):
+    Accepts DNA alone (4 channels) or species-encoded input (170 by default):
     channels 0-3 = one-hot nucleotides, channel 4 = reserved,
     channels 5-169 = one-hot species indicator.
     """
@@ -517,6 +519,9 @@ class ShorkieModule(nn.Module):
         conv_dna_cfg = dict(trunk_cfg[0])
         del conv_dna_cfg["name"]
         self.conv_dna = ConvDNA(**conv_dna_cfg)
+        if self.conv_dna.conv.in_channels not in KNOWN_IN_CHANNELS:
+            raise ValueError(f"conv_dna input channels must be one of {KNOWN_IN_CHANNELS}")
+        self._expects_species_encoding = self.conv_dna.conv.in_channels != DNA_CHANNELS
 
         # ── Build res_tower ──
         rt_cfg = dict(trunk_cfg[1])
@@ -592,8 +597,9 @@ class ShorkieModule(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # x: (B, 4, T)  channels-first one-hot DNA
 
-        # Expand to species-encoded input: (B, 4, T) -> (B, 170, T)
-        x = self._expand_species_encoding(x)
+        # Supervised-from-scratch checkpoints take DNA without species channels.
+        if self._expects_species_encoding:
+            x = self._expand_species_encoding(x)
 
         # Conv DNA
         x = self.conv_dna(x)  # (B, C, T)
@@ -627,10 +633,11 @@ class ShorkieModule(nn.Module):
     def from_tf_checkpoint(config: dict, h5_path: str) -> "ShorkieModule":
         """Load a Shorkie model with weights from an original TF/Keras H5 checkpoint.
 
-        The checkpoint must contain the full 170-channel conv_dna kernel
-        (4 nucleotide + 1 reserved + 165 species channels).
+        Infer DNA-only (4) or species-encoded (170) input from the checkpoint.
+        The caller's config is reused across folds and is never modified.
         """
-        model = ShorkieModule(config)
+        in_channels = _tf_conv_dna_in_channels(h5_path)
+        model = ShorkieModule(_with_conv_dna_in_channels(config, in_channels))
         _load_tf_weights(model, h5_path)
         return model
 
@@ -640,14 +647,37 @@ class ShorkieModule(nn.Module):
 # ──────────────────────────────────────────────────────────────
 
 
-def _get_tf_layer(h5root, name):
-    """Get the parameter dict for a named TF layer from a Keras H5 checkpoint."""
+def _tf_layer_group(h5root, name):
+    """Unwrap a named layer in either a full Keras or weights-only H5 file."""
     root = h5root["model_weights"] if "model_weights" in h5root else h5root
     grp = root[name]
 
     # Keras nests: layer_name/layer_name/... ; extracted: layer_name/param:0
     if name in grp and isinstance(grp[name], h5py.Group):
         grp = grp[name]  # unwrap keras double-nesting
+    return grp
+
+
+def _tf_conv_dna_in_channels(h5_path):
+    with h5py.File(h5_path, "r") as f:
+        shape = _tf_layer_group(f, "conv1d")["kernel:0"].shape
+    if len(shape) != 3 or shape[1] not in KNOWN_IN_CHANNELS:
+        raise ValueError(
+            f"conv_dna kernel has shape {shape}; expected input channels "
+            f"{KNOWN_IN_CHANNELS}. Use an original published TF checkpoint."
+        )
+    return shape[1]
+
+
+def _with_conv_dna_in_channels(config, in_channels):
+    config = deepcopy(config)
+    config["trunk"][0]["in_channels"] = in_channels
+    return config
+
+
+def _get_tf_layer(h5root, name):
+    """Get the parameter dict for a named TF layer from a Keras H5 checkpoint."""
+    grp = _tf_layer_group(h5root, name)
 
     params = {}
     for key in grp.keys():
@@ -699,7 +729,7 @@ def _load_tf_weights(model: ShorkieModule, h5_path: str):
         p = _get_tf_layer(root, _conv_name(conv_i))
         conv_i += 1
         tf_kernel = p["kernel:0"]  # (K, C_in, C_out) in TF
-        expected_in = SPECIES_OFFSET + NUM_SPECIES  # 170
+        expected_in = model.conv_dna.conv.in_channels
         if tf_kernel.shape[1] != expected_in:
             raise ValueError(
                 f"conv_dna kernel has {tf_kernel.shape[1]} input channels "

@@ -347,6 +347,7 @@ def _build_dream_rnn_baseline(task: Benchmark, device: str, **cfg: Any) -> Any:
 
 MODELS: dict[str, ModelFactory] = {
     "shorkie": _build_shorkie,
+    "shorkie_random_init": _build_shorkie,
     "yorzoi": _build_yorzoi,
     "cai": _build_cai_baseline,
     "codon_transformer": _build_codon_transformer_baseline,
