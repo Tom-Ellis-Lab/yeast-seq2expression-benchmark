@@ -86,6 +86,12 @@ def _run_pair(cfg: Config, model_name: str, task_name: str, model_config: dict) 
         "task_version": task.info.version,
         **task.summary_dict(results),
     }
+    prediction_metadata = getattr(adapter, "benchmark_metadata", None)
+    if prediction_metadata is not None:
+        diagnostics = getattr(adapter, "benchmark_diagnostics", None)
+        if diagnostics is not None:
+            prediction_metadata = {**prediction_metadata, **diagnostics()}
+        summary["prediction_metadata"] = prediction_metadata
     (out_dir / "summary.json").write_text(json.dumps(summary, indent=2))
 
     (out_dir / "run_metadata.json").write_text(
@@ -98,6 +104,8 @@ def _run_pair(cfg: Config, model_name: str, task_name: str, model_config: dict) 
                 "config_hash": cfg.source_hash,
                 "device": cfg.device,
                 "model_config": model_config,
+                **({"prediction_metadata": prediction_metadata}
+                   if prediction_metadata is not None else {}),
                 "task_config": task_config,
                 "git_commit": _git_commit(),
                 "timestamp_utc": datetime.now(timezone.utc).isoformat(),

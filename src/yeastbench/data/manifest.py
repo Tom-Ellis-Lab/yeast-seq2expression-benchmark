@@ -19,6 +19,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Mapping
+from yeastbench.models.exoshorkie.checkpoints import CHECKPOINTS, STUDENT_MODELS
 
 
 # ──────────────────────────────────────────────────────────────
@@ -298,6 +299,20 @@ ARTIFACTS: tuple[Artifact, ...] = (
             ),
         ),
     ),
+    # One immutable, checksum-locked download per distilled student.
+    *(Artifact(
+        id=name,
+        kind=Kind.MODEL_WEIGHTS,
+        dest="data/models/exoshorkie",
+        needed_by=(name, "exoshorkie_ensemble"),
+        include=(CHECKPOINTS[variant].filename,),
+        license=License.PUBLIC,
+        redistributable=False,
+        mirrors=(Mirror(
+            BackendKind.HTTP,
+            base=CHECKPOINTS[variant].url.rsplit("/", 1)[0] + "/",
+        ),),
+    ) for name, variant in STUDENT_MODELS.items()),
     # Yorzoi + CodonTransformer: HF-hub models the adapters load via
     # from_pretrained at runtime. `get` warms the HF cache; nothing lands
     # under data/, so there's nothing to lock/verify locally.

@@ -1,43 +1,16 @@
-"""Shorkie adapter for the Chen synonymous-mutation MPRA benchmark.
+"""Shorkie readout for the shared Chen synonymous-MPRA pipeline."""
 
-Marginalises variant scoring over 20 native yeast loci active in YPD
-(see ``docs/benchmarks/chen_synonymous.md`` for the motivation and
-host-selection criteria). For each variant and each host:
-
-1. Splice the variant gene CDS + TADH1 into the host's CDS span
-   (strand-aware).
-2. Overwrite the 36 nt variable region with the variant's sequence.
-3. Forward through Shorkie's 8-fold ensemble (with RC averaging), track
-   subset = T0 RNA-seq, aggregate per-track mean.
-4. Sum coverage over the bins spanning the inserted variant CDS.
-5. logSED vs the REF (row-0 variant) score for the same host.
-
-The 20 per-host logSEDs are averaged into the final per-variant score.
-
-One adapter serves all Chen libraries: the per-library host contexts +
-REF caches (a "bundle") are built on demand and cached, so calling for a
-given library reproduces exactly what a single-library run would compute.
-
-Batching: REF predictions are computed once per (host) when a library's
-bundle is built. At predict time, each batch of variants is forward-passed
-across all 20 hosts in parallel. A single GPU forward sees a batch of
-``B * 20`` windows.
-"""
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Sequence
 
-import numpy as np
-from tqdm import tqdm
-
 from yeastbench.adapters._chen_marginalized import (
-    VAR_LEN, ChenHostContext, alt_block_oh, build_cassette, build_host_contexts,
+    ChenHostContext,
     load_hosts,
 )
-from yeastbench.adapters._genome import one_hot_encode_channels_first
+from yeastbench.adapters._chen_predictor import ChenMarginalizedBase, _Bundle
 from yeastbench.adapters._shorkie_constants import (
     BIN_WIDTH,
     CROP_BP_EACH_SIDE,
@@ -45,7 +18,6 @@ from yeastbench.adapters._shorkie_constants import (
     SEQ_LEN,
     SHORKIE_T0_RNA_SEQ_TRACK_IDS,
 )
-from yeastbench.adapters.protocols import LocalCodingVariantPredictor
 from yeastbench.models.shorkie import Shorkie
 
 if TYPE_CHECKING:
@@ -54,15 +26,13 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
-@dataclass
-class _Bundle:
-    """Per-library precomputed state (host contexts + REF caches)."""
-    contexts: list[ChenHostContext]
-    ref_oh_gpu: "torch.Tensor"          # (n_hosts, 4, SEQ_LEN)
-    ref_log: np.ndarray                 # (n_hosts,) log2(ref_sum + 1)
+class ShorkieChenPredictor(ChenMarginalizedBase):
+    description = "Shorkie"
+    seq_len = SEQ_LEN
+    crop_bp_each_side = CROP_BP_EACH_SIDE
+    bin_width = BIN_WIDTH
+    output_bins = OUTPUT_BINS
 
-
-class ShorkieChenPredictor(LocalCodingVariantPredictor):
     def __init__(
         self,
         model: Shorkie,
@@ -85,7 +55,9 @@ class ShorkieChenPredictor(LocalCodingVariantPredictor):
         self.hosts = load_hosts(hosts_path)
         self.data_dir = Path(data_dir)
         self._track_idx_gpu = _torch.tensor(
-            self.track_subset, device=self.model.device, dtype=_torch.long,
+            self.track_subset,
+            device=self.model.device,
+            dtype=_torch.long,
         )
         self._bundles: dict[str, _Bundle] = {}
 
@@ -104,7 +76,10 @@ class ShorkieChenPredictor(LocalCodingVariantPredictor):
     ) -> "ShorkieChenPredictor":
         return cls(
             Shorkie.from_checkpoints(
-                params_path, checkpoint_paths, device=device, use_rc=use_rc,
+                params_path,
+                checkpoint_paths,
+                device=device,
+                use_rc=use_rc,
             ),
             fasta_path=fasta_path,
             hosts_path=hosts_path,
@@ -113,47 +88,10 @@ class ShorkieChenPredictor(LocalCodingVariantPredictor):
             batch_size=batch_size,
         )
 
-    # ── Per-library bundle ────────────────────────────────────────────
-
-    def _bundle(self, library: str) -> _Bundle:
-        bundle = self._bundles.get(library)
-        if bundle is not None:
-            return bundle
-        import torch as _torch
-
-        cassette = build_cassette(library, self.fasta, self.data_dir)
-        contexts = build_host_contexts(
-            library=library, hosts=self.hosts, fasta=self.fasta,
-            cassette=cassette,
-            seq_len=SEQ_LEN, crop_bp_each_side=CROP_BP_EACH_SIDE,
-            bin_width=BIN_WIDTH, output_bins=OUTPUT_BINS,
-        )
-        log.info("%s: built %d host contexts (Shorkie geometry)",
-                 library, len(contexts))
-
-        # Cache REF one-hots on GPU. Shape: (n_hosts, 4, SEQ_LEN).
-        n = len(contexts)
-        ref_np = np.zeros((n, 4, SEQ_LEN), dtype=np.float32)
-        for i, ctx in enumerate(contexts):
-            ref_np[i] = one_hot_encode_channels_first(ctx.window_seq)
-        ref_oh_gpu = _torch.from_numpy(ref_np).to(self.model.device)
-
-        ref_exon_sums = self._predict_exon_sums(ref_oh_gpu, contexts).cpu().numpy()
-        ref_log = np.log2(ref_exon_sums + 1.0)
-        log.info(
-            "%s: REF exon-sums per host (min / max / median): %.2f / %.2f / %.2f",
-            library,
-            float(ref_exon_sums.min()), float(ref_exon_sums.max()),
-            float(np.median(ref_exon_sums)),
-        )
-        bundle = _Bundle(contexts=contexts, ref_oh_gpu=ref_oh_gpu, ref_log=ref_log)
-        self._bundles[library] = bundle
-        return bundle
-
-    # ── Internals ────────────────────────────────────────────────────
-
     def _predict_exon_sums(
-        self, batch_oh: "torch.Tensor", contexts: list[ChenHostContext],
+        self,
+        batch_oh: "torch.Tensor",
+        contexts: list[ChenHostContext],
     ) -> "torch.Tensor":
         """``batch_oh`` shape (B, 4, SEQ_LEN). Returns (B,) — CDS-bin sum
         per row, with row i interpreted as host index i % n_hosts.
@@ -176,85 +114,7 @@ class ShorkieChenPredictor(LocalCodingVariantPredictor):
         # Could be vectorised but n_hosts is small; per-host base slice is clearest.
         for h, ctx in enumerate(contexts):
             mask_rows = _torch.arange(h, B, n, device=cov.device)
-            out[mask_rows] = cov[mask_rows, ctx.cds_base_lo:ctx.cds_base_hi].sum(dim=1)
-        return out
-
-    def _splice_batch(
-        self, variant_seqs: Sequence[str], bundle: _Bundle,
-    ) -> "torch.Tensor":
-        """Returns one-hot tensor of shape (B_variants * n_hosts, 4, SEQ_LEN)
-        with each variant spliced into all 20 host REF windows."""
-        import torch as _torch
-
-        B = len(variant_seqs)
-        contexts = bundle.contexts
-        n = len(contexts)
-        # Pre-compute per-variant ALT blocks: one-hot, RC where needed per host.
-        # Resulting layout: per (var, host) pair, splice the variant block (RC'd
-        # if host is - strand) at var_start_in_window.
-        alt = bundle.ref_oh_gpu.unsqueeze(0).expand(B, -1, -1, -1).reshape(B * n, 4, SEQ_LEN).clone()
-
-        for v_idx, seq in enumerate(variant_seqs):
-            seq_upper = seq.upper()
-            if len(seq_upper) != VAR_LEN:
-                raise ValueError(f"variant_seq {v_idx} has {len(seq_upper)} nt")
-            # Build both fwd and rc one-hots once per variant (cheap, 36 nt).
-            fwd = _torch.from_numpy(alt_block_oh(seq_upper, needs_revcomp=False)).to(self.model.device)
-            rc  = _torch.from_numpy(alt_block_oh(seq_upper, needs_revcomp=True)).to(self.model.device)
-            for h_idx, ctx in enumerate(contexts):
-                row = v_idx * n + h_idx
-                s = ctx.var_start_in_window
-                alt[row, :, s : s + VAR_LEN] = rc if ctx.var_needs_revcomp else fwd
-        return alt
-
-    def _score_library(
-        self, variant_seqs: Sequence[str], bundle: _Bundle, library: str,
-    ) -> np.ndarray:
-        import torch as _torch
-
-        n_variants = len(variant_seqs)
-        n_hosts = len(bundle.contexts)
-        scores = np.empty(n_variants, dtype=np.float64)
-        ref_log_t = _torch.from_numpy(bundle.ref_log).to(self.model.device).to(_torch.float32)
-
-        for batch_start in tqdm(
-            range(0, n_variants, self.batch_size),
-            desc=f"Shorkie Chen marginalized {library}",
-        ):
-            batch_end = min(batch_start + self.batch_size, n_variants)
-            batch = variant_seqs[batch_start:batch_end]
-            B = len(batch)
-
-            alt_batch = self._splice_batch(batch, bundle)         # (B*n_hosts, 4, SEQ_LEN)
-            alt_sums = self._predict_exon_sums(alt_batch, bundle.contexts)  # (B*n_hosts,)
-            alt_sums = alt_sums.view(B, n_hosts)
-            alt_log = _torch.log2(alt_sums + 1.0)
-            logsed = (alt_log - ref_log_t.unsqueeze(0))           # (B, n_hosts)
-            scores[batch_start:batch_end] = logsed.mean(dim=1).cpu().numpy()
-
-        return scores
-
-    def predict_local_variants(
-        self,
-        library_ids: Sequence[str],
-        variant_seqs: Sequence[str],
-    ) -> np.ndarray:
-        library_ids = list(library_ids)
-        variant_seqs = list(variant_seqs)
-        scores = np.empty(len(variant_seqs), dtype=np.float64)
-
-        # Group by library (stable order) so each library is scored against its
-        # own host contexts; a single-library call (the benchmark's path) is one
-        # group in original order, bit-identical to a standalone run.
-        groups: dict[str, list[int]] = {}
-        for i, lib in enumerate(library_ids):
-            groups.setdefault(lib, []).append(i)
-
-        for library, idxs in groups.items():
-            bundle = self._bundle(library)
-            sub_scores = self._score_library(
-                [variant_seqs[i] for i in idxs], bundle, library,
+            out[mask_rows] = cov[mask_rows, ctx.cds_base_lo : ctx.cds_base_hi].sum(
+                dim=1
             )
-            for j, i in enumerate(idxs):
-                scores[i] = sub_scores[j]
-        return scores
+        return out
